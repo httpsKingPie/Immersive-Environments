@@ -19,7 +19,8 @@ local ObjectTracker = require(IEFolder["OT&AM"])
 
 --// SoundService
 
-local ActiveSounds
+local ActiveRegionSounds
+local ActiveServerSounds
 
 --// Workspace
 
@@ -69,16 +70,16 @@ local function BuildSettingsTables()
 end
 
 function module.Run()
-	if SoundService:FindFirstChild("ActiveSounds") == nil then
-		ActiveSounds = Instance.new("Folder")
-		ActiveSounds.Name = "ActiveSounds"
-		ActiveSounds.Parent = SoundService
+	if not SoundService:FindFirstChild("ActiveServerSounds") and RunService:IsServer() then --// We only want/need this created on the server
+		ActiveServerSounds = Instance.new("Folder")
+		ActiveServerSounds.Name = "ActiveServerSounds"
+		ActiveServerSounds.Parent = SoundService
 	end
-	
-	for i, v in pairs (ActiveSounds:GetChildren()) do --// Prevents sound glitching on respawn
-		if v.Name == "RegionSound" then
-			v:Destroy()
-		end
+
+	if not SoundService:FindFirstChild("ActiveRegionSounds") and RunService:IsClient() then --// We only want/need this create on the client
+		ActiveRegionSounds = Instance.new("Folder")
+		ActiveRegionSounds.Name = "ActiveRegionSounds"
+		ActiveRegionSounds.Parent = SoundService
 	end
 	
 	if RunService:IsClient() then
@@ -97,41 +98,23 @@ local function RegionSettingsCheck(RegionName)
 	end
 end
 
---// Resume with these functions
-
-local function HandleSound(SoundName, SoundSettings, RegionName)
-	if not ActiveSounds:FindFirstChild(RegionName) then
-		local NewFolder = Instance.new("Folder")
-		NewFolder.Name = RegionName
-		NewFolder.Parent = ActiveSounds
-	end
-	
-	if not ActiveSounds[RegionName]:FindFirstChild(SoundName) then --// Prevents sound duplication (ex: respawning in the same region)
-		local Sound = Instance.new("Sound")
-		Sound.Name = SoundName
-		Sound.SoundId = InternalSettings["AssetPrefix"] ..tostring(SoundSettings.SoundId)
-		
-		for SettingName, SettingValue in pairs (SoundSettings["Set"]) do
-			if SharedFunctions.CheckProperty(Sound, SettingName) then
-				--// Start here (just added the blacklisted sound properties, so just work on making them play etc. - might as well just handle tweens here
-			end
-		end
-	end
-end
-
-local function TweenIn(InstanceToTween, InstanceSettings)
+local function TweenIn(InstanceToTween: any, InstanceSettings: table, ClassName: string)
 	local ChangeTable = {}
 	local ToSetOnComplete = {}
 
 	for SettingName, SettingValue in pairs (InstanceSettings) do
-		if SharedFunctions.CheckProperty(InstanceToTween, SettingName) then
-			if table.find(InternalSettings["AlwaysSet"], SettingName) then
-				table.insert(ToSetOnComplete, SettingName)
+		if SharedFunctions.CheckProperty(InstanceToTween, SettingName) then --// Property exists
+			if not table.find(InternalSettings["BlacklistedSettings"], SettingName) and (not InternalSettings["BlacklistedSettingsClass"][ClassName] or not table.find(InternalSettings["BlacklistedSettingsClass"][ClassName], SettingName)) then --// Property isn't blacklisted either blanketly or by class (if class is provided)
+				if table.find(InternalSettings["AlwaysSet"], SettingName) then --// Check to see if property is marked as always one that is set
+					table.insert(ToSetOnComplete, SettingName)
+				else
+					ChangeTable[SettingName] = SettingValue
+				end
 			else
-				ChangeTable[SettingName] = SettingValue
+				warn(SettingName.. " unable to be modified")
 			end
 		else
-			warn(SettingName.. " is not a valid property of SoundService.  Check spelling")
+			warn(SettingName.. " is not a valid property.  Check spelling")
 		end
 	end
 
@@ -155,10 +138,39 @@ local function TweenOut(InstanceToTween, InstanceSettings)
 
 end
 
+--// Resume with these functions
+
+local function HandleSound(Type: string, SoundName, SoundSettings, RegionName)
+	if Type == "Region" then
+		local SoundRegionFolder = ActiveRegionSounds:FindFirstChild(RegionName)
+
+		if not SoundRegionFolder then
+			SoundRegionFolder = Instance.new("Folder")
+			SoundRegionFolder.Name = RegionName
+			SoundRegionFolder.Parent = ActiveRegionSounds
+		end
+
+		local Sound = SoundRegionFolder:FindFirstChild(SoundName)
+		
+		if not Sound then --// Prevents sound duplication (ex: respawning in the same region)
+			Sound = Instance.new("Sound")
+			Sound.Name = SoundName
+			Sound.SoundId = InternalSettings["AssetPrefix"] ..tostring(SoundSettings.SoundId)
+			Sound.Parent = SoundRegionFolder
+			
+			TweenIn(Sound, SoundSettings["Tween"], "Sound")
+			
+			Sound:Play()
+		end
+	end
+end
+
+
+
 
 local function HandleNewSounds(NewSoundSettings, RegionName)
 	for SoundName, SoundSettings in pairs (NewSoundSettings) do
-		HandleSound(SoundName, SoundSettings, RegionName)
+		HandleSound("Region", SoundName, SoundSettings, RegionName)
 	end
 end
 
@@ -179,7 +191,7 @@ function module.RegionEnter(RegionName) --// Client sided function only (RegionT
 	
 	for SettingCategory, SpecificSettings in pairs (RegionSettings) do
 		if SettingCategory == "SoundService" then
-			TweenIn(SoundService, SpecificSettings)
+			TweenIn(SoundService, SpecificSettings, "SoundService")
 		elseif SettingCategory == "NewSounds" then
 			HandleNewSounds(SpecificSettings, RegionName)
 		elseif SettingCategory == "ChangeSounds" then

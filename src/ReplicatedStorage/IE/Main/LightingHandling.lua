@@ -508,23 +508,23 @@ end
 local function Tween(Settings)
 	local AdjustOnlyLightsOn
 
-	if Settings["GeneralSettings"]["AdjustOnlyLightsOn"] ~= nil then
+	if Settings["GeneralSettings"]["AdjustOnlyLightsOn"] then
 		AdjustOnlyLightsOn = Settings["GeneralSettings"]["AdjustOnlyLightsOn"]
 	else
 		AdjustOnlyLightsOn = false
 	end
 
 	for ClassName, ClassSettings in pairs (Settings) do --// Changing Lighting Service and Children (ChanceOfChange does not apply here)
-		if InternalSettings["SettingInstanceCorrelations"][ClassName] ~= nil and InternalSettings["SettingInstanceCorrelations"][ClassName] ~= false then
+		if InternalSettings["SettingInstanceCorrelations"][ClassName] and InternalSettings["SettingInstanceCorrelations"][ClassName] ~= false then
 			local TargetInstance = InternalSettings["SettingInstanceCorrelations"][ClassName] --// Instance being changed, also used for determining setting validation
 
 			local ChangeTable = {}
 			local ToSetOnComplete = {}
 
 			for SettingName, SettingValue in pairs (ClassSettings) do --// Determines if settings are able to be used, etc.
-				if SharedFunctions.CheckProperty(TargetInstance, SettingName) ~= nil then
-					if table.find(InternalSettings["BlacklistedSettings"], SettingName) == nil and (InternalSettings["BlacklistedSettingsClass"][ClassName] == nil or table.find(InternalSettings["BlacklistedSettingsClass"][ClassName], SettingName) == nil) then
-						if table.find(InternalSettings["AlwaysSet"], SettingName) ~= nil or (InternalSettings["AlwaysSetClass"][ClassName] and table.find(InternalSettings["AlwaysSetClass"][ClassName], SettingName)) then
+				if SharedFunctions.CheckProperty(TargetInstance, SettingName) then
+					if not table.find(InternalSettings["BlacklistedSettings"], SettingName) and (not InternalSettings["BlacklistedSettingsClass"][ClassName] or not table.find(InternalSettings["BlacklistedSettingsClass"][ClassName], SettingName)) then
+						if table.find(InternalSettings["AlwaysSet"], SettingName) or (InternalSettings["AlwaysSetClass"][ClassName] and table.find(InternalSettings["AlwaysSetClass"][ClassName], SettingName)) then
 							table.insert(ToSetOnComplete, SettingName)
 						else
 							ChangeTable[SettingName] = SettingValue
@@ -751,8 +751,8 @@ local function Tween(Settings)
 															local NumberOfIndexes = #ToSetOnComplete
 
 															if NumberOfIndexes ~= 0 then
-																for i = 1, NumberOfIndexes do
-																	ChangeInstance[ToSetOnComplete[i]] = Settings["ComplexInstances"][ReferencePartName][Relationship][ClassName][InstanceName][ToSetOnComplete[i]]
+																for e = 1, NumberOfIndexes do
+																	ChangeInstance[ToSetOnComplete[e]] = Settings["ComplexInstances"][ReferencePartName][Relationship][ClassName][InstanceName][ToSetOnComplete[e]]
 																end
 															end
 														end)
@@ -827,11 +827,11 @@ local function AdjustStartTimes()
 end
 
 local function PopulateTimes() --// Creates a general table with i, as lighting period name and the times as content
-	for LightingPeriodName, LightingSettings in pairs (LightingSettingsTable) do
-		if LightingSettings["GeneralSettings"]["StartTime"] and LightingSettings["GeneralSettings"]["EndTime"] then
+	for LightingPeriodName, LightingPeriodSettings in pairs (LightingSettingsTable) do
+		if LightingPeriodSettings["GeneralSettings"]["StartTime"] and LightingPeriodSettings["GeneralSettings"]["EndTime"] then
 			LightingTimePeriods[LightingPeriodName] = {
-				["StartTime"] = LightingSettings["GeneralSettings"]["StartTime"],
-				["EndTime"] = LightingSettings["GeneralSettings"]["EndTime"],
+				["StartTime"] = LightingPeriodSettings["GeneralSettings"]["StartTime"],
+				["EndTime"] = LightingPeriodSettings["GeneralSettings"]["EndTime"],
 			}
 		end
 	end
@@ -936,8 +936,6 @@ local function RunSortedCheckCycle()
 		end
 	end
 
-	local StartTimeForNextPeriod = AdjustedTimePeriods[NextLightingIndex]["StartTime"]
-
 	while wait(Settings["CheckTime"]) do
 		local CurrentTime = Lighting.ClockTime
 
@@ -1021,11 +1019,11 @@ function module.TweenLighting(LightingName, WeatherOverride)
 	WaitForSettingsTables()
 
 	if LightingSettingsTable[LightingName] then
-		local LightingSettings = LightingSettingsTable[LightingName]
+		local NewLightingSettings = LightingSettingsTable[LightingName]
 
 		if Settings["ClientSided"] == false or RunService:IsClient() then
 			if InternalSettings["Weather"] == false or WeatherOverride == true then
-				Tween(LightingSettings)
+				Tween(NewLightingSettings)
 			end
 		else
 			if RunService:IsServer() then
@@ -1041,11 +1039,11 @@ function module.TweenWeather(WeatherName)
 	WaitForSettingsTables()
 
 	if WeatherSettingsTable[WeatherName] then
-		local WeatherSettings = WeatherSettingsTable[WeatherName]
+		local NewWeatherSettings = WeatherSettingsTable[WeatherName]
 
 		if Settings["ClientSided"] == false or RunService:IsClient() then
 			InternalSettings["Weather"] = true
-			Tween(WeatherSettings)
+			Tween(NewWeatherSettings)
 		else
 			if RunService:IsServer() then
 				LightingRemote:FireAllClients("Weather", WeatherName, "Tween")
@@ -1100,11 +1098,11 @@ function module.SetWeather(WeatherName)
 	WaitForSettingsTables()
 
 	if WeatherSettingsTable[WeatherName] then
-		local WeatherSettings = WeatherSettingsTable[WeatherName]
+		local NewWeatherSettings = WeatherSettingsTable[WeatherName]
 
 		if Settings["ClientSided"] == false or RunService:IsClient() then
 			InternalSettings["Weather"] = true
-			Set(WeatherSettings)
+			Set(NewWeatherSettings)
 		else
 			if RunService:IsServer() then
 				LightingRemote:FireAllClients("Weather", WeatherName, "Set")
@@ -1119,11 +1117,11 @@ function module.SetLighting(LightingName, WeatherOverride)
 	WaitForSettingsTables()
 
 	if LightingSettingsTable[LightingName] then
-		local LightingSettings = LightingSettingsTable[LightingName]
+		local NewLightingSettings = LightingSettingsTable[LightingName]
 
 		if Settings["ClientSided"] == false or RunService:IsClient() then
 			if InternalSettings["Weather"] == false or WeatherOverride == true then
-				Set(LightingSettings)
+				Set(NewLightingSettings)
 			end
 		else
 			if RunService:IsServer() then

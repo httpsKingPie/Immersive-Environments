@@ -4,9 +4,9 @@ local dayLength = 12
 local cycleTime = dayLength*60
 local minutesInADay = 24*60
 
-local lighting = game:GetService("Lighting")
+local Lighting = game:GetService("Lighting")
 
-local startTime = tick() - (lighting:getMinutesAfterMidnight() / minutesInADay)*cycleTime
+local startTime = tick() - (Lighting:GetMinutesAfterMidnight() / minutesInADay)*cycleTime
 local endTime = startTime + cycleTime
 
 local timeRatio = minutesInADay / cycleTime
@@ -23,6 +23,6 @@ repeat
 		endTime = startTime + cycleTime
 	end
 	
-	lighting:setMinutesAfterMidnight((currentTime - startTime)*timeRatio)
+	Lighting:SetMinutesAfterMidnight((currentTime - startTime)*timeRatio)
 	wait(1/15)
 until false

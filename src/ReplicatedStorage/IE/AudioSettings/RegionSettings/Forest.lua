@@ -1,9 +1,9 @@
 local module = {
 	["SoundService"] = {
-		["AmbientReverb"] = Enum.ReverbType.NoReverb,
-		["DistanceFactor"] = 3.33,
-		["DopplerScale"] = 1,
-		["RolloffScale"] = 1,
+		["AmbientReverb"] = Enum.ReverbType.UnderWater,
+		["DistanceFactor"] = 40,
+		["DopplerScale"] = 20,
+		["RolloffScale"] = 20,
 	},
 	
 	["ChangeSounds"] = {

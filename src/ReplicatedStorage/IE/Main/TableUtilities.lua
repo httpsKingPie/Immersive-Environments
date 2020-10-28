@@ -53,29 +53,28 @@ function tabela.TableToFolder(tabela, lugar)
 end
 
 -- FolderToTable: passe a pasta a ser transformada em tabela e a função retorna a tabela
+--// Note: Removed tabela variable because it was just local tabela = temp (i.e. redundant)
 function tabela.FolderToTable(folder)
 
 	local temp = {}
-	
-	local tabela = temp
 	
 	local children = folder:GetChildren()
 	
 	for key,obj in pairs(children)do
 		
 		if obj:IsA("Folder") then
-			tabela[obj.Name] = Utilities.Table.FolderToTable(obj)	
+			temp[obj.Name] = Utilities.Table.FolderToTable(obj)	
 			
 		elseif obj:IsA("IntValue") or obj:IsA("StringValue") or obj:IsA("BoolValue") then
 			
-			tabela[obj.Name] = {}
+			temp[obj.Name] = {}
 			
 			if type(obj.Value) == "string" then
-				tabela[obj.Name] = tostring(obj.Value)
+				temp[obj.Name] = tostring(obj.Value)
 			elseif type(obj.Value) == "boolean" then
-				tabela[obj.Name] = tostring(obj.Value)
+				temp[obj.Name] = tostring(obj.Value)
 			elseif type(obj.Value) == "number" then
-				tabela[obj.Name] = obj.Value
+				temp[obj.Name] = obj.Value
 				
 			end
 			
