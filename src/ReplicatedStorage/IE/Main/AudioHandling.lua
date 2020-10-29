@@ -98,7 +98,7 @@ local function RegionSettingsCheck(RegionName)
 	end
 end
 
-local function TweenIn(InstanceToTween: any, InstanceSettings: table, ClassName: string)
+local function TweenIn(InstanceToTween: any, InstanceSettings: table, ClassName: string) --// This is TweenIn rather than TweenSound because it also makes changes to the SoundService
 	local ChangeTable = {}
 	local ToSetOnComplete = {}
 
@@ -134,7 +134,7 @@ local function TweenIn(InstanceToTween: any, InstanceSettings: table, ClassName:
 	end)
 end
 
-local function TweenOut(InstanceToTween, InstanceSettings)
+local function TweenOut(InstanceToTween, InstanceSettings) --// This will TweenOut
 
 end
 
@@ -164,9 +164,6 @@ local function HandleSound(Type: string, SoundName, SoundSettings, RegionName)
 		end
 	end
 end
-
-
-
 
 local function HandleNewSounds(NewSoundSettings, RegionName)
 	for SoundName, SoundSettings in pairs (NewSoundSettings) do

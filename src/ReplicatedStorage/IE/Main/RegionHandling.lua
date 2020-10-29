@@ -5,6 +5,17 @@
 		Need to figure out how to add and remove regions
 		Add a folder into ActiveSounds for each region you enter and put the sounds there for easy management
 	Make sure that server sounds still occur even when regions are active (ex: a church bell dinging each hour)
+
+	Regions stored in InternalSettings are stored like {
+		[1] = "RegionFirstEntered",
+		[2] = "RegionSecondEntered",
+		[3] = "RegionThirdEntered",
+		etc.
+	}
+
+	with the actual region name replacing the "RegionFirstEntered"
+
+	Regions with a higher number (ex: 8) mean that this is the most recent region that the player entered.  Regions with a lower number (ex: 1) mean that was the least recent region the player entered.
 ]]
 
 local module = {}
@@ -25,6 +36,7 @@ local Main = script.Parent
 local AudioHandling = require(Main.AudioHandling)
 local InternalSettings = require(Main.InternalSettings)
 local LightingHandling = require(Main.LightingHandling)
+local SharedFunctions = require(Main.SharedFunctions)
 
 local IEFolder = Main.Parent
 
@@ -53,8 +65,8 @@ end
 local function PrintRegions()
 	local String = "Current Regions are: "
 
-	for i = 1, #InternalSettings["CurrentRegions"] do
-		String = String.. InternalSettings["CurrentRegions"][i].. ", "
+	for _, RegionName in ipairs (InternalSettings["CurrentRegions"]) do
+		String = String.. RegionName.. ", "
 	end
 
 	if String == "Current Regions are: " then
@@ -64,21 +76,83 @@ local function PrintRegions()
 	end
 end
 
+local function AddRegion(RegionName: string)
+	local NewIndex = 0
+
+	for Index, _ in ipairs (InternalSettings["CurrentRegions"]) do
+		NewIndex = Index
+	end
+
+	NewIndex = NewIndex + 1
+
+	print("New index is ".. tostring(NewIndex))
+
+	InternalSettings["CurrentRegions"][NewIndex] = RegionName
+	PrintRegions()
+end
+
+local function RemoveRegion(RegionName: string)
+	local RegionLeftIndex
+	local MaxIndex = 1
+
+	--// Get the index of the region left so that we can sort the dictionary
+	for Index, _RegionName in ipairs (InternalSettings["CurrentRegions"]) do
+		if _RegionName == RegionName then
+			RegionLeftIndex = Index
+		end
+
+		if Index > MaxIndex then
+			MaxIndex = Index
+		end
+	end
+
+	--// Check to see if an actual index is found, if one is not found this is fine because it also means that an region settings were applied to it.  More than likely this means someoene ran really quickly in and out of it.  If they already left before the ValidateRegions function had time to catch they were in there, it's probably fine
+	if not RegionLeftIndex then
+		warn(RegionName..  "was supposed to be removed, but was not found in CurrentRegions")
+		return
+	end
+
+	for Index, _RegionName in ipairs (InternalSettings["CurrentRegions"]) do
+		if Index > RegionLeftIndex then --// If it's an index lower than the number that was left, then it does not need resorting.
+			InternalSettings["CurrentRegions"][Index - 1] = _RegionName
+		end
+	end
+
+	InternalSettings["CurrentRegions"][MaxIndex] = nil
+
+	PrintRegions()
+end
+
+local function ClearRegions()
+	
+end
+
 local function ValidateRegions() --// Validates regions to make sure that players are actually in them
-	while true do	
+	local ReversedCurrentRegions = {}
+
+	for Index, _RegionName in ipairs (InternalSettings["CurrentRegions"]) do
+		ReversedCurrentRegions[_RegionName] = Index
+	end
+
+	while true do
+		print("Running validation")
 		for RegionType, AllRegions in pairs (InternalSettings["Regions"]) do --// (RegionType = "Audio" or "Lighting")
 			for RegionName, TrackedRegion in pairs (AllRegions) do
 				local Objects = TrackedRegion:getObjects()
+
+				if table.find(Objects, LocalPlayer) then --// Start here: validation function isn't picking the player up
+					print(LocalPlayer.Name .. " is being tracked in ".. RegionName)
+				end
 				
-				if table.find(Objects, LocalPlayer) and not table.find(InternalSettings["CurrentRegions"], RegionName) then --// Means the LocalPlayer is actually in the zone, but RegionHandling doesn't think they are
-					table.insert(InternalSettings["CurrentRegions"], RegionName)
-					print("Validation: adding ".. RegionName)
-					PrintRegions()
+				if table.find(Objects, LocalPlayer) and not ReversedCurrentRegions[RegionName] then --// Means the LocalPlayer is actually in the zone, but RegionHandling doesn't think they are
+					print("Character was not recorded as being in ".. RegionName .. " but is actually supposed to be there.  Adding.")
+					--table.insert(InternalSettings["CurrentRegions"], RegionName)
+					AddRegion(RegionName)
 					HandleRegionEnter(RegionType, RegionName)
-				elseif not table.find(Objects, LocalPlayer) and table.find(InternalSettings["CurrentRegions"], RegionName) then --// Means the LocalPlayer is not actually in the zone, but RegionHandling thinks they are
-					table.remove(InternalSettings["CurrentRegions"], table.find(InternalSettings["CurrentRegions"], RegionName))
-					print("Validation: removing ".. RegionName)
-					PrintRegions()
+				elseif not table.find(Objects, LocalPlayer) and ReversedCurrentRegions[RegionName] then --// Means the LocalPlayer is not actually in the zone, but RegionHandling thinks they are
+					print("Character was recorded as being in ".. RegionName.. " but is not actually supposed to be in there.  Removing.")
+					--table.remove(InternalSettings["CurrentRegions"], table.find(InternalSettings["CurrentRegions"], RegionName))
+					RemoveRegion(RegionName)
 					HandleRegionLeave(RegionType, RegionName)
 				end
 			end
@@ -103,7 +177,8 @@ local function DetectRegionChange(RegionName, Event) --// Used to determine regi
 			
 			return false
 		else
-			table.insert(InternalSettings["CurrentRegions"], RegionName) --// String
+			--table.insert(InternalSettings["CurrentRegions"], RegionName) --// String
+			AddRegion(RegionName)
 
 			DetectingRegionChange = false
 
@@ -112,7 +187,8 @@ local function DetectRegionChange(RegionName, Event) --// Used to determine regi
 	end
 	
 	local function LeftRegion(RegionName)
-		table.remove(InternalSettings["CurrentRegions"], table.find(InternalSettings["CurrentRegions"], RegionName))
+		--table.remove(InternalSettings["CurrentRegions"], table.find(InternalSettings["CurrentRegions"], RegionName))
+		RemoveRegion(RegionName)
 
 		DetectingRegionChange = false
 
@@ -210,6 +286,8 @@ function module.Run()
 		if Settings["AlwaysCheckInstances"] == true then
 			coroutine.wrap(CheckRegions)(true)
 		end
+
+		SharedFunctions.CharacterAdded(LocalPlayer, ClearRegions)
 	end
 end
 
