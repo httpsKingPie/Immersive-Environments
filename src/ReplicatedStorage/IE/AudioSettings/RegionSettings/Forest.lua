@@ -6,9 +6,9 @@ local module = {
 		["RolloffScale"] = 20,
 	},
 	
-	["ChangeSounds"] = {
-		["SoundName"] = {
-			["SoundId"] = "410408981",
+	["SharedSounds"] = {
+		["TestSound8"] = {
+			["SoundId"] = "946008702",
 			
 			["Set"] = {
 				
@@ -20,7 +20,7 @@ local module = {
 		},
 	},
 	
-	["NewSounds"] = {
+	["RegionSounds"] = {
 		["TestSoundName"] = {
 			["SoundId"] = "410408981",
 
@@ -34,12 +34,15 @@ local module = {
 		},
 	},
 	
-	["RandomChanceSounds"] = {
+	["RandomChanceSounds"] = { --// These do not tween
 		["SoundName"] = {
 			["ChanceOfPlay"] = 100,
 			["Frequency"] = 10,
 			["SoundId"] = "410408981",
-			["Volume"] = .5,
+			
+			["Set"] = {
+				["Volume"] = .5,
+			}
 		},
 	},
 }

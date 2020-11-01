@@ -124,35 +124,44 @@ local function RemoveRegion(RegionName: string)
 end
 
 local function ClearRegions()
-	
+	InternalSettings["CurrentRegions"] = {}
 end
 
 local function ValidateRegions() --// Validates regions to make sure that players are actually in them
-	local ReversedCurrentRegions = {}
-
-	for Index, _RegionName in ipairs (InternalSettings["CurrentRegions"]) do
-		ReversedCurrentRegions[_RegionName] = Index
-	end
-
 	while true do
-		print("Running validation")
-		--print(InternalSettings["Regions"])
+		local ReversedCurrentRegions = {}
+
+		for Index, _RegionName in ipairs (InternalSettings["CurrentRegions"]) do
+			ReversedCurrentRegions[_RegionName] = Index
+		end
+
 		for RegionType, AllRegions in pairs (InternalSettings["Regions"]) do --// (RegionType = "Audio" or "Lighting")
 			for RegionName, TrackedRegion in pairs (AllRegions) do
 				local Objects = TrackedRegion:getObjects()
 
-				print(RegionName.. tostring(#Objects))
+				local SimpleObjectTable = {}
 
-				if table.find(Objects, LocalPlayer) then --// Start here: validation function isn't picking the player up
-					print(LocalPlayer.Name .. " is being tracked in ".. RegionName)
+				local ActuallyInRegion
+
+				for Index, ObjectDetails in ipairs (Objects) do
+					local ObjectInRegion = ObjectDetails["Object"]
+
+					if ObjectInRegion then
+						if ObjectInRegion.Parent and ObjectInRegion.Parent:FindFirstChildWhichIsA("Humanoid") and Players:GetPlayerFromCharacter(ObjectInRegion.Parent) then
+							ActuallyInRegion = true
+							break
+						end
+					end
 				end
+
+				local RecordedInRegion = ReversedCurrentRegions[RegionName] --// will be nil if no, and something if true
 				
-				if table.find(Objects, LocalPlayer) and not ReversedCurrentRegions[RegionName] then --// Means the LocalPlayer is actually in the zone, but RegionHandling doesn't think they are
+				if ActuallyInRegion and not RecordedInRegion then --// Means the LocalPlayer is actually in the zone, but RegionHandling doesn't think they are
 					print("Character was not recorded as being in ".. RegionName .. " but is actually supposed to be there.  Adding.")
 					--table.insert(InternalSettings["CurrentRegions"], RegionName)
 					AddRegion(RegionName)
 					HandleRegionEnter(RegionType, RegionName)
-				elseif not table.find(Objects, LocalPlayer) and ReversedCurrentRegions[RegionName] then --// Means the LocalPlayer is not actually in the zone, but RegionHandling thinks they are
+				elseif not ActuallyInRegion and RecordedInRegion then --// Means the LocalPlayer is not actually in the zone, but RegionHandling thinks they are
 					print("Character was recorded as being in ".. RegionName.. " but is not actually supposed to be in there.  Removing.")
 					--table.remove(InternalSettings["CurrentRegions"], table.find(InternalSettings["CurrentRegions"], RegionName))
 					RemoveRegion(RegionName)
@@ -165,7 +174,7 @@ local function ValidateRegions() --// Validates regions to make sure that player
 	end
 end
 
-local function DetectRegionChange(RegionName, Event) --// Used to determine region changes in case onEnter or onLeave fire in the wrong order
+--[[local function DetectRegionChange(RegionName, Event) --// Used to determine region changes in case onEnter or onLeave fire in the wrong order
 	local function DuplicateRegion(RegionName)
 		if table.find(InternalSettings["CurrentRegions"], RegionName) then
 			return true
@@ -223,16 +232,17 @@ local function DetectRegionChange(RegionName, Event) --// Used to determine regi
 	else
 		return(LeftRegion(RegionName))
 	end
-end
+end]]
 
 
 local function CheckRegions(Looping)
 	local function HandleRegion(Descendants, RegionType) --// RegionName is either Audio or Lighting (used for organization)
+
+		InternalSettings["Regions"][RegionType] = {}
+
 		for i = 1, #Descendants do
 			local RegionName = Descendants[i].Name
 			local TrackedRegion = ObjectTracker.addArea(RegionName, Descendants[i])
-			
-			InternalSettings["Regions"][RegionType] = {}
 			
 			InternalSettings["Regions"][RegionType][RegionName] = TrackedRegion
 			
@@ -241,11 +251,14 @@ local function CheckRegions(Looping)
 					return
 				end
 				
-				EnteredRegionTime = os.time()
+				AddRegion(RegionName)
+				HandleRegionEnter(RegionType, RegionName)
+
+				--EnteredRegionTime = os.time()
 				
-				if DetectRegionChange(RegionName, "onEnter") == true then --// When it returns false that means it tried to add the same region twice
-					HandleRegionEnter(RegionType, RegionName)
-				end
+				--if DetectRegionChange(RegionName, "onEnter") == true then --// When it returns false that means it tried to add the same region twice
+					--HandleRegionEnter(RegionType, RegionName)
+				--end
 			end)
 			
 			TrackedRegion.onLeave:Connect(function(Player)
@@ -253,11 +266,14 @@ local function CheckRegions(Looping)
 					return
 				end
 				
-				LeftRegionTime = os.time()
-				
-				if DetectRegionChange(RegionName, "onLeave") == true then
-					HandleRegionLeave(RegionType, RegionName)
-				end
+				RemoveRegion(RegionName)
+				HandleRegionLeave(RegionType, RegionName)
+
+				--LeftRegionTime = os.time()
+
+				--if DetectRegionChange(RegionName, "onLeave") == true then
+					--HandleRegionLeave(RegionType, RegionName)
+				--end
 			end)
 		end
 	end
@@ -270,8 +286,6 @@ local function CheckRegions(Looping)
 		
 		HandleRegion(AudioDescendants, "Audio")
 		HandleRegion(LightingDescendants, "Lighting")
-
-		print(InternalSettings["Regions"]["Audio"])
 
 		if Looping ~= nil and Looping == true then
 			wait(Settings["RegionCheckTime"])
