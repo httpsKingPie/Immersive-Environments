@@ -329,18 +329,6 @@ local function WaitForSettingsTables()
 	end
 end
 
-local function DoesChange(ChanceOfChange)
-	if ChanceOfChange == nil or ChanceOfChange == 100 then
-		return true
-	else	
-		if math.random(1, 100) <= ChanceOfChange then
-			return true
-		else
-			return false
-		end
-	end
-end
-
 local function Set(Settings)
 	local AdjustOnlyLightsOn
 
@@ -403,7 +391,7 @@ local function Set(Settings)
 							BuildLitLightTable("Normal", ClassName, InstanceName, ChangeTable)
 						end
 
-						if DoesChange(ChanceOfChange) then
+						if SharedFunctions.DoesChange(ChanceOfChange) then
 							for ApprovedSettingName, ApprovedSettingValue in pairs (ChangeTable) do
 								_Instance[ApprovedSettingName] = ApprovedSettingValue
 							end
@@ -450,7 +438,7 @@ local function Set(Settings)
 					--// Above conditional simplified just means, if the settings says to only adjust the lights on, and the complex instance is one that does have the LightsOn status, and the current instance is "on" then proceed, or if the Setting does not abide to only lights on the proceed
 					if ReferencePart.Parent ~= nil then
 
-						if DoesChange(ChanceOfChange) then
+						if SharedFunctions.DoesChange(ChanceOfChange) then
 
 							for Relationship, ClassNames in pairs (Relationships) do
 								if Relationship == "LightsOn" then
@@ -602,7 +590,7 @@ local function Tween(Settings)
 							BuildLitLightTable("Normal", ClassName, InstanceName, ChangeTable)
 						end
 
-						if DoesChange(ChanceOfChange) then
+						if SharedFunctions.DoesChange(ChanceOfChange) then
 							local ChangeTween = TweenService:Create(_Instance, TweenInformation, ChangeTable)
 							ChangeTween:Play()
 
@@ -651,7 +639,7 @@ local function Tween(Settings)
 					end
 					
 					for i = 1, #InstanceTable[ClassName][InstanceName] do --// Changes the settings
-						if DoesChange(ChanceOfChange) then
+						if SharedFunctions.DoesChange(ChanceOfChange) then
 							local TargetInstance = InstanceTable[ClassName][InstanceName][i]
 							local ChangeTween = TweenService:Create(TargetInstance, TweenInformation, ChangeTable)
 							ChangeTween:Play()
@@ -706,7 +694,7 @@ local function Tween(Settings)
 				if (AdjustOnlyLightsOn == true and ListOfLights[ReferencePartName] == true and ComplexInstanceTable[ReferencePartName][ReferencePart]["LightsOn"] == true) or AdjustOnlyLightsOn == false then
 					--// Above conditional simplified just means, if the settings says to only adjust the lights on, and the complex instance is one that does have the LightsOn status, and the current instance is "on" then proceed, or if the Setting does not abide to only lights on the proceed
 					if ReferencePart.Parent ~= nil then
-						if DoesChange(ChanceOfChange) then
+						if SharedFunctions.DoesChange(ChanceOfChange) then
 							for Relationship, ClassNames in pairs (Relationships) do
 								if type(ClassNames) == "table" then --// Catches the LightsOn property in ComplexInstanceTable
 									for ClassName, Instances in pairs (ClassNames) do

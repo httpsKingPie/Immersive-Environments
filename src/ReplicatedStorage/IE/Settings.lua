@@ -23,10 +23,12 @@ local module = {
 	--// Audio Settings
 	
 	["AudioTweenInformation"] = TweenInfo.new(
-		1.5, --// Recommended to only adjust the time variable (default set to 1.5 seconds)
+		3, --// Recommended to only adjust the time variable (default set to 3 seconds)
 		Enum.EasingStyle.Linear
 	),
-	
+	["GenerateNewRandomSounds"] = false, --// Generates new round sounds each time (each Sound is destroyed once it is finished if set to true)
+	["WaitForRandomSoundToEnd"] = false, --// Waits for a random sound that is set to play to finish before looping
+
 	--// Region Settings
 	
 	["BackupValidation"] = 5, --// This is the amount of time between when the server does backup validation

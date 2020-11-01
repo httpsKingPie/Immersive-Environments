@@ -96,12 +96,38 @@ function module.Run()
 	BuildSettingsTables()
 end
 
-local function RegionSettingsCheck(RegionName)
+local function GetRegionSettings(RegionName)
 	if SettingsTable["Region"][RegionName] then
-		return true
+		return SettingsTable["Region"][RegionName]
 	else
 		warn(tostring(RegionName).. " not found within SettingsTable")
-		return false
+		return nil
+	end
+end
+
+local function GetRegionSoundFolder(RegionName: string)
+	local RegionSoundFolder = ActiveRegionSounds:FindFirstChild(RegionName)
+
+	if not RegionSoundFolder then
+		RegionSoundFolder = Instance.new("Folder")
+		RegionSoundFolder.Name = RegionName
+		RegionSoundFolder.Parent = ActiveRegionSounds
+	end
+
+	return RegionSoundFolder
+end
+
+local function Set(InstanceToSet: any, InstanceSettings: table, ClassName: string) --// RegionName optional, just in case a manual audio change is wanted
+	for SettingName, SettingValue in pairs (InstanceSettings) do
+		if SharedFunctions.CheckProperty(InstanceToSet, SettingName) then --// Property exists
+			if not table.find(InternalSettings["BlacklistedSettings"], SettingName) and (not InternalSettings["BlacklistedSettingsClass"][ClassName] or not table.find(InternalSettings["BlacklistedSettingsClass"][ClassName], SettingName)) then --// Property isn't blacklisted either blanketly or by class (if class is provided)
+				InstanceToSet[SettingName] = SettingValue
+			else
+				warn(SettingName.. " unable to be modified")
+			end
+		else
+			warn(SettingName.. " is not a valid property.  Check spelling")
+		end
 	end
 end
 
@@ -153,18 +179,6 @@ local function TweenOut(InstanceToTween: any)
 	end
 end
 
-local function GetRegionSoundFolder(RegionName: string)
-	local RegionSoundFolder = ActiveRegionSounds:FindFirstChild(RegionName)
-
-	if not RegionSoundFolder then
-		RegionSoundFolder = Instance.new("Folder")
-		RegionSoundFolder.Name = RegionName
-		RegionSoundFolder.Parent = ActiveRegionSounds
-	end
-
-	return RegionSoundFolder
-end
-
 local function TweenOutRegionSounds(RegionName)
 	local RegionSoundFolder = GetRegionSoundFolder(RegionName)
 
@@ -173,29 +187,43 @@ local function TweenOutRegionSounds(RegionName)
 	end
 end
 
-local function TweenOutSharedSounds()
+local function AdjustSharedSounds() --// Determines whether a SharedSound is still being used, whether it needs to change, etc.
+	local SoundMaxIndexTable = {} --// Format is [SoundInstance] = IndexNumber
+	--// This is used so that the shared sound goes to the region that the player had entered most recently (index number represents this, reference further above in script)
+	
 	local CurrentSharedSounds = SharedSounds:GetChildren()
 
 	for Index, RegionName in ipairs (InternalSettings["CurrentRegions"]) do
-		if SettingsTable[RegionName] then
-			break
-		end
+		local RegionSettings = GetRegionSettings(RegionName)
 
-		local RegionSharedSounds = SettingsTable[RegionName]["SharedSounds"]
-
-		for i = 1, #CurrentSharedSounds do
-			if RegionSharedSounds[CurrentSharedSounds[i]] then
-				table.remove(CurrentSharedSounds, i)
+		if RegionSettings then
+			local RegionSharedSounds = RegionSettings["SharedSounds"]
+			
+			if RegionSharedSounds then
+				for i = 1, #CurrentSharedSounds do
+					if RegionSharedSounds[CurrentSharedSounds[i].Name] then
+						SoundMaxIndexTable[CurrentSharedSounds[i]] = Index
+						table.remove(CurrentSharedSounds, i)
+					end
+				end
 			end
 		end
+	end
+
+	for Sound, Index in pairs (SoundMaxIndexTable) do
+		local RegionName = InternalSettings["CurrentRegions"][Index]
+
+		local RegionSettings = GetRegionSettings(RegionName)
+
+		local SoundSettings = RegionSettings["SharedSounds"][Sound.Name]["Tween"]
+
+		Tween(Sound, SoundSettings, "Sound")
 	end
 
 	for i = 1, #CurrentSharedSounds do
 		TweenOut(CurrentSharedSounds[i])
 	end
 end
-
---// Resume with these functions
 
 local function HandleSound(SoundName: string, SoundSettings, SoundFolder: Folder, TweenOverride: boolean) --// TweenOverride is used for SharedSounds
 	local Sound = SoundFolder:FindFirstChild(SoundName)
@@ -206,50 +234,107 @@ local function HandleSound(SoundName: string, SoundSettings, SoundFolder: Folder
 		Sound = Instance.new("Sound")
 		Sound.Name = SoundName
 		Sound.SoundId = InternalSettings["AssetPrefix"] ..tostring(SoundSettings.SoundId)
+		Sound.Looped = true
 		Sound.Parent = SoundFolder
 
 		CreatedSound = true
 	end
 
 	if CreatedSound or TweenOverride then
+		Set(Sound, SoundSettings["Set"], "Sound")
 		Tween(Sound, SoundSettings["Tween"], "Sound")
 
-		Sound:Play()
-
-		print("Playing sound" .. SoundName)
+		if CreatedSound then
+			Sound:Play()
+			print("Playing sound " .. SoundName)
+		else
+			print("Adjusting sound ".. SoundName)
+		end
 	end
 end
 
-local function GenerateRegionSounds(NewSoundSettings, RegionName)
-	print("Generating region sounds")
-
+local function GenerateRegionSounds(RegionSoundSettings, RegionName)
 	local RegionSoundFolder = GetRegionSoundFolder(RegionName)
 
-	for SoundName, SoundSettings in pairs (NewSoundSettings) do
+	for SoundName, SoundSettings in pairs (RegionSoundSettings) do
 		HandleSound(SoundName, SoundSettings, RegionSoundFolder)
 	end
 end
 
-local function HandleSharedSounds(SharedSoundSettings, RegionName)
-	print("Generating shared sounds")
-
+local function HandleSharedSounds(SharedSoundSettings)
 	for SoundName, SoundSettings in pairs (SharedSoundSettings) do
 		HandleSound(SoundName, SoundSettings, SharedSounds, true)
 	end
 end
 
-local function GenerateRandomSounds(RandomSoundSettings, RegionName) --// These are really a subset of RegionSounds
-	print("Generating random sounds")
+local function HandleRandomSound(SoundName: string, SoundSettings, SoundFolder: Folder)
+	local RegionName = SoundFolder.Name
 
+	local Sound = SoundFolder:FindFirstChild(SoundName)
+	
+	if not Sound then --// Prevents sound duplication (ex: respawning in the same region)
+		--// Not these sounds are not looped by default
+		Sound = Instance.new("Sound")
+		Sound.Name = SoundName
+		Sound.SoundId = InternalSettings["AssetPrefix"] ..tostring(SoundSettings.SoundId)
+
+		if Settings["GenerateNewRandomSounds"] == false then
+			Sound.Parent = SoundFolder
+		end
+	end
+
+	Set(Sound, SoundSettings["Set"], "Sound")
+
+	while true do
+		wait(SoundSettings["Frequency"])
+
+		if SharedFunctions.DoesChange(SoundSettings["ChanceOfPlay"]) then
+			if table.find(InternalSettings["CurrentRegionsQuick"], RegionName) and Sound then --// Validates that the player is still in the region and that the Sound instance still exists
+				if Settings["GenerateNewRandomSounds"] == true then
+					local SoundClone = Sound:Clone()
+					SoundClone.Parent = SoundFolder
+					SoundClone:Play()
+
+					if SettingsTable["WaitForRandomSoundToEnd"] == true then --// Generating new sounds + must wait for each sound to finish
+						SoundClone.Ended:Wait()
+						SoundClone:Destroy()
+					else --// Generating new sounds + do not have to wait for each sound to finish
+						SoundClone.Ended:Connect(function()
+							SoundClone:Destroy()
+						end)
+					end
+				else 
+					Sound:Play() --// Just using one sound instance
+
+					if SettingsTable["WaitForRandomSoundToEnd"] == true then --// Just using one sound instance + must wait for the sound to finish
+						Sound.Ended:Wait()
+					end
+				end
+			else
+				if Settings["GenerateNewRandomSounds"] == true then
+					Sound:Destroy() --// Otherwise this instance will just be floating in memory
+				end
+
+				return
+			end
+		end
+	end
+end
+
+local function GenerateRandomSounds(RandomSoundSettings, RegionName) --// These are really a subset of RegionSounds
 	local RegionSoundFolder = GetRegionSoundFolder(RegionName)
+
+	for SoundName, SoundSettings in pairs (RandomSoundSettings) do
+		coroutine.wrap(HandleRandomSound)(SoundName, SoundSettings, RegionSoundFolder)
+	end
 end
 
 function module.RegionEnter(RegionName) --// Client sided function only (RegionType is either Audio or Lighting, RegionName equivalent to the Setting name)
-	if not RegionSettingsCheck(RegionName) then
+	local RegionSettings = GetRegionSettings(RegionName)
+
+	if not RegionSettings then
 		return
 	end
-	
-	local RegionSettings = SettingsTable["Region"][RegionName]
 	
 	for SettingCategory, SpecificSettings in pairs (RegionSettings) do
 		if SettingCategory == "SoundService" then
@@ -257,38 +342,28 @@ function module.RegionEnter(RegionName) --// Client sided function only (RegionT
 		elseif SettingCategory == "RegionSounds" then
 			GenerateRegionSounds(SpecificSettings, RegionName)
 		elseif SettingCategory == "SharedSounds" then
-			HandleSharedSounds(SpecificSettings, RegionName)
-		elseif SettingCategory == "RandomChanceSounds" then
+			HandleSharedSounds(SpecificSettings)
+		elseif SettingCategory == "RandomSounds" then
 			GenerateRandomSounds(SpecificSettings, RegionName)
 		end
 	end 
 end
 
 function module.RegionLeave(RegionName) --// Client sided function only (RegionType is either Audio or Lighting, RegionName equivalent to the Setting name)
-	if not RegionSettingsCheck(RegionName) then
+	local RegionSettings = GetRegionSettings(RegionName)
+
+	if not RegionSettings then
 		return
 	end
-	
-	local RegionSettings = SettingsTable["Region"][RegionName]
 
 	for SettingCategory, SpecificSettings in pairs (RegionSettings) do
 		if SettingCategory == "SoundService" then
 			
-		elseif SettingCategory == "SharedSounds" then
-
 		end
 	end
 
 	TweenOutRegionSounds(RegionName)
-	TweenOutSharedSounds()
-end
-
-function module.Set(AudioName, RegionName) --// RegionName optional, just in case a manual audio change is wanted
-	
-end
-
-function module.Tween(AudioName, RegionName) --// RegionName optional, just in case a manual audio change is wanted
-	
+	AdjustSharedSounds()
 end
 
 return module

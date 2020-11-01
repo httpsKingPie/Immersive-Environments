@@ -7,8 +7,8 @@ local module = {
 	},
 	
 	["SharedSounds"] = {
-		["TestSound8"] = {
-			["SoundId"] = "946008702",
+		["OP"] = {
+			["SoundId"] = "2001961411",
 			
 			["Set"] = {
 				
@@ -21,29 +21,11 @@ local module = {
 	},
 	
 	["RegionSounds"] = {
-		["TestSoundName"] = {
-			["SoundId"] = "410408981",
-
-			["Set"] = {
-
-			},
-
-			["Tween"] = {
-				["Volume"] = .5,
-			},
-		},
+		
 	},
 	
 	["RandomSounds"] = { --// These do not tween
-		["Gun shot"] = {
-			["ChanceOfPlay"] = 10,
-			["Frequency"] = .1,
-			["SoundId"] = "680140087",
-			
-			["Set"] = {
-				["Volume"] = .25,
-			}
-		},
+		
 	},
 }
 

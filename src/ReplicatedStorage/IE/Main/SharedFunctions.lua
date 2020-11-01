@@ -84,4 +84,18 @@ function module.CharacterAdded(Player: Player, BoundFunction, ...)
 	end)
 end
 
+function module.DoesChange(ChanceOfChange: number)
+	if ChanceOfChange == nil or ChanceOfChange == 100 then
+		return true
+	else	
+		if math.random(1, 100) <= ChanceOfChange then
+			return true
+		else
+			return false
+		end
+	end
+end
+
+math.randomseed(tick())
+
 return module

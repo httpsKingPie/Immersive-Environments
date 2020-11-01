@@ -85,9 +85,8 @@ local function AddRegion(RegionName: string)
 
 	NewIndex = NewIndex + 1
 
-	print("New index is ".. tostring(NewIndex))
-
 	InternalSettings["CurrentRegions"][NewIndex] = RegionName
+	table.insert(InternalSettings["CurrentRegionsQuick"], RegionName)
 	PrintRegions()
 end
 
@@ -119,12 +118,14 @@ local function RemoveRegion(RegionName: string)
 	end
 
 	InternalSettings["CurrentRegions"][MaxIndex] = nil
+	table.remove(InternalSettings["CurrentRegionsQuick"], table.find(InternalSettings["CurrentRegionsQuick"], RegionName))
 
 	PrintRegions()
 end
 
 local function ClearRegions()
 	InternalSettings["CurrentRegions"] = {}
+	InternalSettings["CurrentRegionsQuick"] = {}
 end
 
 local function ValidateRegions() --// Validates regions to make sure that players are actually in them
