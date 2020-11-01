@@ -136,9 +136,12 @@ local function ValidateRegions() --// Validates regions to make sure that player
 
 	while true do
 		print("Running validation")
+		--print(InternalSettings["Regions"])
 		for RegionType, AllRegions in pairs (InternalSettings["Regions"]) do --// (RegionType = "Audio" or "Lighting")
 			for RegionName, TrackedRegion in pairs (AllRegions) do
 				local Objects = TrackedRegion:getObjects()
+
+				print(RegionName.. tostring(#Objects))
 
 				if table.find(Objects, LocalPlayer) then --// Start here: validation function isn't picking the player up
 					print(LocalPlayer.Name .. " is being tracked in ".. RegionName)
@@ -267,6 +270,8 @@ local function CheckRegions(Looping)
 		
 		HandleRegion(AudioDescendants, "Audio")
 		HandleRegion(LightingDescendants, "Lighting")
+
+		print(InternalSettings["Regions"]["Audio"])
 
 		if Looping ~= nil and Looping == true then
 			wait(Settings["RegionCheckTime"])
