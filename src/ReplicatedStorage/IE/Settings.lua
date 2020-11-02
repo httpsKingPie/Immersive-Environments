@@ -34,6 +34,12 @@ local module = {
 	["BackupValidation"] = 5, --// This is the amount of time between when the server does backup validation
 	["EventBuffer"] = .2, --// This is the amount of time that passes for IE to properly validate current regions.  Probably won't have to change this but just in case
 	["EventDifference"] = .5, --// This is the amount of time that must separate events to be considered for validation.  If more than this time has passed, then likely only event was fired
+
+	--// Time Settings
+
+	["EnableDayNightTransitions"] = true,
+	["TimeForDay"] = 12, --// The amount of minutes it takes to go from 0600 to 1800
+	["TimeForNight"] = 12, --// The amount of minutes it takes to go from 1800 to 0600
 }
 
 return module

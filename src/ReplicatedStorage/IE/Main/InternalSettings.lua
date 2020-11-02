@@ -79,6 +79,8 @@ local module = {
 
 	["CurrentRegionsQuick"] = {}, --// This is a table, not a dictionary, that just stores strings of RegionName so that table.find can be used quickly
 	
+	["DayNightWait"] = 1,
+	
 	["Initialized"] = false,
 	
 	["LightsActive"] = false,
