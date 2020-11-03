@@ -19,6 +19,16 @@ local function DayNightCycle()
 
     local MinutesToAddDay = DayRatio / TimesPerMin
     local MinutesToAddNight = NightRatio / TimesPerMin
+
+    while true do
+        wait(InternalSettings["DayNightWait"]) do
+            if Lighting.ClockTime > 18 or Lighting.ClockTime < 6 then --// Night time
+                Lighting:SetMinutesAfterMidnight(Lighting:GetMinutesAfterMidnight() + MinutesToAddNight)
+            else --// Day time
+                Lighting:SetMinutesAfterMidnight(Lighting:GetMinutesAfterMidnight() + MinutesToAddDay)
+            end
+        end
+    end
 end
 
 function module.Run()

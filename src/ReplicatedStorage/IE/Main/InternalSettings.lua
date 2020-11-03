@@ -79,6 +79,8 @@ local module = {
 
 	["CurrentRegionsQuick"] = {}, --// This is a table, not a dictionary, that just stores strings of RegionName so that table.find can be used quickly
 	
+	["DayNightCheck"] = 5, --// In seconds, the amount of time the script checks for whether times need to be adjusted (used for when Day and Night in-game time passage occur at different rates)
+	
 	["DayNightWait"] = 1,
 	
 	["Initialized"] = false,

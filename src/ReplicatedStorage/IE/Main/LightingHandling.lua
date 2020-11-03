@@ -1000,6 +1000,18 @@ function module.Run()
 		else
 			coroutine.wrap(RunCheckCycle)()
 		end
+
+		if Settings["RecheckDayNight"] == true then
+			local Check = coroutine.create(function()
+				while true do
+					wait(InternalSettings["DayNightWait"])
+
+					AdjustStartTimes()
+				end
+			end)
+			
+			coroutine.resume(Check)
+		end
 	end
 end
 

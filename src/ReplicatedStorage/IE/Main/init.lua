@@ -12,6 +12,7 @@ local Settings = require(script.Parent.Settings)
 local AudioHandling
 local LightingHandling
 local RegionHandling
+local TimeHandling
 
 local TableUtilities = require(script.TableUtilities)
 
@@ -25,6 +26,7 @@ local function InitializeModules() --// Done so that the Remotes are loaded firs
 	AudioHandling = require(script.AudioHandling)
 	LightingHandling = require(script.LightingHandling)
 	RegionHandling = require(script.RegionHandling)
+	TimeHandling = require(script.TimeHandling)
 end
 
 local function GenerateRemotes()
@@ -48,10 +50,11 @@ function module.Run()
 		InitializeModules()
 		Initialized = true
 	end
-	
-	RegionHandling.Run()
-	LightingHandling.Run()
-	AudioHandling.Run()
+	coroutine.wrap(TimeHandling.Run)()
+
+	coroutine.wrap(RegionHandling.Run)()
+	coroutine.wrap(LightingHandling.Run)()
+	coroutine.wrap(AudioHandling.Run)()
 end
 
 return module

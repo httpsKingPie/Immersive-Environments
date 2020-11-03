@@ -364,6 +364,26 @@ function module.RegionLeave(RegionName) --// Client sided function only (RegionT
 
 	TweenOutRegionSounds(RegionName)
 	AdjustSharedSounds()
+
+	local RegionFolder = ActiveRegionSounds:FindFirstChild(RegionName)
+
+	if RegionFolder then --// Destroys the folder
+		local Waiting = false
+
+		RegionFolder.ChildRemoved:Connect(function()
+			if Waiting == false then
+				Waiting = true
+
+				wait(.25) --// Waiting for all of the Sounds to be deleted
+
+				if #RegionFolder:GetChildren() == 0 then
+					RegionFolder:Destroy()
+				end
+
+				Waiting = false
+			end
+		end)
+	end
 end
 
 return module

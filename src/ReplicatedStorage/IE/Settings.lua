@@ -19,6 +19,7 @@ local module = {
 		20, --// Recommended to only adjust the time variable (default set to 20 seconds)
 		Enum.EasingStyle.Linear
 		),
+	["RecheckDayNight"] = false, --// Use this if day/night time passage is not continous (ex: TimeForDay and TimeForNight are different numbers)
 	
 	--// Audio Settings
 	
@@ -37,7 +38,7 @@ local module = {
 
 	--// Time Settings
 
-	["EnableDayNightTransitions"] = true,
+	["EnableDayNightTransitions"] = true, --// Turns on day/night cycle
 	["TimeForDay"] = 12, --// The amount of minutes it takes to go from 0600 to 1800
 	["TimeForNight"] = 12, --// The amount of minutes it takes to go from 1800 to 0600
 }
