@@ -14,6 +14,7 @@ local RemoteFolder = IEFolder:WaitForChild("RemoteFolder")
 local Settings = require(IEFolder.Settings)
 
 local InternalSettings = require(Main.InternalSettings)
+local InternalVariables = require(Main.InternalVariables)
 local SharedFunctions = require(Main.SharedFunctions)
 local TableUtilities = require(Main.TableUtilities)
 
@@ -42,7 +43,7 @@ local TweenInformation = Settings["LightingTweenInformation"]
 local LightingRemote = RemoteFolder:WaitForChild("LightingRemote")
 
 local function SetNextLightingIndex()
-	if CurrentLightingIndex + 1 <= Settings["TotalIndexes"] then
+	if CurrentLightingIndex + 1 <= InternalVariables["TotalLightingIndexes"] then
 		NextLightingIndex = CurrentLightingIndex + 1
 	else
 		NextLightingIndex = 1
@@ -319,12 +320,12 @@ local function BuildSettingsTables()
 		end
 	end
 
-	Settings["TotalIndexes"] = Count
-	InternalSettings["SettingTablesBuilt"] = true
+	InternalVariables["TotalLightingIndexes"] = Count
+	InternalVariables["LightingSettingTablesBuilt"] = true
 end
 
 local function WaitForSettingsTables()
-	while InternalSettings["SettingTablesBuilt"] == false do
+	while InternalVariables["LightingSettingTablesBuilt"] == false do
 		wait(.1)
 	end
 end
@@ -762,53 +763,129 @@ local function Tween(Settings)
 end
 
 local function AdjustStartTimes()
-	local ClockTime1 = Lighting.ClockTime
+	local Adjustment
+	local DiffernetTimes = false --// Default set to false (indicates whether time passes at different rates in the day vs night)
 
-	wait(Settings["AdjustmentTime"])
+	if Settings["DetectIndependentTimeChange"] == false then
+		if Settings["TimeForDay"] == Settings["TimeForNight"] then
+			Adjustment = InternalVariables["DayAdjustmentRate"]
+		else
+			DiffernetTimes = true
+		end
+	else
+		local ClockTime1 = Lighting.ClockTime
 
-	local ClockTime2 = Lighting.ClockTime
+		wait(Settings["AdjustmentTime"])
 
-	local RateOfTime --// A rate of in-game hours per second
+		local ClockTime2 = Lighting.ClockTime
 
-	if ClockTime1 == ClockTime2 then
-		warn("No day-night script is detected.  No adjustments made to times")
-		AdjustedTimePeriods = LightingTimePeriods
-		return
-	elseif ClockTime1 < ClockTime2 then
-		RateOfTime = (ClockTime2 - ClockTime1)/Settings["AdjustmentTime"]
-	else --// Midnight was crossed
-		RateOfTime = (24 - ClockTime2 - ClockTime1)/Settings["AdjustmentTime"]
+		local RateOfTime --// A rate of in-game hours per second
+
+		if ClockTime1 == ClockTime2 then
+			warn("No day-night script is detected.  No adjustments made to times")
+			AdjustedTimePeriods = LightingTimePeriods
+			return
+		elseif ClockTime1 < ClockTime2 then
+			RateOfTime = (ClockTime2 - ClockTime1)/Settings["AdjustmentTime"]
+		else --// Midnight was crossed
+			RateOfTime = (24 - ClockTime2 - ClockTime1)/Settings["AdjustmentTime"]
+		end
+
+		Adjustment = RateOfTime * TweenInformation.Time --// Adjustment results in a number of seconds for which all all Lighting Periods must have their start times adjusted
 	end
 
-	local Adjustment = RateOfTime * TweenInformation.Time --// Adjustment results in a number of seconds for which all all Lighting Periods must have their start times adjusted
-
 	AdjustedTimePeriods = LightingTimePeriods
-	if Settings["EnableSorting"] == true then
-		for _, PeriodSettings in ipairs (AdjustedTimePeriods) do
-			if PeriodSettings["StartTime"] - Adjustment >= 0 then
-				PeriodSettings["StartTime"] = PeriodSettings["StartTime"] - Adjustment
-			else
-				PeriodSettings["StartTime"] = 24 + PeriodSettings["StartTime"] - Adjustment
-			end
 
-			if PeriodSettings["EndTime"] - Adjustment >= 0 then
-				PeriodSettings["EndTime"] = PeriodSettings["EndTime"] - Adjustment
-			else
-				PeriodSettings["EndTime"] = 24 + PeriodSettings["EndTime"] - Adjustment
+	if DiffernetTimes == true then --// For when day (0600-1800) and night (1800-0600) pass at different rates
+		if Settings["EnableSorting"] == true then
+			for _, PeriodSettings in ipairs (AdjustedTimePeriods) do
+				if PeriodSettings["StartTime"] < 18 or PeriodSettings["StartTime"] >= 6 then --// If it starts during the day then
+					if PeriodSettings["StartTime"] - InternalVariables["DayAdjustmentRate"] >= 0 then
+						PeriodSettings["StartTime"] = PeriodSettings["StartTime"] - InternalVariables["DayAdjustmentRate"]
+					else
+						PeriodSettings["StartTime"] = 24 + PeriodSettings["StartTime"] - InternalVariables["DayAdjustmentRate"]
+					end
+				else --// If it starts during night
+					if PeriodSettings["StartTime"] - InternalVariables["NightAdjustmentRate"] >= 0 then
+						PeriodSettings["StartTime"] = PeriodSettings["StartTime"] - InternalVariables["NightAdjustmentRate"]
+					else
+						PeriodSettings["StartTime"] = 24 + PeriodSettings["StartTime"] - InternalVariables["NightAdjustmentRate"]
+					end
+				end
+
+				if PeriodSettings["EndTime"] < 18 or PeriodSettings["EndTime"] >= 6 then --// If it ends during the day then
+					if PeriodSettings["EndTime"] - InternalVariables["DayAdjustmentRate"] >= 0 then
+						PeriodSettings["EndTime"] = PeriodSettings["EndTime"] - InternalVariables["DayAdjustmentRate"]
+					else
+						PeriodSettings["EndTime"] = 24 + PeriodSettings["EndTime"] - InternalVariables["DayAdjustmentRate"]
+					end
+				else
+					if PeriodSettings["EndTime"] - InternalVariables["NightAdjustmentRate"] >= 0 then
+						PeriodSettings["EndTime"] = PeriodSettings["EndTime"] - InternalVariables["NightAdjustmentRate"]
+					else
+						PeriodSettings["EndTime"] = 24 + PeriodSettings["EndTime"] - InternalVariables["NightAdjustmentRate"]
+					end
+				end
+			end
+		else
+			for _, PeriodSettings in pairs (AdjustedTimePeriods) do
+				if PeriodSettings["StartTime"] < 18 or PeriodSettings["StartTime"] >= 6 then --// If it starts during the day then
+					if PeriodSettings["StartTime"] - InternalVariables["DayAdjustmentRate"] >= 0 then
+						PeriodSettings["StartTime"] = PeriodSettings["StartTime"] - InternalVariables["DayAdjustmentRate"]
+					else
+						PeriodSettings["StartTime"] = 24 + PeriodSettings["StartTime"] - InternalVariables["DayAdjustmentRate"]
+					end
+				else --// If it starts during night
+					if PeriodSettings["StartTime"] - InternalVariables["NightAdjustmentRate"] >= 0 then
+						PeriodSettings["StartTime"] = PeriodSettings["StartTime"] - InternalVariables["NightAdjustmentRate"]
+					else
+						PeriodSettings["StartTime"] = 24 + PeriodSettings["StartTime"] - InternalVariables["NightAdjustmentRate"]
+					end
+				end
+
+				if PeriodSettings["EndTime"] < 18 or PeriodSettings["EndTime"] >= 6 then --// If it ends during the day then
+					if PeriodSettings["EndTime"] - InternalVariables["DayAdjustmentRate"] >= 0 then
+						PeriodSettings["EndTime"] = PeriodSettings["EndTime"] - InternalVariables["DayAdjustmentRate"]
+					else
+						PeriodSettings["EndTime"] = 24 + PeriodSettings["EndTime"] - InternalVariables["DayAdjustmentRate"]
+					end
+				else
+					if PeriodSettings["EndTime"] - InternalVariables["NightAdjustmentRate"] >= 0 then
+						PeriodSettings["EndTime"] = PeriodSettings["EndTime"] - InternalVariables["NightAdjustmentRate"]
+					else
+						PeriodSettings["EndTime"] = 24 + PeriodSettings["EndTime"] - InternalVariables["NightAdjustmentRate"]
+					end
+				end
 			end
 		end
 	else
-		for _, PeriodSettings in pairs (AdjustedTimePeriods) do
-			if PeriodSettings["StartTime"] - Adjustment >= 0 then
-				PeriodSettings["StartTime"] = PeriodSettings["StartTime"] - Adjustment
-			else
-				PeriodSettings["StartTime"] = 24 + PeriodSettings["StartTime"] - Adjustment
-			end
+		if Settings["EnableSorting"] == true then
+			for _, PeriodSettings in ipairs (AdjustedTimePeriods) do
+				if PeriodSettings["StartTime"] - Adjustment >= 0 then
+					PeriodSettings["StartTime"] = PeriodSettings["StartTime"] - Adjustment
+				else
+					PeriodSettings["StartTime"] = 24 + PeriodSettings["StartTime"] - Adjustment
+				end
 
-			if PeriodSettings["EndTime"] - Adjustment >= 0 then
-				PeriodSettings["EndTime"] = PeriodSettings["EndTime"] - Adjustment
-			else
-				PeriodSettings["EndTime"] = 24 + PeriodSettings["EndTime"] - Adjustment
+				if PeriodSettings["EndTime"] - Adjustment >= 0 then
+					PeriodSettings["EndTime"] = PeriodSettings["EndTime"] - Adjustment
+				else
+					PeriodSettings["EndTime"] = 24 + PeriodSettings["EndTime"] - Adjustment
+				end
+			end
+		else
+			for _, PeriodSettings in pairs (AdjustedTimePeriods) do
+				if PeriodSettings["StartTime"] - Adjustment >= 0 then
+					PeriodSettings["StartTime"] = PeriodSettings["StartTime"] - Adjustment
+				else
+					PeriodSettings["StartTime"] = 24 + PeriodSettings["StartTime"] - Adjustment
+				end
+
+				if PeriodSettings["EndTime"] - Adjustment >= 0 then
+					PeriodSettings["EndTime"] = PeriodSettings["EndTime"] - Adjustment
+				else
+					PeriodSettings["EndTime"] = 24 + PeriodSettings["EndTime"] - Adjustment
+				end
 			end
 		end
 	end
@@ -993,7 +1070,7 @@ function module.Run()
 
 		module.GetCurrentLightingPeriod() --// Gets the current lighting period based off of ClockTime
 
-		module.SetLighting(CurrentLightingPeriod) --// Changes the lighting to the current lighting period
+		module.SetLighting(CurrentLightingPeriod) --// Changes the lighting to the current lighting period (initially)
 
 		if Settings["EnableSorting"] == true then
 			coroutine.wrap(RunSortedCheckCycle)()
@@ -1022,7 +1099,7 @@ function module.TweenLighting(LightingName, WeatherOverride)
 		local NewLightingSettings = LightingSettingsTable[LightingName]
 
 		if Settings["ClientSided"] == false or RunService:IsClient() then
-			if InternalSettings["Weather"] == false or WeatherOverride == true then
+			if InternalVariables["Weather"] == false or WeatherOverride == true then
 				Tween(NewLightingSettings)
 			end
 		else
@@ -1042,7 +1119,7 @@ function module.TweenWeather(WeatherName)
 		local NewWeatherSettings = WeatherSettingsTable[WeatherName]
 
 		if Settings["ClientSided"] == false or RunService:IsClient() then
-			InternalSettings["Weather"] = true
+			InternalVariables["Weather"] = true
 			Tween(NewWeatherSettings)
 		else
 			if RunService:IsServer() then
@@ -1056,11 +1133,11 @@ end
 
 function module.ClearWeather(Type)
 	if Type == "Set" then
-		InternalSettings["Weather"] = false
+		InternalVariables["Weather"] = false
 
 		Set(module.GetCurrentLightingPeriod(true))
 	elseif Type == "Tween" then
-		InternalSettings["Weather"] = false
+		InternalVariables["Weather"] = false
 
 		Tween(module.GetCurrentLightingPeriod(true))
 	end
@@ -1101,7 +1178,7 @@ function module.SetWeather(WeatherName)
 		local NewWeatherSettings = WeatherSettingsTable[WeatherName]
 
 		if Settings["ClientSided"] == false or RunService:IsClient() then
-			InternalSettings["Weather"] = true
+			InternalVariables["Weather"] = true
 			Set(NewWeatherSettings)
 		else
 			if RunService:IsServer() then
@@ -1116,11 +1193,12 @@ end
 function module.SetLighting(LightingName, WeatherOverride)
 	WaitForSettingsTables()
 
-	if LightingSettingsTable[LightingName] then
-		local NewLightingSettings = LightingSettingsTable[LightingName]
+	local NewLightingSettings = LightingSettingsTable[LightingName]
 
+	if NewLightingSettings then
+		
 		if Settings["ClientSided"] == false or RunService:IsClient() then
-			if InternalSettings["Weather"] == false or WeatherOverride == true then
+			if InternalVariables["Weather"] == false or WeatherOverride == true then
 				Set(NewLightingSettings)
 			end
 		else
@@ -1133,12 +1211,12 @@ function module.SetLighting(LightingName, WeatherOverride)
 	end
 end
 
-if InternalSettings["Initialized"] == false and RunService:IsServer() then
-	InternalSettings["Initialized"] = true
+if InternalVariables["InitializedLighting"] == false and RunService:IsServer() then
+	InternalVariables["InitializedLighting"] = true
 
 	LightingRemote.OnServerEvent:Connect(function(Player, Status)
 		if Status == "Entered" then
-			LightingRemote:FireClient(Player, module.GetCurrentLightingPeriod(), "Set")
+			LightingRemote:FireClient(Player, "Lighting", module.GetCurrentLightingPeriod(), "Set")
 		end
 	end)
 end

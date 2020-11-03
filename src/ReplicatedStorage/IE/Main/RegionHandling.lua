@@ -35,6 +35,7 @@ local Main = script.Parent
 
 local AudioHandling = require(Main.AudioHandling)
 local InternalSettings = require(Main.InternalSettings)
+local InternalVariables = require(Main.InternalVariables)
 local LightingHandling = require(Main.LightingHandling)
 local SharedFunctions = require(Main.SharedFunctions)
 
@@ -65,7 +66,7 @@ end
 local function PrintRegions()
 	local String = "Current Regions are: "
 
-	for _, RegionName in ipairs (InternalSettings["CurrentRegions"]) do
+	for _, RegionName in ipairs (InternalVariables["CurrentRegions"]) do
 		String = String.. RegionName.. ", "
 	end
 
@@ -79,14 +80,14 @@ end
 local function AddRegion(RegionName: string)
 	local NewIndex = 0
 
-	for Index, _ in ipairs (InternalSettings["CurrentRegions"]) do
+	for Index, _ in ipairs (InternalVariables["CurrentRegions"]) do
 		NewIndex = Index
 	end
 
 	NewIndex = NewIndex + 1
 
-	InternalSettings["CurrentRegions"][NewIndex] = RegionName
-	table.insert(InternalSettings["CurrentRegionsQuick"], RegionName)
+	InternalVariables["CurrentRegions"][NewIndex] = RegionName
+	table.insert(InternalVariables["CurrentRegionsQuick"], RegionName)
 	PrintRegions()
 end
 
@@ -95,7 +96,7 @@ local function RemoveRegion(RegionName: string)
 	local MaxIndex = 1
 
 	--// Get the index of the region left so that we can sort the dictionary
-	for Index, _RegionName in ipairs (InternalSettings["CurrentRegions"]) do
+	for Index, _RegionName in ipairs (InternalVariables["CurrentRegions"]) do
 		if _RegionName == RegionName then
 			RegionLeftIndex = Index
 		end
@@ -111,32 +112,32 @@ local function RemoveRegion(RegionName: string)
 		return
 	end
 
-	for Index, _RegionName in ipairs (InternalSettings["CurrentRegions"]) do
+	for Index, _RegionName in ipairs (InternalVariables["CurrentRegions"]) do
 		if Index > RegionLeftIndex then --// If it's an index lower than the number that was left, then it does not need resorting.
-			InternalSettings["CurrentRegions"][Index - 1] = _RegionName
+			InternalVariables["CurrentRegions"][Index - 1] = _RegionName
 		end
 	end
 
-	InternalSettings["CurrentRegions"][MaxIndex] = nil
-	table.remove(InternalSettings["CurrentRegionsQuick"], table.find(InternalSettings["CurrentRegionsQuick"], RegionName))
+	InternalVariables["CurrentRegions"][MaxIndex] = nil
+	table.remove(InternalVariables["CurrentRegionsQuick"], table.find(InternalVariables["CurrentRegionsQuick"], RegionName))
 
 	PrintRegions()
 end
 
 local function ClearRegions()
-	InternalSettings["CurrentRegions"] = {}
-	InternalSettings["CurrentRegionsQuick"] = {}
+	InternalVariables["CurrentRegions"] = {}
+	InternalVariables["CurrentRegionsQuick"] = {}
 end
 
 local function ValidateRegions() --// Validates regions to make sure that players are actually in them
 	while true do
 		local ReversedCurrentRegions = {}
 
-		for Index, _RegionName in ipairs (InternalSettings["CurrentRegions"]) do
+		for Index, _RegionName in ipairs (InternalVariables["CurrentRegions"]) do
 			ReversedCurrentRegions[_RegionName] = Index
 		end
 
-		for RegionType, AllRegions in pairs (InternalSettings["Regions"]) do --// (RegionType = "Audio" or "Lighting")
+		for RegionType, AllRegions in pairs (InternalVariables["Regions"]) do --// (RegionType = "Audio" or "Lighting")
 			for RegionName, TrackedRegion in pairs (AllRegions) do
 				local Objects = TrackedRegion:getObjects()
 
@@ -159,12 +160,12 @@ local function ValidateRegions() --// Validates regions to make sure that player
 				
 				if ActuallyInRegion and not RecordedInRegion then --// Means the LocalPlayer is actually in the zone, but RegionHandling doesn't think they are
 					print("Character was not recorded as being in ".. RegionName .. " but is actually supposed to be there.  Adding.")
-					--table.insert(InternalSettings["CurrentRegions"], RegionName)
+					--table.insert(InternalVariables["CurrentRegions"], RegionName)
 					AddRegion(RegionName)
 					HandleRegionEnter(RegionType, RegionName)
 				elseif not ActuallyInRegion and RecordedInRegion then --// Means the LocalPlayer is not actually in the zone, but RegionHandling thinks they are
 					print("Character was recorded as being in ".. RegionName.. " but is not actually supposed to be in there.  Removing.")
-					--table.remove(InternalSettings["CurrentRegions"], table.find(InternalSettings["CurrentRegions"], RegionName))
+					--table.remove(InternalVariables["CurrentRegions"], table.find(InternalVariables["CurrentRegions"], RegionName))
 					RemoveRegion(RegionName)
 					HandleRegionLeave(RegionType, RegionName)
 				end
@@ -177,7 +178,7 @@ end
 
 --[[local function DetectRegionChange(RegionName, Event) --// Used to determine region changes in case onEnter or onLeave fire in the wrong order
 	local function DuplicateRegion(RegionName)
-		if table.find(InternalSettings["CurrentRegions"], RegionName) then
+		if table.find(InternalVariables["CurrentRegions"], RegionName) then
 			return true
 		else
 			return false
@@ -190,7 +191,7 @@ end
 			
 			return false
 		else
-			--table.insert(InternalSettings["CurrentRegions"], RegionName) --// String
+			--table.insert(InternalVariables["CurrentRegions"], RegionName) --// String
 			AddRegion(RegionName)
 
 			DetectingRegionChange = false
@@ -200,7 +201,7 @@ end
 	end
 	
 	local function LeftRegion(RegionName)
-		--table.remove(InternalSettings["CurrentRegions"], table.find(InternalSettings["CurrentRegions"], RegionName))
+		--table.remove(InternalVariables["CurrentRegions"], table.find(InternalVariables["CurrentRegions"], RegionName))
 		RemoveRegion(RegionName)
 
 		DetectingRegionChange = false

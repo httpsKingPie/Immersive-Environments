@@ -12,6 +12,7 @@ local Main = script.Parent
 local IEFolder = Main.Parent
 
 local InternalSettings = require(Main.InternalSettings)
+local InternalVariables = require(Main.InternalVariables)
 local SharedFunctions = require(Main.SharedFunctions)
 
 local Settings = require(IEFolder.Settings)
@@ -193,7 +194,7 @@ local function AdjustSharedSounds() --// Determines whether a SharedSound is sti
 	
 	local CurrentSharedSounds = SharedSounds:GetChildren()
 
-	for Index, RegionName in ipairs (InternalSettings["CurrentRegions"]) do
+	for Index, RegionName in ipairs (InternalVariables["CurrentRegions"]) do
 		local RegionSettings = GetRegionSettings(RegionName)
 
 		if RegionSettings then
@@ -211,7 +212,7 @@ local function AdjustSharedSounds() --// Determines whether a SharedSound is sti
 	end
 
 	for Sound, Index in pairs (SoundMaxIndexTable) do
-		local RegionName = InternalSettings["CurrentRegions"][Index]
+		local RegionName = InternalVariables["CurrentRegions"][Index]
 
 		local RegionSettings = GetRegionSettings(RegionName)
 
@@ -289,7 +290,7 @@ local function HandleRandomSound(SoundName: string, SoundSettings, SoundFolder: 
 		wait(SoundSettings["Frequency"])
 
 		if SharedFunctions.DoesChange(SoundSettings["ChanceOfPlay"]) then
-			if table.find(InternalSettings["CurrentRegionsQuick"], RegionName) and Sound then --// Validates that the player is still in the region and that the Sound instance still exists
+			if table.find(InternalVariables["CurrentRegionsQuick"], RegionName) and Sound then --// Validates that the player is still in the region and that the Sound instance still exists
 				if Settings["GenerateNewRandomSounds"] == true then
 					local SoundClone = Sound:Clone()
 					SoundClone.Parent = SoundFolder

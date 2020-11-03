@@ -75,26 +75,14 @@ local module = {
 		},
 	},
 	
-	["CurrentRegions"] = {},
-
-	["CurrentRegionsQuick"] = {}, --// This is a table, not a dictionary, that just stores strings of RegionName so that table.find can be used quickly
-	
 	["DayNightCheck"] = 5, --// In seconds, the amount of time the script checks for whether times need to be adjusted (used for when Day and Night in-game time passage occur at different rates)
 	
 	["DayNightWait"] = 1,
-	
-	["Initialized"] = false,
-	
-	["LightsActive"] = false,
 	
 	["NonPropertySettings"] = {
 		"ChanceOfChange",
 		"LightsOn",
 	},
-	
-	["Regions"] = {}, --// Stores Audio, Lighting, etc. regions
-	
-	["SettingTablesBuilt"] = true,
 	
 	["SettingInstanceCorrelations"] = {
 		["Atmosphere"] = ReturnExistence(Lighting, "Atmosphere"),
@@ -106,10 +94,6 @@ local module = {
 		["SunRaysEffect"] = ReturnExistence(Lighting, "SunRaysEffect"),
 		["Terrain"] = ReturnExistence(Workspace, "Terrain")
 	},
-	
-	["TimeAdjusted"] = false,
-	
-	["TotalIndexes"] = 0,
 	
 	["Weather"] = false,
 }

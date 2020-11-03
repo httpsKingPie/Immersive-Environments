@@ -10,7 +10,7 @@ local module = {
 	
 	--// Lighting Settings
 	
-	["AdjustmentTime"] = 5, --// This is the amount of time alloated to the script to detect how fast time passes in your day/night script.  5 seconds is the recommended default
+	["AdjustmentTime"] = 5, --// This is the amount of time alloated to the script to detect how fast time passes in your day/night script.  5 seconds is the recommended default.  Note: if DetectIndependentTimeChange is false and IE's native day/night integration is used, the adjustment will be automatically calculated - i.e. no wait and detect
 	["AutomaticTransitions"] = true, --// Turn this off if you want to manually transition to different lighting periods
 	["ChangingInstanceChildrenOfWorkspace"] = false, --// Allows you to improve the performance of the script if all affected instances are direct children of Workspace
 	["CheckTime"] = 1, --// The time in seconds that the script checks for Lighting Period changes, if AutomaticTransitions is set to false, you don't need to worry about this
@@ -35,12 +35,13 @@ local module = {
 	["BackupValidation"] = 5, --// This is the amount of time between when the server does backup validation
 	["EventBuffer"] = .2, --// This is the amount of time that passes for IE to properly validate current regions.  Probably won't have to change this but just in case
 	["EventDifference"] = .5, --// This is the amount of time that must separate events to be considered for validation.  If more than this time has passed, then likely only event was fired
+	["DetectIndependentTimeChange"] = true, --// Used when the day/night cycle used is not the native one for IE.  This will delay the amount of time it takes to determine the adjustment (see the AdjustmentTime setting)
 
 	--// Time Settings
 
 	["EnableDayNightTransitions"] = true, --// Turns on day/night cycle
-	["TimeForDay"] = 12, --// The amount of minutes it takes to go from 0600 to 1800
-	["TimeForNight"] = 12, --// The amount of minutes it takes to go from 1800 to 0600
+	["TimeForDay"] = 2, --// The amount of minutes it takes to go from 0600 to 1800
+	["TimeForNight"] = 3, --// The amount of minutes it takes to go from 1800 to 0600
 }
 
 return module
