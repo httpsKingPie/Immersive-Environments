@@ -4,7 +4,6 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
-local Workspace = game:GetService("Workspace")
 
 local LocalPlayer --// Filled in if this is run on the client
 
@@ -13,6 +12,7 @@ local IEFolder = Main.Parent
 
 local InternalSettings = require(Main.InternalSettings)
 local InternalVariables = require(Main.InternalVariables)
+local SettingsHandling = require(Main.SettingsHandling)
 local SharedFunctions = require(Main.SharedFunctions)
 
 local Settings = require(IEFolder.Settings)
@@ -24,52 +24,7 @@ local ActiveRegionSounds
 local ActiveServerSounds
 local SharedSounds
 
---// Workspace
-
-local IERegions = Workspace:WaitForChild("IERegions")
-
-local AudioRegions = IERegions:WaitForChild("AudioRegions")
-
---// IE
-
-local AudioSettings = IEFolder.AudioSettings
-
---// Misc
-
-local CurrentRegionName
-local SettingsTable = {}
-
-local TweenInformation = Settings["AudioTweenInformation"]
-
 --// Functions
-
-local function BuildSettingsTables()
-	SettingsTable["Region"] = {}
-	SettingsTable["Server"] = {}
-
-	local RegionDescendants = AudioSettings.RegionSettings:GetDescendants()
-	local ServerDescendants = AudioSettings.ServerSettings:GetDescendants()
-
-	for i = 1, #RegionDescendants do
-		if RegionDescendants[i]:IsA("ModuleScript") then
-			if SettingsTable["Region"][RegionDescendants[i].Name] == nil then
-				SettingsTable["Region"][RegionDescendants[i].Name] = require(RegionDescendants[i])
-			else
-				warn("Audio Setting already exists for ".. RegionDescendants[i].Name.. ".  Make sure settings with the same name do not exist")
-			end
-		end
-	end
-
-	for i = 1, #ServerDescendants do
-		if ServerDescendants[i]:IsA("ModuleScript") then
-			if SettingsTable["Region"][ServerDescendants[i].Name] == nil then
-				SettingsTable["Region"][ServerDescendants[i].Name] = require(ServerDescendants[i])
-			else
-				warn("Audio Setting already exists for ".. ServerDescendants[i].Name.. ".  Make sure settings with the same name do not exist")
-			end
-		end
-	end
-end
 
 function module.Run()
 	if not SoundService:FindFirstChild("ActiveServerSounds") and RunService:IsServer() then --// We only want/need this created on the server
@@ -92,17 +47,6 @@ function module.Run()
 		end
 
 		LocalPlayer = Players.LocalPlayer
-	end
-	
-	BuildSettingsTables()
-end
-
-local function GetRegionSettings(RegionName)
-	if SettingsTable["Region"][RegionName] then
-		return SettingsTable["Region"][RegionName]
-	else
-		warn(tostring(RegionName).. " not found within SettingsTable")
-		return nil
 	end
 end
 
@@ -195,7 +139,7 @@ local function AdjustSharedSounds() --// Determines whether a SharedSound is sti
 	local CurrentSharedSounds = SharedSounds:GetChildren()
 
 	for Index, RegionName in ipairs (InternalVariables["CurrentRegions"]) do
-		local RegionSettings = GetRegionSettings(RegionName)
+		local RegionSettings = SettingsHandling:GetRegionSettings(RegionName, "Audio")
 
 		if RegionSettings then
 			local RegionSharedSounds = RegionSettings["SharedSounds"]
@@ -214,7 +158,7 @@ local function AdjustSharedSounds() --// Determines whether a SharedSound is sti
 	for Sound, Index in pairs (SoundMaxIndexTable) do
 		local RegionName = InternalVariables["CurrentRegions"][Index]
 
-		local RegionSettings = GetRegionSettings(RegionName)
+		local RegionSettings = SettingsHandling:GetRegionSettings(RegionName, "Audio")
 
 		local SoundSettings = RegionSettings["SharedSounds"][Sound.Name]["Tween"]
 
@@ -247,9 +191,6 @@ local function HandleSound(SoundName: string, SoundSettings, SoundFolder: Folder
 
 		if CreatedSound then
 			Sound:Play()
-			print("Playing sound " .. SoundName)
-		else
-			print("Adjusting sound ".. SoundName)
 		end
 	end
 end
@@ -296,7 +237,7 @@ local function HandleRandomSound(SoundName: string, SoundSettings, SoundFolder: 
 					SoundClone.Parent = SoundFolder
 					SoundClone:Play()
 
-					if SettingsTable["WaitForRandomSoundToEnd"] == true then --// Generating new sounds + must wait for each sound to finish
+					if Settings["WaitForRandomSoundToEnd"] == true then --// Generating new sounds + must wait for each sound to finish
 						SoundClone.Ended:Wait()
 						SoundClone:Destroy()
 					else --// Generating new sounds + do not have to wait for each sound to finish
@@ -307,7 +248,7 @@ local function HandleRandomSound(SoundName: string, SoundSettings, SoundFolder: 
 				else 
 					Sound:Play() --// Just using one sound instance
 
-					if SettingsTable["WaitForRandomSoundToEnd"] == true then --// Just using one sound instance + must wait for the sound to finish
+					if Settings["WaitForRandomSoundToEnd"] == true then --// Just using one sound instance + must wait for the sound to finish
 						Sound.Ended:Wait()
 					end
 				end
@@ -331,7 +272,7 @@ local function GenerateRandomSounds(RandomSoundSettings, RegionName) --// These 
 end
 
 function module.RegionEnter(RegionName) --// Client sided function only (RegionType is either Audio or Lighting, RegionName equivalent to the Setting name)
-	local RegionSettings = GetRegionSettings(RegionName)
+	local RegionSettings = SettingsHandling:GetRegionSettings(RegionName, "Audio")
 
 	if not RegionSettings then
 		return
@@ -351,16 +292,10 @@ function module.RegionEnter(RegionName) --// Client sided function only (RegionT
 end
 
 function module.RegionLeave(RegionName) --// Client sided function only (RegionType is either Audio or Lighting, RegionName equivalent to the Setting name)
-	local RegionSettings = GetRegionSettings(RegionName)
+	local RegionSettings = SettingsHandling:GetRegionSettings(RegionName, "Audio")
 
 	if not RegionSettings then
 		return
-	end
-
-	for SettingCategory, SpecificSettings in pairs (RegionSettings) do
-		if SettingCategory == "SoundService" then
-			
-		end
 	end
 
 	TweenOutRegionSounds(RegionName)

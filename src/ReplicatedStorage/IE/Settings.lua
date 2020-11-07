@@ -11,15 +11,7 @@ local module = {
 	--// Lighting Settings
 	
 	["AdjustmentTime"] = 5, --// This is the amount of time alloated to the script to detect how fast time passes in your day/night script.  5 seconds is the recommended default.  Note: if DetectIndependentTimeChange is false and IE's native day/night integration is used, the adjustment will be automatically calculated - i.e. no wait and detect
-	["AutomaticTransitions"] = true, --// Turn this off if you want to manually transition to different lighting periods
 	["ChangingInstanceChildrenOfWorkspace"] = false, --// Allows you to improve the performance of the script if all affected instances are direct children of Workspace
-	["CheckTime"] = 1, --// The time in seconds that the script checks for Lighting Period changes, if AutomaticTransitions is set to false, you don't need to worry about this
-	["EnableSorting"] = true, --// Setting to true reduces the work done by the script, however, this denies the ability to make changes to ClockTime or TimeOfDay via admin or other controls and have the script automatically follow.  Set to false if you would like to preserve the ability to make changes in admin.
-	["LightingTweenInformation"] = TweenInfo.new(
-		20, --// Recommended to only adjust the time variable (default set to 20 seconds)
-		Enum.EasingStyle.Linear
-		),
-	["RecheckDayNight"] = false, --// Use this if day/night time passage is not continous (ex: TimeForDay and TimeForNight are different numbers)
 	
 	--// Audio Settings
 	
@@ -33,15 +25,20 @@ local module = {
 	--// Region Settings
 	
 	["BackupValidation"] = 5, --// This is the amount of time between when the server does backup validation
-	["EventBuffer"] = .2, --// This is the amount of time that passes for IE to properly validate current regions.  Probably won't have to change this but just in case
-	["EventDifference"] = .5, --// This is the amount of time that must separate events to be considered for validation.  If more than this time has passed, then likely only event was fired
 	["DetectIndependentTimeChange"] = true, --// Used when the day/night cycle used is not the native one for IE.  This will delay the amount of time it takes to determine the adjustment (see the AdjustmentTime setting)
 
 	--// Time Settings
-
+	["AutomaticTransitions"] = true, --// Turn this off if you want to manually transition and remove the time based auto transitions
+	["CheckTime"] = 1, --// The time in seconds that the script checks for Lighting Period changes, if AutomaticTransitions is set to false, you don't need to worry about this
 	["EnableDayNightTransitions"] = true, --// Turns on day/night cycle
-	["TimeForDay"] = 2, --// The amount of minutes it takes to go from 0600 to 1800
-	["TimeForNight"] = 3, --// The amount of minutes it takes to go from 1800 to 0600
+	["EnableSorting"] = true, --// Setting to true reduces the work done by the script, however, this denies the ability to make changes to ClockTime or TimeOfDay via admin or other controls and have the script automatically follow.  Set to false if you would like to preserve the ability to make changes in admin.
+	["RecheckDayNight"] = false, --// Use this if day/night time passage is not continous (ex: TimeForDay and TimeForNight are different numbers)
+	["TimeEffectTween"] = TweenInfo.new(
+		20, --// Recommended to only adjust the time variable (default set to 20 seconds)
+		Enum.EasingStyle.Linear
+		),
+	["TimeForDay"] = 12, --// The amount of minutes it takes to go from 0600 to 1800
+	["TimeForNight"] = 12, --// The amount of minutes it takes to go from 1800 to 0600
 }
 
 return module

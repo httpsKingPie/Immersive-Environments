@@ -17,7 +17,6 @@
 
 	Regions with a higher number (ex: 8) mean that this is the most recent region that the player entered.  Regions with a lower number (ex: 1) mean that was the least recent region the player entered.
 ]]
-
 local module = {}
 
 local RunService = game:GetService("RunService")
@@ -54,12 +53,28 @@ local DetectingRegionChange = false
 local function HandleRegionEnter(RegionType, RegionName)
 	if RegionType == "Audio" then
 		AudioHandling.RegionEnter(RegionName)
+
+		InternalVariables["CurrentAudioRegions"] = InternalVariables["CurrentAudioRegions"] + 1
+	elseif RegionType == "Lighting" then
+		LightingHandling.RegionEnter(RegionName)
+
+		InternalVariables["CurrentLightingRegions"] = InternalVariables["CurrentLightingRegions"] + 1
 	end
 end
 
 local function HandleRegionLeave(RegionType, RegionName)
 	if RegionType == "Audio" then
 		AudioHandling.RegionLeave(RegionName)
+
+		if InternalVariables["CurrentAudioRegions"] < 0 then
+			InternalVariables["CurrentAudioRegions"] = InternalVariables["CurrentAudioRegions"] - 1
+		end
+	elseif RegionType == "Lighting" then
+
+
+		if InternalVariables["CurrentLightingRegions"] < 0 then
+			InternalVariables["CurrentLightingRegions"] = InternalVariables["CurrentLightingRegions"] - 1
+		end
 	end
 end
 
@@ -88,7 +103,6 @@ local function AddRegion(RegionName: string)
 
 	InternalVariables["CurrentRegions"][NewIndex] = RegionName
 	table.insert(InternalVariables["CurrentRegionsQuick"], RegionName)
-	PrintRegions()
 end
 
 local function RemoveRegion(RegionName: string)
@@ -120,8 +134,6 @@ local function RemoveRegion(RegionName: string)
 
 	InternalVariables["CurrentRegions"][MaxIndex] = nil
 	table.remove(InternalVariables["CurrentRegionsQuick"], table.find(InternalVariables["CurrentRegionsQuick"], RegionName))
-
-	PrintRegions()
 end
 
 local function ClearRegions()
@@ -141,8 +153,6 @@ local function ValidateRegions() --// Validates regions to make sure that player
 			for RegionName, TrackedRegion in pairs (AllRegions) do
 				local Objects = TrackedRegion:getObjects()
 
-				local SimpleObjectTable = {}
-
 				local ActuallyInRegion
 
 				for Index, ObjectDetails in ipairs (Objects) do
@@ -159,13 +169,9 @@ local function ValidateRegions() --// Validates regions to make sure that player
 				local RecordedInRegion = ReversedCurrentRegions[RegionName] --// will be nil if no, and something if true
 				
 				if ActuallyInRegion and not RecordedInRegion then --// Means the LocalPlayer is actually in the zone, but RegionHandling doesn't think they are
-					print("Character was not recorded as being in ".. RegionName .. " but is actually supposed to be there.  Adding.")
-					--table.insert(InternalVariables["CurrentRegions"], RegionName)
 					AddRegion(RegionName)
 					HandleRegionEnter(RegionType, RegionName)
 				elseif not ActuallyInRegion and RecordedInRegion then --// Means the LocalPlayer is not actually in the zone, but RegionHandling thinks they are
-					print("Character was recorded as being in ".. RegionName.. " but is not actually supposed to be in there.  Removing.")
-					--table.remove(InternalVariables["CurrentRegions"], table.find(InternalVariables["CurrentRegions"], RegionName))
 					RemoveRegion(RegionName)
 					HandleRegionLeave(RegionType, RegionName)
 				end
@@ -175,67 +181,6 @@ local function ValidateRegions() --// Validates regions to make sure that player
 		wait(Settings["BackupValidation"])
 	end
 end
-
---[[local function DetectRegionChange(RegionName, Event) --// Used to determine region changes in case onEnter or onLeave fire in the wrong order
-	local function DuplicateRegion(RegionName)
-		if table.find(InternalVariables["CurrentRegions"], RegionName) then
-			return true
-		else
-			return false
-		end
-	end
-	
-	local function EnteredRegion(RegionName)
-		if DuplicateRegion(RegionName) then
-			DetectingRegionChange = false
-			
-			return false
-		else
-			--table.insert(InternalVariables["CurrentRegions"], RegionName) --// String
-			AddRegion(RegionName)
-
-			DetectingRegionChange = false
-
-			return true
-		end
-	end
-	
-	local function LeftRegion(RegionName)
-		--table.remove(InternalVariables["CurrentRegions"], table.find(InternalVariables["CurrentRegions"], RegionName))
-		RemoveRegion(RegionName)
-
-		DetectingRegionChange = false
-
-		return true
-	end
-	
-	--
-	
-	if DetectingRegionChange == true then
-		return
-	end
-	
-	DetectingRegionChange = true
-	
-	wait(Settings["EventBuffer"])
-	
-	if math.abs(EnteredRegionTime - LeftRegionTime) > Settings["EventDifference"] then --// If the difference between times is sufficiently large, then it's probably correct and doesn't need validation.  Validation is only needed for times that are very similar and could have been the result of events firing in the incorrect order
-		if Event == "onEnter" then
-			return(EnteredRegion(RegionName))
-		elseif Event == "onLeave" then
-			return(LeftRegion(RegionName))
-		else
-			warn("Unexpected input")
-		end
-	end
-	
-	if math.abs((EnteredRegionTime - LeftRegionTime)) < Settings["EventBuffer"] or (EnteredRegionTime ~= 0 and LeftRegionTime == 0) then --// Flaw with how this is handled is that it is biased towards assuming that quick changes between events are actually the result of entering a new zone.  This bias is only created because it's usually safer to assume that more lighting and audio settings should be added rather than risk not adding them and ruining player experience
-		return(EnteredRegion(RegionName))
-	else
-		return(LeftRegion(RegionName))
-	end
-end]]
-
 
 local function CheckRegions(Looping)
 	local function HandleRegion(Descendants, RegionType) --// RegionName is either Audio or Lighting (used for organization)
@@ -255,12 +200,6 @@ local function CheckRegions(Looping)
 				
 				AddRegion(RegionName)
 				HandleRegionEnter(RegionType, RegionName)
-
-				--EnteredRegionTime = os.time()
-				
-				--if DetectRegionChange(RegionName, "onEnter") == true then --// When it returns false that means it tried to add the same region twice
-					--HandleRegionEnter(RegionType, RegionName)
-				--end
 			end)
 			
 			TrackedRegion.onLeave:Connect(function(Player)
@@ -270,12 +209,6 @@ local function CheckRegions(Looping)
 				
 				RemoveRegion(RegionName)
 				HandleRegionLeave(RegionType, RegionName)
-
-				--LeftRegionTime = os.time()
-
-				--if DetectRegionChange(RegionName, "onLeave") == true then
-					--HandleRegionLeave(RegionType, RegionName)
-				--end
 			end)
 		end
 	end

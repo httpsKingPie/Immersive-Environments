@@ -1,24 +1,12 @@
 local module = {}
 
-local Lighting = game:GetService("Lighting")
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
-local Workspace = game:GetService("Workspace")
-
-local ObjectTracker = require(script.Parent["OT&AM"])
 local Settings = require(script.Parent.Settings)
 
 local AudioHandling
 local LightingHandling
 local RegionHandling
+local SettingsHandling
 local TimeHandling
-
-local TableUtilities = require(script.TableUtilities)
-
-local InternalSettings = require(script.InternalSettings)
-
-local TweenInformation = Settings["TweenInformation"]
 
 local Initialized = false
 
@@ -26,6 +14,7 @@ local function InitializeModules() --// Done so that the Remotes are loaded firs
 	AudioHandling = require(script.AudioHandling)
 	LightingHandling = require(script.LightingHandling)
 	RegionHandling = require(script.RegionHandling)
+	SettingsHandling = require(script.SettingsHandling)
 	TimeHandling = require(script.TimeHandling)
 end
 
@@ -50,6 +39,8 @@ function module.Run()
 		InitializeModules()
 		Initialized = true
 	end
+	SettingsHandling.Run() --// Not a coroutine, because we want Settings to populate before everything first
+
 	coroutine.wrap(TimeHandling.Run)()
 
 	coroutine.wrap(RegionHandling.Run)()
