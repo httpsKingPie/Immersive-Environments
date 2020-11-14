@@ -76,7 +76,15 @@ local function Set(InstanceToSet: any, InstanceSettings: table, ClassName: strin
 	end
 end
 
-local function Tween(InstanceToTween: any, InstanceSettings: table, ClassName: string) --// This is Tween rather than TweenSound, TweenIn, etc. because it also makes changes to the SoundService and is really just used to change any property
+local function Tween(InstanceToTween: any, InstanceSettings: table, ClassName: string, TimeChange: boolean) --// This is Tween rather than TweenSound, TweenIn, etc. because it also makes changes to the SoundService and is really just used to change any property
+	local TweenInformation
+
+	if TimeChange and TimeChange == true then
+		TweenInformation = Settings["TimeEffectTweenInformation"]
+	else
+		TweenInformation = Settings["AudioRegionTweenInformation"]
+	end
+	
 	local ChangeTable = {}
 	local ToSetOnComplete = {}
 
@@ -96,7 +104,7 @@ local function Tween(InstanceToTween: any, InstanceSettings: table, ClassName: s
 		end
 	end
 
-	local ChangeTween = TweenService:Create(InstanceToTween, Settings["AudioTweenInformation"], ChangeTable)
+	local ChangeTween = TweenService:Create(InstanceToTween, TweenInformation, ChangeTable)
 	ChangeTween:Play()
 
 	ChangeTween.Completed:Connect(function()
@@ -114,7 +122,7 @@ end
 
 local function TweenOut(InstanceToTween: any)
 	if InstanceToTween:IsA("Sound") then
-		local ChangeTween = TweenService:Create(InstanceToTween, Settings["AudioTweenInformation"], {Volume = 0})
+		local ChangeTween = TweenService:Create(InstanceToTween, Settings["AudioRegionTweenInformation"], {Volume = 0})
 		ChangeTween:Play()
 
 		ChangeTween.Completed:Connect(function()

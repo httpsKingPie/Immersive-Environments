@@ -1,6 +1,6 @@
 local module = {}
 
-local Settings = require(script.Parent.Settings)
+local RunService = game:GetService("RunService")
 
 local AudioHandling
 local LightingHandling
@@ -19,17 +19,19 @@ local function InitializeModules() --// Done so that the Remotes are loaded firs
 end
 
 local function GenerateRemotes()
-	local RemoteFolder = Instance.new("Folder")
-	RemoteFolder.Name = "RemoteFolder"
-	RemoteFolder.Parent = script.Parent
+	if RunService:IsServer() then
+		local RemoteFolder = Instance.new("Folder")
+		RemoteFolder.Name = "RemoteFolder"
+		RemoteFolder.Parent = script.Parent
 
-	local AudioRemote = Instance.new("RemoteEvent")
-	AudioRemote.Name = "AudioRemote"
-	AudioRemote.Parent = RemoteFolder
+		local AudioRemote = Instance.new("RemoteEvent")
+		AudioRemote.Name = "AudioRemote"
+		AudioRemote.Parent = RemoteFolder
 
-	local LightingRemote = Instance.new("RemoteEvent")
-	LightingRemote.Name = "LightingRemote"
-	LightingRemote.Parent = RemoteFolder
+		local LightingRemote = Instance.new("RemoteEvent")
+		LightingRemote.Name = "LightingRemote"
+		LightingRemote.Parent = RemoteFolder
+	end
 end
 
 function module.Run()

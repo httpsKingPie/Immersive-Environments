@@ -7,11 +7,14 @@ local module = {
 }
 
 local Lighting = game:GetService("Lighting")
+local RunService = game:GetService("RunService")
 
 local Main = script.Parent
 
+local AudioHandling = require(Main.AudioHandling)
 local InternalSettings = require(Main.InternalSettings)
 local InternalVariables = require(Main.InternalVariables)
+local LightingHandling = require(Main.LightingHandling)
 local SettingsHandling = require(Main.SettingsHandling)
 
 local IEFolder = Main.Parent
@@ -19,8 +22,8 @@ local IEFolder = Main.Parent
 local Settings = require(IEFolder.Settings)
 
 local function CheckTimePeriod(Type)
-    if SettingsHandling[Type] then
-        warn("Type: ".. tostring(Type) .. ", not found within SettingsHandling")
+    if not SettingsHandling[Type] then
+		warn("Type: ".. tostring(Type) .. ", not found within SettingsHandling")
         return false
     end
 
@@ -32,8 +35,8 @@ local function CheckTimePeriod(Type)
     return true
 end
 
-local function CheckAdjustedTimePeriod(Type)
-    if SettingsHandling[Type] then
+local function CheckAdjustedTimePeriod(Type: string)
+    if not SettingsHandling[Type] then
         warn("Type: ".. tostring(Type) .. ", not found within SettingsHandling")
         return false
     end
@@ -57,8 +60,8 @@ local function DayNightCycle()
     local MinutesToAddNight = NightRatio / ActiviationPerMinute
     --// Note: for above, the ratio tells how many in-game minutes pass per real life minute, and divides it by the amount of activates per real life minute = conversion of in-game minutes per activation
 
-    InternalVariables["DayAdjustmentRate"] = DayRatio / (60^2) * Settings["LightingTweenInformation"].Time
-    InternalVariables["NightAdjustmentRate"] = NightRatio / (60^2) * Settings["LightingTweenInformation"].Time
+    InternalVariables["DayAdjustmentRate"] = DayRatio / (60^2) * Settings["TimeEffectTweenInformation"].Time
+    InternalVariables["NightAdjustmentRate"] = NightRatio / (60^2) * Settings["TimeEffectTweenInformation"].Time
     --// Note: above are measured in in-game hours/real life second
 
     while true do
@@ -72,7 +75,7 @@ local function DayNightCycle()
     end
 end
 
-local function PopulateTimes(Type: string) --// Puts the times inot a table so that they can easily be evaluated
+local function PopulateTimes(Type: string) --// Puts the times into a table so that they can easily be evaluated
    if not CheckTimePeriod(Type) then
        return
    end
@@ -197,7 +200,7 @@ local function AdjustStartTimes(Type)
 			RateOfTime = (24 - ClockTime2 - ClockTime1)/Settings["AdjustmentTime"]
 		end
 
-		Adjustment = RateOfTime * Settings["TimeEffectTween"].Time --// Adjustment results in a number of seconds for which all all Lighting Periods must have their start times adjusted
+		Adjustment = RateOfTime * Settings["TimeEffectTweenInformation"].Time --// Adjustment results in a number of seconds for which all all Lighting Periods must have their start times adjusted
 	end
 
 	module[Type.."AdjustedTimePeriods"] = module[Type.."TimePeriods"]
@@ -297,14 +300,187 @@ local function AdjustStartTimes(Type)
 	end
 end
 
-local function TrackLightingCycles()
-    if Settings["EnableSorting"] == true then
-        
-    end
+local function GetCurrentAdjustedPeriod(Type)
+	if not CheckAdjustedTimePeriod(Type) then
+		return
+	end
+
+	local CurrentTime = Lighting.ClockTime
+	
+	for PeriodName, PeriodSettings in pairs (module[Type.. "AdjustedTimePeriods"]) do
+		if PeriodSettings["EndTime"] > PeriodSettings["StartTime"] then
+			if CurrentTime >= PeriodSettings["StartTime"] and CurrentTime < PeriodSettings["EndTime"] then
+				InternalVariables["Current".. Type.. "AdjustedPeriod"] = PeriodName
+				return
+			end
+		else
+			if (CurrentTime < 24 and CurrentTime >= PeriodSettings["StartTime"]) or (CurrentTime < PeriodSettings["EndTime"]) then
+				InternalVariables["Current".. Type.. "AdjustedPeriod"] = PeriodName
+				return
+			end
+		end
+	end
 end
 
-local function TrackAudioCycles()
+local function GetCurrentPeriod(Type: string)
+	if not CheckTimePeriod(Type) then
+		return
+	end
 
+	local CurrentTime = Lighting.ClockTime
+	
+	if Settings["EnableSorting"] == true then
+		for _, PeriodSettings in ipairs (module[Type.. "TimePeriods"]) do
+			local StartTime = PeriodSettings["StartTime"]
+			local EndTime = PeriodSettings["EndTime"]
+			
+			if EndTime > StartTime then --// Most cases (ex: starts at 0200 ends at 0600)
+				if CurrentTime >= StartTime and CurrentTime <= EndTime then
+					InternalVariables["Current".. Type.. "Period"] = PeriodSettings["Name"]
+					return
+				end
+			else --// Means midnight is crossed (ex: starts at 2200 and ends at 0200)
+				if CurrentTime > EndTime then --// Midnight has not yet been crossed (can process sort of like a normal period) 
+					if CurrentTime >= StartTime then
+						InternalVariables["Current".. Type.. "Period"] = PeriodSettings["Name"]
+						return
+					end
+				else --// Midnight has already been crossed
+					if CurrentTime < EndTime then
+						InternalVariables["Current".. Type.. "Period"] = PeriodSettings["Name"]
+						return
+					end
+				end
+			end
+		end
+		
+		warn(Type.. " periods are not continuous - period not found")
+	else
+		for _, PeriodSettings in pairs (module[Type.. "TimePeriods"]) do
+			if CurrentTime >= PeriodSettings["StartTime"] and CurrentTime <= PeriodSettings["EndTime"] then
+				InternalVariables["Current".. Type.. "Period"] = PeriodSettings["Name"]
+				return
+			end
+		end
+		
+		warn(Type.. "periods are not continuous - period not found")
+	end
+end
+
+local function Set(Type, PeriodName)
+	if type(PeriodName) ~= "string" then
+		warn("Non string passed for PeriodName")
+		return
+	end
+
+	if Type == "Audio" then
+		
+	elseif Type == "Lighting" then
+		LightingHandling.SetLighting(PeriodName)
+	else
+		print(Type)
+		warn("Unexpected input type for Set: ".. tostring(Type))
+	end
+end
+
+local function Tween(Type, PeriodName)
+	if type(PeriodName) ~= "string" then
+		warn("Non string passed for PeriodName")
+		return
+	end
+
+	if Type == "Audio" then
+		
+	elseif Type == "Lighting" then
+		LightingHandling.TweenLighting(PeriodName, false, false, true)
+	else
+		warn("Unexpected input type for Tween: ".. tostring(Type))
+	end
+end
+
+local function SetNextIndex(Type)
+	if not CheckAdjustedTimePeriod(Type) then
+		return
+	end
+
+	if InternalSettings["Current".. Type.. "Index"] + 1 <= InternalVariables["Total".. Type.. "Indexes"] then
+		InternalSettings["Next".. Type.. "Index"] = InternalSettings["Current".. Type.. "Index"] + 1
+	else
+		InternalSettings["Next".. Type.. "Index"] = 1
+	end
+
+	print(Type.. " next index is ".. tostring(InternalSettings["Next".. Type.. "Index"]))
+end
+
+local function TrackCycle(Type)  --// New name for the CheckCycle; Type is either "Audio" or "Lighting"
+	if not CheckAdjustedTimePeriod(Type) then
+		return
+	end
+
+	if InternalVariables["Current".. Type.. "AdjustedPeriod"] == "" then
+		GetCurrentAdjustedPeriod(Type)
+	end
+
+	if InternalVariables["Current".. Type.. "Period"] == "" then
+		GetCurrentPeriod(Type) --// This returns a value, but we don't need it
+	end
+
+	if Settings["EnableSorting"] == true then
+		--// Get initial index
+
+		for Index, PeriodSettings in ipairs (module[Type.. "TimePeriods"]) do
+			if PeriodSettings["Name"] == InternalVariables["Current".. Type.. "Period"] then
+				InternalSettings["Current".. Type.. "Index"] = Index
+				SetNextIndex(Type)
+				break
+			end
+		end
+		
+		while wait(Settings["CheckTime"]) do
+			local function HandleChange(Type)
+				InternalSettings["Current".. Type.. "Index"] = InternalSettings["Next".. Type.. "Index"]
+				InternalVariables["Current".. Type.. "Period"] = module[Type.. "TimePeriods"][InternalSettings["Current".. Type.. "Index"]]["Name"]
+				SetNextIndex(Type)
+				
+				if Settings["Tween"]  == true then
+					Tween(Type, InternalVariables["Current".. Type.. "Period"] )
+				else
+					Set(Type, InternalVariables["Current".. Type.. "Period"])
+				end
+			end
+
+			local CurrentTime = Lighting.ClockTime
+			
+			local StartTimeForNextPeriod = module[Type.. "AdjustedTimePeriods"][InternalSettings["Next".. Type.. "Index"]]["StartTime"]
+			local EndTimeForNextPeriod = module[Type.. "AdjustedTimePeriods"][InternalSettings["Next".. Type.. "Index"]]["EndTime"]
+
+			if EndTimeForNextPeriod > StartTimeForNextPeriod then
+				if CurrentTime >= StartTimeForNextPeriod then
+					HandleChange(Type)
+				end
+			else --// Means times go over midnight, ex: start at 22 ends at 4
+				if (CurrentTime < 24 and CurrentTime >= StartTimeForNextPeriod) or (CurrentTime < EndTimeForNextPeriod) then
+					HandleChange(Type)
+				end
+			end
+		end
+	else
+		while wait(Settings["CheckTime"]) do
+			if InternalVariables["HaltLightingCycle"] == false then
+				local CurrentAdjustedPeriod = GetCurrentAdjustedPeriod(Type)
+
+				if CurrentAdjustedPeriod ~= InternalSettings["Current".. Type.. "Period"] then --// If this changes, that means they are entering a new period
+					InternalSettings["Current".. Type.. "Period"] = CurrentAdjustedPeriod
+	
+					if Settings["Tween"]  == true then
+						Tween(Type, InternalSettings["Current".. Type.. "Period"])
+					else
+						Set(Type, InternalSettings["Current".. Type.. "Period"])
+					end
+				end
+			end
+		end
+	end
 end
 
 function module.Run()
@@ -315,10 +491,32 @@ function module.Run()
     --PopulateTimes("Audio")
     PopulateTimes("Lighting")
 
-    if Settings["EnableSorting"] == true then
-       -- SortTimes("Audio")
-        SortTimes("Lighting")
-    end
+	if Settings["AutomaticTransitions"] == true and RunService:IsServer() then
+		if Settings["EnableSorting"] == true then
+		-- SortTimes("Audio")
+			SortTimes("Lighting")
+		end
+
+		AdjustStartTimes("Lighting")
+		
+		coroutine.wrap(TrackCycle)("Lighting")
+
+		if Settings["ClientSided"] == false then
+			Set("Lighting", InternalVariables["CurrentLightingPeriod"])
+		end
+
+		if Settings["RecheckDayNight"] == true then
+			local Check = coroutine.create(function()
+				while true do
+					wait(InternalSettings["DayNightWait"])
+	
+					AdjustStartTimes()
+				end
+			end)
+			
+			coroutine.resume(Check)
+		end
+	end
 end
 
 return module

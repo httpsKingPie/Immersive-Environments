@@ -32,8 +32,6 @@ local CurrentLightingPeriod --// String
 local CurrentLightingIndex --// Number
 local NextLightingIndex --// Number
 
-local TweenInformation = Settings["LightingTweenInformation"]
-
 local LightingRemote = RemoteFolder:WaitForChild("LightingRemote")
 
 local function SetNextLightingIndex()
@@ -287,22 +285,17 @@ local function CheckComplexInstanceTableExistence(ReferencePartName, Relationshi
 	end
 end
 
-local function WaitForSettingsTables()
-	while InternalVariables["LightingSettingTablesBuilt"] == false do
-		wait(.1)
-	end
-end
-
-local function Set(Settings)
+local function Set(LightingSettings)
+	print("Setting .. ")
 	local AdjustOnlyLightsOn
 
-	if Settings["GeneralSettings"]["AdjustOnlyLightsOn"] ~= nil then
-		AdjustOnlyLightsOn = Settings["GeneralSettings"]["AdjustOnlyLightsOn"]
+	if LightingSettings["GeneralSettings"]["AdjustOnlyLightsOn"] ~= nil then
+		AdjustOnlyLightsOn = LightingSettings["GeneralSettings"]["AdjustOnlyLightsOn"]
 	else
 		AdjustOnlyLightsOn = false
 	end
 
-	for ClassName, ClassSettings in pairs (Settings) do --// Changing Lighting Service and Children (ChanceOfChange does not apply here)
+	for ClassName, ClassSettings in pairs (LightingSettings) do --// Changing Lighting Service and Children (ChanceOfChange does not apply here)
 		if InternalSettings["SettingInstanceCorrelations"][ClassName] ~= nil and InternalSettings["SettingInstanceCorrelations"][ClassName] ~= false then
 			local TargetInstance = InternalSettings["SettingInstanceCorrelations"][ClassName]
 
@@ -320,8 +313,8 @@ local function Set(Settings)
 		end
 	end
 
-	if Settings["Instances"] then		
-		for ClassName, Instances in pairs (Settings["Instances"]) do --// In settings right now
+	if LightingSettings["Instances"] then		
+		for ClassName, Instances in pairs (LightingSettings["Instances"]) do --// In settings right now
 			for InstanceName, SpecificSettings in pairs (Instances) do
 				CheckInstanceTableExistence(InstanceName, ClassName)
 
@@ -329,7 +322,7 @@ local function Set(Settings)
 				local ChanceOfChange = 100 --// Default always changes
 
 				for _Instance, UniqueProperties in pairs (InstanceTable[ClassName][InstanceName]) do --// Switch to the InstanceTable
-					if (AdjustOnlyLightsOn == true and Settings["Instances"][ClassName][InstanceName]["IsLight"] == true and UniqueProperties["LightsOn"] == true) or AdjustOnlyLightsOn == false then
+					if (AdjustOnlyLightsOn == true and LightingSettings["Instances"][ClassName][InstanceName]["IsLight"] == true and UniqueProperties["LightsOn"] == true) or AdjustOnlyLightsOn == false then
 						--// Above conditional simplified just means, if the settings says to only adjust the lights on, and the instance is one that does have the LightsOn status, and the instance is "on" then proceed, or if the Setting does not abide to only lights on the proceed
 
 
@@ -360,7 +353,7 @@ local function Set(Settings)
 								_Instance[ApprovedSettingName] = ApprovedSettingValue
 							end
 
-							InstanceTable[ClassName][InstanceName][_Instance]["LightsOn"] = Settings["Instances"][ClassName][InstanceName]["IsLightOn"]
+							InstanceTable[ClassName][InstanceName][_Instance]["LightsOn"] = LightingSettings["Instances"][ClassName][InstanceName]["IsLightOn"]
 						end
 					end
 				end
@@ -368,10 +361,10 @@ local function Set(Settings)
 		end
 	end
 
-	if Settings["ComplexInstances"] then
+	if LightingSettings["ComplexInstances"] then
 		local ListOfLights = {} --// Looks like: index = ReferencePartName; value = true/false, basically just tells whether this is treated as an instance affected by LightsOn or not
 
-		for ReferencePartName, Relationships in pairs (Settings["ComplexInstances"]) do --// This is NOT parsing through the ComplexInstanceTable, this is parsing through the ComplexInstances table in the respective settings
+		for ReferencePartName, Relationships in pairs (LightingSettings["ComplexInstances"]) do --// This is NOT parsing through the ComplexInstanceTable, this is parsing through the ComplexInstances table in the respective settings
 
 			for Relationship, ClassSettings in pairs (Relationships) do
 				if Relationship == "GeneralSettings" then
@@ -390,11 +383,11 @@ local function Set(Settings)
 			end
 		end
 
-		for ReferencePartName, _ in pairs (Settings["ComplexInstances"]) do
+		for ReferencePartName, _ in pairs (LightingSettings["ComplexInstances"]) do
 			local ChanceOfChange = 100 --// Defaults to 100  (i.e. always changes)
 
-			if Settings["ComplexInstances"][ReferencePartName]["GeneralSettings"]["ChanceOfChange"] ~= nil then
-				ChanceOfChange = Settings["ComplexInstances"][ReferencePartName]["GeneralSettings"]["ChanceOfChange"]
+			if LightingSettings["ComplexInstances"][ReferencePartName]["GeneralSettings"]["ChanceOfChange"] ~= nil then
+				ChanceOfChange = LightingSettings["ComplexInstances"][ReferencePartName]["GeneralSettings"]["ChanceOfChange"]
 			end
 
 			for ReferencePart, Relationships in pairs (ComplexInstanceTable[ReferencePartName]) do --// Parsing through all the reference parts
@@ -418,7 +411,7 @@ local function Set(Settings)
 												if ChangeTable == nil then --// Only does settings validation once
 													ChangeTable = {}
 
-													for SettingName, SettingValue in pairs (Settings["ComplexInstances"][ReferencePartName][Relationship][ClassName][InstanceName]) do --// Determines if settings are able to be used, etc. CHANGE SETTINGS HERE
+													for SettingName, SettingValue in pairs (LightingSettings["ComplexInstances"][ReferencePartName][Relationship][ClassName][InstanceName]) do --// Determines if settings are able to be used, etc. CHANGE SETTINGS HERE
 														if table.find(InternalSettings["NonPropertySettings"], SettingName) == nil then 
 															if SharedFunctions.CheckProperty(TestInstance, SettingName) then
 																if table.find(InternalSettings["BlacklistedSettings"], SettingName) == nil and (InternalSettings["BlacklistedSettingsClass"][ClassName] == nil or table.find(InternalSettings["BlacklistedSettingsClass"][ClassName], SettingName) == nil) then
@@ -440,7 +433,7 @@ local function Set(Settings)
 														TargetInstance[ApprovedSettingName] = ApprovedSettingValue
 													end
 
-													ComplexInstanceTable[ReferencePartName][ReferencePart]["LightsOn"] = Settings["ComplexInstances"][ReferencePartName]["GeneralSettings"]["IsLightOn"]
+													ComplexInstanceTable[ReferencePartName][ReferencePart]["LightsOn"] = LightingSettings["ComplexInstances"][ReferencePartName]["GeneralSettings"]["IsLightOn"]
 												end
 											end
 										end
@@ -449,7 +442,7 @@ local function Set(Settings)
 							end
 						end
 					else
-						Settings["ComplexInstances"][ReferencePartName][ReferencePart] = nil --// Used for deleting reference parts that no longer exist
+						LightingSettings["ComplexInstances"][ReferencePartName][ReferencePart] = nil --// Used for deleting reference parts that no longer exist
 					end
 				end
 			end
@@ -457,16 +450,25 @@ local function Set(Settings)
 	end
 end
 
-local function Tween(Settings)
+local function Tween(LightingSettings, TimeChange)
+	print("ACTUAL FUNCTIONS")
+	local TweenInformation
+
+	if TimeChange and TimeChange == true then
+		TweenInformation = Settings["TimeEffectTweenInformation"]
+	else
+		TweenInformation = Settings["LightingRegionTweenInformation"]
+	end
+
 	local AdjustOnlyLightsOn
 
-	if Settings["GeneralSettings"]["AdjustOnlyLightsOn"] then
-		AdjustOnlyLightsOn = Settings["GeneralSettings"]["AdjustOnlyLightsOn"]
+	if LightingSettings["GeneralSettings"]["AdjustOnlyLightsOn"] then
+		AdjustOnlyLightsOn = LightingSettings["GeneralSettings"]["AdjustOnlyLightsOn"]
 	else
 		AdjustOnlyLightsOn = false
 	end
 
-	for ClassName, ClassSettings in pairs (Settings) do --// Changing Lighting Service and Children (ChanceOfChange does not apply here)
+	for ClassName, ClassSettings in pairs (LightingSettings) do --// Changing Lighting Service and Children (ChanceOfChange does not apply here)
 		if InternalSettings["SettingInstanceCorrelations"][ClassName] and InternalSettings["SettingInstanceCorrelations"][ClassName] ~= false then
 			local TargetInstance = InternalSettings["SettingInstanceCorrelations"][ClassName] --// Instance being changed, also used for determining setting validation
 
@@ -493,8 +495,11 @@ local function Tween(Settings)
 
 			local ChangeTween = TweenService:Create(TargetInstance, TweenInformation, ChangeTable)
 			ChangeTween:Play()
+			
+			print(TargetInstance.Name)
 
 			ChangeTween.Completed:Connect(function()
+				print("tween completed")
 				ChangeTween:Destroy()
 
 				local NumberOfIndexes = #ToSetOnComplete
@@ -508,13 +513,10 @@ local function Tween(Settings)
 		end
 	end
 
-	if Settings["Instances"] then
-		for ClassName, Instances in pairs (Settings["Instances"]) do
+	if LightingSettings["Instances"] then
+		for ClassName, Instances in pairs (LightingSettings["Instances"]) do
 			for InstanceName, SpecificSettings in pairs (Instances) do
 				CheckInstanceTableExistence(InstanceName, ClassName)
-
-
-				--
 
 				local ChangeTable
 
@@ -523,10 +525,8 @@ local function Tween(Settings)
 				local ChanceOfChange = 100 --// Default always changes
 
 				for _Instance, UnqiueProperties in pairs (InstanceTable[ClassName][InstanceName]) do
-					if (AdjustOnlyLightsOn == true and Settings["Instances"][ClassName][InstanceName]["IsLight"] == true and UnqiueProperties["LightsOn"] == true) or AdjustOnlyLightsOn == false then
+					if (AdjustOnlyLightsOn == true and LightingSettings["Instances"][ClassName][InstanceName]["IsLight"] == true and UnqiueProperties["LightsOn"] == true) or AdjustOnlyLightsOn == false then
 						--// Above conditional simplified just means, if the settings says to only adjust the lights on, and the instance is one that does have the LightsOn status, and the instance is "on" then proceed, or if the Setting does not abide to only lights on the proceed
-
-
 
 						if ChangeTable == nil then
 							ChangeTable = {}
@@ -572,64 +572,14 @@ local function Tween(Settings)
 						end
 					end
 				end
-
-
-				--
-
-				--[[if #InstanceTable[ClassName][InstanceName] ~= 0 then
-					local ChangeTable = {}
-					local ToSetOnComplete = {}
-					local ChanceOfChange = 100 --// Default always changes
-					
-					local TestInstance = InstanceTable[ClassName][InstanceName][1] --// Used for determining setting validation
-					for SettingName, SettingValue in pairs (SpecificSettings) do --// Determines if settings are able to be used, etc.
-						if TestInstance[SettingName] then
-							if table.find(InternalSettings["BlacklistedSettings"], SettingName) == nil and (InternalSettings["BlacklistedSettingsClass"][ClassName] == nil or table.find(InternalSettings["BlacklistedSettingsClass"][ClassName], SettingName) == nil) then
-								if table.find(InternalSettings["AlwaysSet"], SettingName) ~= nil or (InternalSettings["AlwaysSetClass"][ClassName] and table.find(InternalSettings["AlwaysSetClass"][ClassName], SettingName)) then
-									table.insert(ToSetOnComplete, SettingName)
-								else
-									ChangeTable[SettingName] = SettingValue
-								end
-							else
-								warn(SettingName.. " unable to be modified")
-							end
-						else
-							if SettingName ~= "ChanceOfChange" then
-								warn(SettingName.. " is not a valid property of ".. InstanceName.. ".  Check spelling")
-							else
-								ChanceOfChange = SettingValue
-							end
-						end
-					end
-					
-					for i = 1, #InstanceTable[ClassName][InstanceName] do --// Changes the settings
-						if SharedFunctions.DoesChange(ChanceOfChange) then
-							local TargetInstance = InstanceTable[ClassName][InstanceName][i]
-							local ChangeTween = TweenService:Create(TargetInstance, TweenInformation, ChangeTable)
-							ChangeTween:Play()
-							
-							ChangeTween.Completed:Connect(function()
-								ChangeTween:Destroy()
-								
-								local NumberOfIndexes = #ToSetOnComplete
-							
-								if NumberOfIndexes ~= 0 then
-									for i = 1, NumberOfIndexes do
-										--TargetInstance[ToSetOnComplete[i]] --= SpecificSettings[ToSetOnComplete[i]]
-				--end
-				--end
-				--end)
-				--end
-				--end
-				--end]]
 			end
 		end
 	end
 
-	if Settings["ComplexInstances"] then
+	if LightingSettings["ComplexInstances"] then
 		local ListOfLights = {} --// Looks like: index = ReferencePartName; value = true/false, basically just tells whether this is treated as an instance affected by LightsOn or not 
 
-		for ReferencePartName, Relationships in pairs (Settings["ComplexInstances"]) do --// This is NOT parsing through the ComplexInstanceTable, this is parsing through the ComplexInstances table in the respective settings
+		for ReferencePartName, Relationships in pairs (LightingSettings["ComplexInstances"]) do --// This is NOT parsing through the ComplexInstanceTable, this is parsing through the ComplexInstances table in the respective settings
 			for Relationship, ClassSettings in pairs (Relationships) do
 				if Relationship == "GeneralSettings" then
 					if ClassSettings["IsLight"] then
@@ -647,11 +597,11 @@ local function Tween(Settings)
 			end
 		end
 
-		for ReferencePartName, _ in pairs (Settings["ComplexInstances"]) do
+		for ReferencePartName, _ in pairs (LightingSettings["ComplexInstances"]) do
 			local ChanceOfChange = 100 --// Defaults to 100 (i.e. always changes)
 
-			if Settings["ComplexInstances"][ReferencePartName]["GeneralSettings"]["ChanceOfChange"] ~= nil then
-				ChanceOfChange = Settings["ComplexInstances"][ReferencePartName]["GeneralSettings"]["ChanceOfChange"]
+			if LightingSettings["ComplexInstances"][ReferencePartName]["GeneralSettings"]["ChanceOfChange"] ~= nil then
+				ChanceOfChange = LightingSettings["ComplexInstances"][ReferencePartName]["GeneralSettings"]["ChanceOfChange"]
 			end
 
 			for ReferencePart, Relationships in pairs (ComplexInstanceTable[ReferencePartName]) do
@@ -672,7 +622,7 @@ local function Tween(Settings)
 												if ChangeTable == nil then
 													ChangeTable = {}
 
-													for SettingName, SettingValue in pairs (Settings["ComplexInstances"][ReferencePartName][Relationship][ClassName][InstanceName]) do --// Determines if settings are able to be used, etc.
+													for SettingName, SettingValue in pairs (LightingSettings["ComplexInstances"][ReferencePartName][Relationship][ClassName][InstanceName]) do --// Determines if settings are able to be used, etc.
 														if SharedFunctions.CheckProperty(TestInstance, SettingName) then
 															if table.find(InternalSettings["BlacklistedSettings"], SettingName) == nil and (InternalSettings["BlacklistedSettingsClass"][ClassName] == nil or table.find(InternalSettings["BlacklistedSettingsClass"][ClassName], SettingName) == nil) then
 																if table.find(InternalSettings["AlwaysSet"], SettingName) ~= nil or (InternalSettings["AlwaysSetClass"][ClassName] and table.find(InternalSettings["AlwaysSetClass"][ClassName], SettingName)) then
@@ -704,7 +654,7 @@ local function Tween(Settings)
 
 															if NumberOfIndexes ~= 0 then
 																for e = 1, NumberOfIndexes do
-																	ChangeInstance[ToSetOnComplete[e]] = Settings["ComplexInstances"][ReferencePartName][Relationship][ClassName][InstanceName][ToSetOnComplete[e]]
+																	ChangeInstance[ToSetOnComplete[e]] = LightingSettings["ComplexInstances"][ReferencePartName][Relationship][ClassName][InstanceName][ToSetOnComplete[e]]
 																end
 															end
 														end)
@@ -717,7 +667,7 @@ local function Tween(Settings)
 							end
 						end
 					else
-						Settings["ComplexInstances"][ReferencePartName][ReferencePart] = nil --// Used for deleting reference parts that no longer exist
+						LightingSettings["ComplexInstances"][ReferencePartName][ReferencePart] = nil --// Used for deleting reference parts that no longer exist
 					end
 				end
 			end
@@ -811,7 +761,7 @@ local function RunCheckCycle()
 end
 
 function module.Run()
-	if Settings["AutomaticTransitions"] == true and RunService:IsServer() then
+	--[[if Settings["AutomaticTransitions"] == true and RunService:IsServer() then
 
 		module.GetCurrentLightingPeriod() --// Gets the current lighting period based off of ClockTime
 
@@ -822,19 +772,7 @@ function module.Run()
 		else
 			coroutine.wrap(RunCheckCycle)()
 		end
-
-		if Settings["RecheckDayNight"] == true then
-			local Check = coroutine.create(function()
-				while true do
-					wait(InternalSettings["DayNightWait"])
-
-					AdjustStartTimes()
-				end
-			end)
-			
-			coroutine.resume(Check)
-		end
-	end
+	end]]
 end
 
 function module.RegionEnter(RegionName)
@@ -843,12 +781,12 @@ function module.RegionEnter(RegionName)
 	if RegionSettings then
 		InternalVariables["HaltLightingCycle"] = true
 
-		module.TweenLighting(RegionName, true, true)
+		module.TweenLighting(RegionName, true, true, false)
 	end
 end
 
-function module.TweenLighting(LightingName, WeatherOverride, Region: boolean)
-	WaitForSettingsTables()
+function module.TweenLighting(LightingName, WeatherOverride: boolean, Region: boolean, TimeChange: boolean)
+	SettingsHandling.WaitForSettings("Lighting")
 
 	print("Tweening for ".. LightingName)
 
@@ -863,25 +801,25 @@ function module.TweenLighting(LightingName, WeatherOverride, Region: boolean)
 	if NewLightingSettings then
 		if Settings["ClientSided"] == false or RunService:IsClient() then
 			if InternalVariables["Weather"] == false or WeatherOverride == true then
-				Tween(NewLightingSettings)
+				Tween(NewLightingSettings, TimeChange)
 			end
 		else
 			if RunService:IsServer() then
-				LightingRemote:FireAllClients("Lighting", LightingName, "Tween")
+				LightingRemote:FireAllClients("Lighting", LightingName, "Tween", TimeChange)
 			end
 		end
 	end
 end
 
 function module.TweenWeather(WeatherName)
-	WaitForSettingsTables()
+	SettingsHandling.WaitForSettings("Lighting")
 
 	local NewWeatherSettings = SettingsHandling:GetWeatherSettings(WeatherName)
 
 	if NewWeatherSettings then
 		if Settings["ClientSided"] == false or RunService:IsClient() then
 			InternalVariables["Weather"] = true
-			Tween(NewWeatherSettings)
+			Tween(NewWeatherSettings, false)
 		else
 			if RunService:IsServer() then
 				LightingRemote:FireAllClients("Weather", WeatherName, "Tween")
@@ -898,7 +836,7 @@ function module.ClearWeather(Type)
 	elseif Type == "Tween" then
 		InternalVariables["Weather"] = false
 
-		Tween(module.GetCurrentLightingPeriod(true))
+		Tween(module.GetCurrentLightingPeriod(true), false)
 	end
 end
 
@@ -931,7 +869,7 @@ function module.GetCurrentLightingPeriod(IgnoreCached)
 end
 
 function module.SetWeather(WeatherName)
-	WaitForSettingsTables()
+	SettingsHandling.WaitForSettings("Lighting")
 
 	local NewWeatherSettings = SettingsHandling:GetWeatherSettings(WeatherName)
 
@@ -948,7 +886,7 @@ function module.SetWeather(WeatherName)
 end
 
 function module.SetLighting(LightingName, WeatherOverride)
-	WaitForSettingsTables()
+	SettingsHandling.WaitForSettings("Lighting")
 
 	local NewLightingSettings = SettingsHandling:GetServerSettings(LightingName, "Lighting")
 
@@ -970,7 +908,11 @@ if InternalVariables["InitializedLighting"] == false and RunService:IsServer() t
 
 	LightingRemote.OnServerEvent:Connect(function(Player, Status)
 		if Status == "Entered" then
-			LightingRemote:FireClient(Player, "Lighting", module.GetCurrentLightingPeriod(), "Set")
+			while InternalVariables["CurrentLightingPeriod"] == "" do --// Sometimes (especialy in Studio) where the client is loading in really fast, it will load in before the CurrentLightingPeriod is set
+				wait(.1)
+			end
+
+			LightingRemote:FireClient(Player, "Lighting", InternalVariables["CurrentLightingPeriod"], "Set")
 		end
 	end)
 end

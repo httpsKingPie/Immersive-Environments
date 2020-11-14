@@ -110,6 +110,8 @@ function module:GenerateLightingSettings()
 end
 
 function module:GenerateAudioSettings()
+	local Count = 0
+	
 	local RegionDescendants = AudioSettings.RegionSettings:GetDescendants()
 	local ServerDescendants = AudioSettings.ServerSettings:GetDescendants()
 
@@ -131,6 +133,20 @@ function module:GenerateAudioSettings()
 				warn("Audio Server Setting already exists for ".. ServerDescendants[i].Name.. ".  Make sure settings with the same name do not exist")
 			end
 		end
+	end
+
+	InternalVariables["TotalLightingIndexes"] = Count
+	InternalVariables["AudioSettingTablesBuilt"] = true
+end
+
+function module.WaitForSettings(Type)
+	if not InternalVariables[tostring(Type).. "SettingTablesBuilt"] then
+		warn(tostring(Type).. " does not have SettingsTables stored in InternalVariables")
+		return
+	end
+
+	while InternalVariables[tostring(Type).. "SettingTablesBuilt"] == false do
+		wait(.1)
 	end
 end
 

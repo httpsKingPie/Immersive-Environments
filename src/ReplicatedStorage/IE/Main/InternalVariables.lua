@@ -5,17 +5,26 @@ local module = {
     --// Lighting Variables
     ["HaltLightingCycle"] = false, --// Halts the lighting cycle when a region is entered
     ["InitializedLighting"] = false,
-    ["TotalLightingIndexes"] = 0,
     ["Weather"] = false, --// Identifies whether weather is active
 
     --// Settings Variables
 
+    ["AudioSettingTablesBuilt"] = false,
     ["LightingSettingTablesBuilt"] = false,
 
     --// Time variables
-
+    ["CurrentAudioAdjustedPeriod"] = "", --// Current string name of the AdjustedTimePeriod that the Player is in
+    ["CurrentLightingAdjustedPeriod"] = "", --// Current string name of the AdjustedTimePeriod that the Player is in
+    ["CurrentAudioIndex"] = 0, --// Current index of the TimePeriod (used for sorted check cycles)
+    ["CurrentLightingIndex"] = 0, --// Current index of the TimePeriod (used for sorted check cycles)
+    ["CurrentAudioPeriod"] = "", --// Current string name of the TimePeriod that the Player is in
+    ["CurrentLightingPeriod"] = "", --// Current string name of the TimePeriod that the Player is in
     ["DayAdjustmentRate"] = 0, --// The adjustment rate for the regions that start during the day-period
     ["NightAdjustmentRate"] = 0, --// The adjustment rate for the regions that start during the night-period
+    ["NextAudioIndex"] = 0, --// Used to identify the next period to look for in a sorted check cycle
+    ["NextLightingIndex"] = 0, --// Used to identify the next period to look for in a sorted check cycle
+    ["TotalAudioIndexes"] = 0, --// Used for sorted check cycles to know what index to look for next
+    ["TotalLightingIndexes"] = 0, --// Used for sorted check cycles to know what index to look for next
 
      --// Region Variables
      ["CurrentRegions"] = {}, --// Stores a dictionary with numerical indexes to indicate the order in which the region was joined (high numbers = joined more recently)
