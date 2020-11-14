@@ -1,14 +1,14 @@
 local module = {
 	["GeneralSettings"] = {
 		 --// All times in 24 hour notation
-		["StartTime"] = 16,
-		["EndTime"] = 18,
+		["StartTime"] = 12,
+		["EndTime"] = 14,
 		
 		["AdjustOnlyLightsOn"] = true,
 	},
 	
 	["Instances"] = {
-		
+
 	},
 	
 	["Terrain"] = {
@@ -34,13 +34,13 @@ local module = {
 	["BloomEffect"] = {
 		["Enabled"] = true,
 		["Intensity"] = 0,
-		["Size"] = 0,
+		["Size"] = 24,
 		["Threshold"] = 0,
 	},
 	
 	["BlurEffect"] = {
 		["Enabled"] = true,
-		["Size"] = 0,
+		["Size"] = 40,
 	},
 	
 	["ColorCorrectionEffect"] = {
@@ -52,7 +52,7 @@ local module = {
 	},
 	
 	["LightingService"] = {
-		["Ambient"] = Color3.fromRGB(150, 0, 75),
+		["Ambient"] = Color3.fromRGB(138, 138, 138),
 		["Brightness"] = 0,
 		["ColorShift_Bottom"] = Color3.fromRGB(0, 0, 0),
 		["ColorShift_Top"] = Color3.fromRGB(0, 0, 0),

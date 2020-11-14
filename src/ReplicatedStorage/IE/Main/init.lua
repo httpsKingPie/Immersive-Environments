@@ -3,7 +3,6 @@ local module = {}
 local RunService = game:GetService("RunService")
 
 local AudioHandling
-local LightingHandling
 local RegionHandling
 local SettingsHandling
 local TimeHandling
@@ -12,7 +11,6 @@ local Initialized = false
 
 local function InitializeModules() --// Done so that the Remotes are loaded first and there aren't errors
 	AudioHandling = require(script.AudioHandling)
-	LightingHandling = require(script.LightingHandling)
 	RegionHandling = require(script.RegionHandling)
 	SettingsHandling = require(script.SettingsHandling)
 	TimeHandling = require(script.TimeHandling)
@@ -41,13 +39,13 @@ function module.Run()
 		InitializeModules()
 		Initialized = true
 	end
+
 	SettingsHandling.Run() --// Not a coroutine, because we want Settings to populate before everything first
 
-	coroutine.wrap(TimeHandling.Run)()
+	coroutine.wrap(TimeHandling.Run)() --// Generates time cycles, periods, etc.
 
-	coroutine.wrap(RegionHandling.Run)()
-	coroutine.wrap(LightingHandling.Run)()
-	coroutine.wrap(AudioHandling.Run)()
+	coroutine.wrap(RegionHandling.Run)() --// Initializes regions
+	coroutine.wrap(AudioHandling.Run)() --// Sets up the client sound folders, etc.
 end
 
 return module

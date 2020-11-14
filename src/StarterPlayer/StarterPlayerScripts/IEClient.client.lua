@@ -17,7 +17,6 @@ if Settings["ClientSided"] == true then
 	LightingRemote:FireServer("Entered") --// Sets the Player's lighting to whatever the server's current lighting is
 	
 	LightingRemote.OnClientEvent:Connect(function(ChangeType, SettingName, Type, TimeChange)
-		print("SN".. SettingName)
 		if ChangeType == "Lighting" then
 			if Type == "Set" then
 				LightingHandling.SetLighting(SettingName)

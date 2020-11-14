@@ -43,13 +43,6 @@ local IEFolder = Main.Parent
 local ObjectTracker = require(IEFolder["OT&AM"])
 local Settings = require(IEFolder.Settings)
 
-local LeftRegionTime = 0 --// Replaced by os.time() value
-local EnteredRegionTime = 0 --// Replaced by os.time() value
-
-local DetectingRegionChange = false
-
---// Misc
-
 local function HandleRegionEnter(RegionType, RegionName)
 	if RegionType == "Audio" then
 		AudioHandling.RegionEnter(RegionName)
@@ -70,7 +63,6 @@ local function HandleRegionLeave(RegionType, RegionName)
 			InternalVariables["CurrentAudioRegions"] = InternalVariables["CurrentAudioRegions"] - 1
 		end
 	elseif RegionType == "Lighting" then
-
 
 		if InternalVariables["CurrentLightingRegions"] < 0 then
 			InternalVariables["CurrentLightingRegions"] = InternalVariables["CurrentLightingRegions"] - 1

@@ -18,9 +18,6 @@ local InternalVariables = require(Main.InternalVariables)
 local SettingsHandling = require(Main.SettingsHandling)
 local SharedFunctions = require(Main.SharedFunctions)
 
-local LightingTimePeriods = {}
-local AdjustedTimePeriods = {}
-
 local InstanceTable = {}
 local ComplexInstanceTable = {}
 
@@ -28,19 +25,7 @@ local LitLightTable = {} --// Reference table, only used when Settings["AlwaysCh
 
 local CurrentLightingPeriod --// String
 
---// Used for sorting
-local CurrentLightingIndex --// Number
-local NextLightingIndex --// Number
-
 local LightingRemote = RemoteFolder:WaitForChild("LightingRemote")
-
-local function SetNextLightingIndex()
-	if CurrentLightingIndex + 1 <= InternalVariables["TotalLightingIndexes"] then
-		NextLightingIndex = CurrentLightingIndex + 1
-	else
-		NextLightingIndex = 1
-	end
-end
 
 local function GetSearchCategory()
 	if Settings["ChangingInstanceChildrenOfWorkspace"] == true then
@@ -286,7 +271,6 @@ local function CheckComplexInstanceTableExistence(ReferencePartName, Relationshi
 end
 
 local function Set(LightingSettings)
-	print("Setting .. ")
 	local AdjustOnlyLightsOn
 
 	if LightingSettings["GeneralSettings"]["AdjustOnlyLightsOn"] ~= nil then
@@ -451,7 +435,6 @@ local function Set(LightingSettings)
 end
 
 local function Tween(LightingSettings, TimeChange)
-	print("ACTUAL FUNCTIONS")
 	local TweenInformation
 
 	if TimeChange and TimeChange == true then
@@ -495,11 +478,8 @@ local function Tween(LightingSettings, TimeChange)
 
 			local ChangeTween = TweenService:Create(TargetInstance, TweenInformation, ChangeTable)
 			ChangeTween:Play()
-			
-			print(TargetInstance.Name)
 
 			ChangeTween.Completed:Connect(function()
-				print("tween completed")
 				ChangeTween:Destroy()
 
 				local NumberOfIndexes = #ToSetOnComplete
@@ -675,106 +655,6 @@ local function Tween(LightingSettings, TimeChange)
 	end
 end
 
-
-
-local function GetAdjustedPeriod()
-	local CurrentTime = Lighting.ClockTime
-
-	for LightingPeriodName, PeriodSettings in pairs (AdjustedTimePeriods) do
-		if PeriodSettings["EndTime"] > PeriodSettings["StartTime"] then
-			if CurrentTime >= PeriodSettings["StartTime"] and CurrentTime < PeriodSettings["EndTime"] then
-				return LightingPeriodName
-			end
-		else
-			if (CurrentTime < 24 and CurrentTime >= PeriodSettings["StartTime"]) or (CurrentTime < PeriodSettings["EndTime"]) then
-				return LightingPeriodName
-			end
-		end
-	end
-end
-
-local function RunSortedCheckCycle()
-
-	for Index, PeriodSettings in ipairs (LightingTimePeriods) do
-		if PeriodSettings["Name"] == CurrentLightingPeriod then
-			CurrentLightingIndex = Index
-			SetNextLightingIndex()
-			break
-		end
-	end
-
-	while wait(Settings["CheckTime"]) do
-		if InternalVariables["HaltLightingCycle"] == false then
-			local CurrentTime = Lighting.ClockTime
-
-			local StartTimeForNextPeriod = AdjustedTimePeriods[NextLightingIndex]["StartTime"]
-			local EndTimeForNextPeriod = AdjustedTimePeriods[NextLightingIndex]["EndTime"]
-
-			if EndTimeForNextPeriod > StartTimeForNextPeriod then
-				if CurrentTime >= StartTimeForNextPeriod then
-					CurrentLightingIndex = NextLightingIndex
-					CurrentLightingPeriod = LightingTimePeriods[CurrentLightingIndex]["Name"]
-					SetNextLightingIndex()
-
-					if Settings["Tween"]  == true then
-						module.TweenLighting(CurrentLightingPeriod)
-					else
-						module.SetLighting(CurrentLightingPeriod)
-					end
-				end
-			else --// Means times go over midnight, ex: start at 22 ends at 4
-				if (CurrentTime < 24 and CurrentTime >= StartTimeForNextPeriod) or (CurrentTime < EndTimeForNextPeriod) then
-					CurrentLightingIndex = NextLightingIndex
-					CurrentLightingPeriod = LightingTimePeriods[CurrentLightingIndex]["Name"]
-					SetNextLightingIndex()
-
-					if Settings["Tween"]  == true then
-						module.TweenLighting(CurrentLightingPeriod)
-					else
-						module.SetLighting(CurrentLightingPeriod)
-					end
-				end
-			end
-		end
-	end
-end
-
-local function RunCheckCycle()
-	local LightingPeriodInLoop = module.GetCurrentLightingPeriod()
-
-	while wait(Settings["CheckTime"]) do
-		if InternalVariables["HaltLightingCycle"] == false then
-			local CurrentTime = Lighting.ClockTime
-			local CurrentAdjustedPeriod = GetAdjustedPeriod()
-
-			if CurrentAdjustedPeriod ~= module.GetCurrentLightingPeriod() then --// If this changes, that means they are entering a new lighting period
-				CurrentLightingPeriod = CurrentAdjustedPeriod
-
-				if Settings["Tween"]  == true then
-					module.TweenLighting(CurrentLightingPeriod)
-				else
-					module.SetLighting(CurrentLightingPeriod)
-				end
-			end
-		end
-	end
-end
-
-function module.Run()
-	--[[if Settings["AutomaticTransitions"] == true and RunService:IsServer() then
-
-		module.GetCurrentLightingPeriod() --// Gets the current lighting period based off of ClockTime
-
-		module.SetLighting(CurrentLightingPeriod) --// Changes the lighting to the current lighting period (initially)
-
-		if Settings["EnableSorting"] == true then
-			coroutine.wrap(RunSortedCheckCycle)()
-		else
-			coroutine.wrap(RunCheckCycle)()
-		end
-	end]]
-end
-
 function module.RegionEnter(RegionName)
 	local RegionSettings = SettingsHandling:GetRegionSettings(RegionName, "Lighting")
 
@@ -787,8 +667,6 @@ end
 
 function module.TweenLighting(LightingName, WeatherOverride: boolean, Region: boolean, TimeChange: boolean)
 	SettingsHandling.WaitForSettings("Lighting")
-
-	print("Tweening for ".. LightingName)
 
 	local NewLightingSettings
 
@@ -832,39 +710,11 @@ function module.ClearWeather(Type)
 	if Type == "Set" then
 		InternalVariables["Weather"] = false
 
-		Set(module.GetCurrentLightingPeriod(true))
+		Set(InternalVariables["CurrentLightingPeriod"])
 	elseif Type == "Tween" then
 		InternalVariables["Weather"] = false
 
-		Tween(module.GetCurrentLightingPeriod(true), false)
-	end
-end
-
-function module.GetCurrentLightingPeriod(IgnoreCached)
-	if CurrentLightingPeriod == nil or IgnoreCached == true then
-		local CurrentTime = Lighting.ClockTime
-
-		if Settings["EnableSorting"] == true then
-			for _, PeriodSettings in ipairs (LightingTimePeriods) do
-				if CurrentTime >= PeriodSettings["StartTime"] and CurrentTime <= PeriodSettings["EndTime"] then
-					CurrentLightingPeriod = PeriodSettings["Name"]
-					return CurrentLightingPeriod
-				end
-			end
-
-			warn("Lighting periods are not continuous - lighting period not found")
-		else
-			for LightingPeriodName, PeriodSettings in pairs (LightingTimePeriods) do
-				if CurrentTime >= PeriodSettings["StartTime"] and CurrentTime <= PeriodSettings["EndTime"] then
-					CurrentLightingPeriod = LightingPeriodName
-					return CurrentLightingPeriod
-				end
-			end
-
-			warn("Lighting periods are not continuous - lighting period not found")
-		end
-	else
-		return CurrentLightingPeriod
+		Tween(InternalVariables["CurrentLightingPeriod"], false)
 	end
 end
 
@@ -903,18 +753,20 @@ function module.SetLighting(LightingName, WeatherOverride)
 	end
 end
 
-if InternalVariables["InitializedLighting"] == false and RunService:IsServer() then
+if InternalVariables["InitializedLighting"] == false then
 	InternalVariables["InitializedLighting"] = true
 
-	LightingRemote.OnServerEvent:Connect(function(Player, Status)
-		if Status == "Entered" then
-			while InternalVariables["CurrentLightingPeriod"] == "" do --// Sometimes (especialy in Studio) where the client is loading in really fast, it will load in before the CurrentLightingPeriod is set
-				wait(.1)
-			end
+	if RunService:IsServer() then
+		LightingRemote.OnServerEvent:Connect(function(Player, Status)
+			if Status == "Entered" then
+				while InternalVariables["CurrentLightingPeriod"] == "" do --// Sometimes (especialy in Studio) where the client is loading in really fast, it will load in before the CurrentLightingPeriod is set
+					wait(.1)
+				end
 
-			LightingRemote:FireClient(Player, "Lighting", InternalVariables["CurrentLightingPeriod"], "Set")
-		end
-	end)
+				LightingRemote:FireClient(Player, "Lighting", InternalVariables["CurrentLightingPeriod"], "Set")
+			end
+		end)
+	end
 end
 
 return module

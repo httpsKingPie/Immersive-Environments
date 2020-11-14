@@ -4,7 +4,7 @@ local module = {
 	
 	["DefaultSettings"] = true, --// Set to true if you just want to run this with recommend settings
 	["AlwaysCheckInstances"] = false, --// Will run a search through workspace to check for instance changes every time if this is set to true.  Recommended to set to false if the number of instances never changes or if StreamingEnabled is not enabled (aka StreamingDisabled - hahahahahahahahhah :]).
-	["ClientSided"] = false, --// Set to true if all effects w/ regards to the physical instances (i.e. BaseParts) are run on the client (make sure to add the TDL2Client script to StarterPlayerScripts if true)
+	["ClientSided"] = true, --// Set to true if all effects w/ regards to the physical instances (i.e. BaseParts) are run on the client (make sure to add the TDL2Client script to StarterPlayerScripts if true)
 	["RegionCheckTime"] = 5, --// The time it checks for the creation of new regions (probably doesn't have to be that low of a number)
 	["Tween"] = true, --// Turn this off if you do not want tween changes and want hard changes
 	
@@ -36,7 +36,6 @@ local module = {
 	["CheckTime"] = 1, --// The time in seconds that the script checks for Lighting Period changes, if AutomaticTransitions is set to false, you don't need to worry about this
 	["EnableDayNightTransitions"] = true, --// Turns on day/night cycle
 	["EnableSorting"] = true, --// Setting to true reduces the work done by the script, however, this denies the ability to make changes to ClockTime or TimeOfDay via admin or other controls and have the script automatically follow.  Set to false if you would like to preserve the ability to make changes in admin.
-	["RecheckDayNight"] = false, --// Use this if day/night time passage is not continous (ex: TimeForDay and TimeForNight are different numbers)
 	["TimeEffectTweenInformation"] = TweenInfo.new(
 		20, --// Recommended to only adjust the time variable (default set to 20 seconds)
 		Enum.EasingStyle.Linear

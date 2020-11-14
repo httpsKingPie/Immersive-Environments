@@ -1,10 +1,10 @@
 local module = {
 	["GeneralSettings"] = {
 		 --// All times in 24 hour notation
-		["StartTime"] = 14,
-		["EndTime"] = 16,
+		["StartTime"] = 16,
+		["EndTime"] = 18,
 		
-		["AdjustOnlyLightsOn"] = false,
+		["AdjustOnlyLightsOn"] = true,
 	},
 	
 	["Instances"] = {
@@ -40,7 +40,7 @@ local module = {
 	
 	["BlurEffect"] = {
 		["Enabled"] = true,
-		["Size"] = 24,
+		["Size"] = 12,
 	},
 	
 	["ColorCorrectionEffect"] = {
@@ -48,11 +48,11 @@ local module = {
 		["Contrast"] = 0,
 		["Enabled"] = true,
 		["Saturation"] = 0,
-		["TintColor"] = Color3.fromRGB(255, 255, 255),
+		["TintColor"] = Color3.fromRGB(150, 0, 75),
 	},
 	
 	["LightingService"] = {
-		["Ambient"] = Color3.fromRGB(40, 138, 20),
+		["Ambient"] = Color3.fromRGB(150, 0, 75),
 		["Brightness"] = 0,
 		["ColorShift_Bottom"] = Color3.fromRGB(0, 0, 0),
 		["ColorShift_Top"] = Color3.fromRGB(0, 0, 0),

@@ -4,7 +4,7 @@ local module = {
 
     --// Lighting Variables
     ["HaltLightingCycle"] = false, --// Halts the lighting cycle when a region is entered
-    ["InitializedLighting"] = false,
+    ["InitializedLighting"] = false, --// Whether the Lighting script has initialized (to prevent Remote event duplication and module infintie reloading)
     ["Weather"] = false, --// Identifies whether weather is active
 
     --// Settings Variables
@@ -15,14 +15,21 @@ local module = {
     --// Time variables
     ["CurrentAudioAdjustedPeriod"] = "", --// Current string name of the AdjustedTimePeriod that the Player is in
     ["CurrentLightingAdjustedPeriod"] = "", --// Current string name of the AdjustedTimePeriod that the Player is in
+
     ["CurrentAudioIndex"] = 0, --// Current index of the TimePeriod (used for sorted check cycles)
     ["CurrentLightingIndex"] = 0, --// Current index of the TimePeriod (used for sorted check cycles)
+
     ["CurrentAudioPeriod"] = "", --// Current string name of the TimePeriod that the Player is in
     ["CurrentLightingPeriod"] = "", --// Current string name of the TimePeriod that the Player is in
+
     ["DayAdjustmentRate"] = 0, --// The adjustment rate for the regions that start during the day-period
     ["NightAdjustmentRate"] = 0, --// The adjustment rate for the regions that start during the night-period
+
+    ["InitializedTime"] = false, --// Whether the Audio script has initialized (to prevent module infinite reloading)
+
     ["NextAudioIndex"] = 0, --// Used to identify the next period to look for in a sorted check cycle
     ["NextLightingIndex"] = 0, --// Used to identify the next period to look for in a sorted check cycle
+    
     ["TotalAudioIndexes"] = 0, --// Used for sorted check cycles to know what index to look for next
     ["TotalLightingIndexes"] = 0, --// Used for sorted check cycles to know what index to look for next
 

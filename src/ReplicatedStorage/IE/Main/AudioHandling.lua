@@ -16,7 +16,6 @@ local SettingsHandling = require(Main.SettingsHandling)
 local SharedFunctions = require(Main.SharedFunctions)
 
 local Settings = require(IEFolder.Settings)
-local ObjectTracker = require(IEFolder["OT&AM"])
 
 --// SoundService
 
@@ -26,7 +25,7 @@ local SharedSounds
 
 --// Functions
 
-function module.Run()
+function module.Run() --// Initial run, basically just creating folders
 	if not SoundService:FindFirstChild("ActiveServerSounds") and RunService:IsServer() then --// We only want/need this created on the server
 		ActiveServerSounds = Instance.new("Folder")
 		ActiveServerSounds.Name = "ActiveServerSounds"
@@ -50,7 +49,7 @@ function module.Run()
 	end
 end
 
-local function GetRegionSoundFolder(RegionName: string)
+local function GetRegionSoundFolder(RegionName: string) --// Gets the sound folder for a RegionName and if one does not exist it creates one
 	local RegionSoundFolder = ActiveRegionSounds:FindFirstChild(RegionName)
 
 	if not RegionSoundFolder then
@@ -120,7 +119,7 @@ local function Tween(InstanceToTween: any, InstanceSettings: table, ClassName: s
 	end)
 end
 
-local function TweenOut(InstanceToTween: any)
+local function TweenOut(InstanceToTween: any) --// Tweens out a single sound
 	if InstanceToTween:IsA("Sound") then
 		local ChangeTween = TweenService:Create(InstanceToTween, Settings["AudioRegionTweenInformation"], {Volume = 0})
 		ChangeTween:Play()
@@ -132,7 +131,7 @@ local function TweenOut(InstanceToTween: any)
 	end
 end
 
-local function TweenOutRegionSounds(RegionName)
+local function TweenOutRegionSounds(RegionName) --// Tweens out the sounds of this region
 	local RegionSoundFolder = GetRegionSoundFolder(RegionName)
 
 	for _, Sound in pairs (RegionSoundFolder:GetChildren()) do
@@ -144,31 +143,31 @@ local function AdjustSharedSounds() --// Determines whether a SharedSound is sti
 	local SoundMaxIndexTable = {} --// Format is [SoundInstance] = IndexNumber
 	--// This is used so that the shared sound goes to the region that the player had entered most recently (index number represents this, reference further above in script)
 	
-	local CurrentSharedSounds = SharedSounds:GetChildren()
+	local CurrentSharedSounds = SharedSounds:GetChildren() --// This is a table of the CurrentSharedSounds, but this is eventually transformed into a table of sounds that need to be removed.  Sounds that are still active (i.e. within a region that uses that SharedSound) are removed from this table
 
-	for Index, RegionName in ipairs (InternalVariables["CurrentRegions"]) do
+	for Index, RegionName in ipairs (InternalVariables["CurrentRegions"]) do --// Looks at all the CurrentRegions (in order of join)
 		local RegionSettings = SettingsHandling:GetRegionSettings(RegionName, "Audio")
 
-		if RegionSettings then
-			local RegionSharedSounds = RegionSettings["SharedSounds"]
+		if RegionSettings then --// If RegionSettings exist
+			local RegionSharedSounds = RegionSettings["SharedSounds"] --// Looks at the SharedSounds for the region
 			
-			if RegionSharedSounds then
-				for i = 1, #CurrentSharedSounds do
-					if RegionSharedSounds[CurrentSharedSounds[i].Name] then
-						SoundMaxIndexTable[CurrentSharedSounds[i]] = Index
-						table.remove(CurrentSharedSounds, i)
+			if RegionSharedSounds then --// If SharedSounds exist
+				for i = 1, #CurrentSharedSounds do --// Parse through all the CurrentSharedSounds
+					if RegionSharedSounds[CurrentSharedSounds[i].Name] then --// If any of the CurrentSharedSounds match one of the SharedSounds in the Region that is being left
+						SoundMaxIndexTable[CurrentSharedSounds[i]] = Index --// Indicates the highest index that SharedSound was in (because ipairs)
+						table.remove(CurrentSharedSounds, i) --// Removes it from the table, i.e. the sound is still active
 					end
 				end
 			end
 		end
 	end
 
-	for Sound, Index in pairs (SoundMaxIndexTable) do
+	for Sound, Index in pairs (SoundMaxIndexTable) do --// Parses through the SoundMaxIndexTable
 		local RegionName = InternalVariables["CurrentRegions"][Index]
 
 		local RegionSettings = SettingsHandling:GetRegionSettings(RegionName, "Audio")
 
-		local SoundSettings = RegionSettings["SharedSounds"][Sound.Name]["Tween"]
+		local SoundSettings = RegionSettings["SharedSounds"][Sound.Name]["Tween"] --// Tweens it to the Settings with the highest index (i.e. the region joined most recently)
 
 		Tween(Sound, SoundSettings, "Sound")
 	end
@@ -203,7 +202,7 @@ local function HandleSound(SoundName: string, SoundSettings, SoundFolder: Folder
 	end
 end
 
-local function GenerateRegionSounds(RegionSoundSettings, RegionName)
+local function GenerateRegionSounds(RegionSoundSettings, RegionName) --// Generates sounds for the region
 	local RegionSoundFolder = GetRegionSoundFolder(RegionName)
 
 	for SoundName, SoundSettings in pairs (RegionSoundSettings) do
@@ -211,13 +210,13 @@ local function GenerateRegionSounds(RegionSoundSettings, RegionName)
 	end
 end
 
-local function HandleSharedSounds(SharedSoundSettings)
+local function HandleSharedSounds(SharedSoundSettings) --// Handles shared sounds for the region's shared sounds (i.e. just adjusting them)
 	for SoundName, SoundSettings in pairs (SharedSoundSettings) do
 		HandleSound(SoundName, SoundSettings, SharedSounds, true)
 	end
 end
 
-local function HandleRandomSound(SoundName: string, SoundSettings, SoundFolder: Folder)
+local function HandleRandomSound(SoundName: string, SoundSettings, SoundFolder: Folder) --// Actual function that handles sounds.  If it doesn't exist, it's created.  If it does exists, it's a shared sound and the properties are adjusted
 	local RegionName = SoundFolder.Name
 
 	local Sound = SoundFolder:FindFirstChild(SoundName)

@@ -378,7 +378,6 @@ local function Set(Type, PeriodName)
 	elseif Type == "Lighting" then
 		LightingHandling.SetLighting(PeriodName)
 	else
-		print(Type)
 		warn("Unexpected input type for Set: ".. tostring(Type))
 	end
 end
@@ -408,8 +407,6 @@ local function SetNextIndex(Type)
 	else
 		InternalSettings["Next".. Type.. "Index"] = 1
 	end
-
-	print(Type.. " next index is ".. tostring(InternalSettings["Next".. Type.. "Index"]))
 end
 
 local function TrackCycle(Type)  --// New name for the CheckCycle; Type is either "Audio" or "Lighting"
@@ -484,28 +481,36 @@ local function TrackCycle(Type)  --// New name for the CheckCycle; Type is eithe
 end
 
 function module.Run()
+	--// Starts the day/night cycle
     if Settings["EnableDayNightTransitions"] == true then
         coroutine.wrap(DayNightCycle)()
     end
 
+	 --// Puts the differnet periods (in their individual modules) into a readable version for the script
     --PopulateTimes("Audio")
     PopulateTimes("Lighting")
 
 	if Settings["AutomaticTransitions"] == true and RunService:IsServer() then
+		
+		--// Sorts periods to reduce calculation time
 		if Settings["EnableSorting"] == true then
 		-- SortTimes("Audio")
 			SortTimes("Lighting")
 		end
 
+		 --// Creates the adjusted start times
 		AdjustStartTimes("Lighting")
 		
+		 --// Starts checking for period changes
 		coroutine.wrap(TrackCycle)("Lighting")
 
+		--// Sets the server to the current period settings
 		if Settings["ClientSided"] == false then
 			Set("Lighting", InternalVariables["CurrentLightingPeriod"])
 		end
 
-		if Settings["RecheckDayNight"] == true then
+		--// Rechecks day and night if the time does not pass at the same rate
+		if Settings["TimeForDay"] ~= Settings["TimeForNight"] then
 			local Check = coroutine.create(function()
 				while true do
 					wait(InternalSettings["DayNightWait"])
