@@ -57,30 +57,20 @@ end
 
 local function HandleRegionLeave(RegionType, RegionName)
 	if RegionType == "Audio" then
-		AudioHandling.RegionLeave(RegionName)
-
-		if InternalVariables["CurrentAudioRegions"] < 0 then
+		if InternalVariables["CurrentAudioRegions"] > 0 then
 			InternalVariables["CurrentAudioRegions"] = InternalVariables["CurrentAudioRegions"] - 1
 		end
-	elseif RegionType == "Lighting" then
 
-		if InternalVariables["CurrentLightingRegions"] < 0 then
+		AudioHandling.RegionLeave(RegionName)
+	elseif RegionType == "Lighting" then
+		if InternalVariables["CurrentLightingRegions"] > 0 then
+			print("Minused")
 			InternalVariables["CurrentLightingRegions"] = InternalVariables["CurrentLightingRegions"] - 1
 		end
-	end
-end
 
-local function PrintRegions()
-	local String = "Current Regions are: "
+		print(InternalVariables["CurrentLightingRegions"])
 
-	for _, RegionName in ipairs (InternalVariables["CurrentRegions"]) do
-		String = String.. RegionName.. ", "
-	end
-
-	if String == "Current Regions are: " then
-		print(String.. "none")
-	else
-		print(string.sub(String, 0, string.len(String) - 2)) --// Removes the last commma and space just for cleanness :-)
+		LightingHandling.RegionLeave(RegionName)
 	end
 end
 
@@ -222,8 +212,8 @@ local function CheckRegions(Looping)
 	end
 end
 
-function module.Run()
-	if Settings["ClientSided"] == true and RunService:IsClient() == true then
+function module.Run() --// Region handling is always client sided (possible to have client sided regions with server sided other stuff - to support StreamingEnabled, custom loading systems, etc.)
+	if RunService:IsClient() == true then
 		LocalPlayer = Players.LocalPlayer
 		
 		CheckRegions()

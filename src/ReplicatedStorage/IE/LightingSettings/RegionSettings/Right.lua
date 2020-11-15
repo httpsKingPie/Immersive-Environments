@@ -28,7 +28,7 @@ local module = {
 	
 	["ColorCorrectionEffect"] = {
 		["Brightness"] = 0,
-		["TintColor"] = Color3.fromRGB(15, 99, 203),
+		["TintColor"] = Color3.fromRGB(150, 9, 20),
 	},
 	
 	["LightingService"] = {

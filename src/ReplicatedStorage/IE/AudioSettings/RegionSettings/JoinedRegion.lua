@@ -8,7 +8,7 @@ local module = {
 	
 	["SharedSounds"] = {
 		["OP"] = {
-			["SoundId"] = "2001961411",
+			["SoundId"] = "5059148796",
 			
 			["Set"] = {
 				

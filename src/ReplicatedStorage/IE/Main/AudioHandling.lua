@@ -148,7 +148,7 @@ local function AdjustSharedSounds() --// Determines whether a SharedSound is sti
 	for Index, RegionName in ipairs (InternalVariables["CurrentRegions"]) do --// Looks at all the CurrentRegions (in order of join)
 		local RegionSettings = SettingsHandling:GetRegionSettings(RegionName, "Audio")
 
-		if RegionSettings then --// If RegionSettings exist
+		if RegionSettings then --// If RegionSettings exist (some won't because they will be Lighting settings)
 			local RegionSharedSounds = RegionSettings["SharedSounds"] --// Looks at the SharedSounds for the region
 			
 			if RegionSharedSounds then --// If SharedSounds exist
@@ -204,7 +204,7 @@ end
 
 local function GenerateRegionSounds(RegionSoundSettings, RegionName) --// Generates sounds for the region
 	local RegionSoundFolder = GetRegionSoundFolder(RegionName)
-
+	
 	for SoundName, SoundSettings in pairs (RegionSoundSettings) do
 		HandleSound(SoundName, SoundSettings, RegionSoundFolder)
 	end
@@ -298,7 +298,7 @@ function module.RegionEnter(RegionName) --// Client sided function only (RegionT
 	end 
 end
 
-function module.RegionLeave(RegionName) --// Client sided function only (RegionType is either Audio or Lighting, RegionName equivalent to the Setting name)
+function module.RegionLeave(RegionName) --// Client sided function only (RegionName equivalent to the Setting name)
 	local RegionSettings = SettingsHandling:GetRegionSettings(RegionName, "Audio")
 
 	if not RegionSettings then
@@ -326,6 +326,10 @@ function module.RegionLeave(RegionName) --// Client sided function only (RegionT
 				Waiting = false
 			end
 		end)
+	end
+
+	if InternalVariables["CurrentAudioRegions"]  <= 0 then
+		--// Tween to server default
 	end
 end
 

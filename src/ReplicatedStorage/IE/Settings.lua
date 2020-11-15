@@ -40,8 +40,8 @@ local module = {
 		20, --// Recommended to only adjust the time variable (default set to 20 seconds)
 		Enum.EasingStyle.Linear
 		),
-	["TimeForDay"] = 6, --// The amount of minutes it takes to go from 0600 to 1800
-	["TimeForNight"] = 6, --// The amount of minutes it takes to go from 1800 to 0600
+	["TimeForDay"] = 20, --// The amount of minutes it takes to go from 0600 to 1800
+	["TimeForNight"] = 20, --// The amount of minutes it takes to go from 1800 to 0600
 }
 
 return module

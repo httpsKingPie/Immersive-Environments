@@ -6,6 +6,7 @@ local Main = require(IEFolder:WaitForChild("Main"))
 local Settings = require(IEFolder:WaitForChild("Settings"))
 
 local AudioHandling = require(IEFolder.Main:WaitForChild("AudioHandling"))
+local InternalVariables = require(IEFolder.Main:WaitForChild("InternalVariables"))
 local LightingHandling = require(IEFolder.Main:WaitForChild("LightingHandling"))
 
 local RemoteFolder = IEFolder:WaitForChild("RemoteFolder")
@@ -21,7 +22,9 @@ if Settings["ClientSided"] == true then
 			if Type == "Set" then
 				LightingHandling.SetLighting(SettingName)
 			elseif Type == "Tween" then
-				LightingHandling.TweenLighting(SettingName, false, false, true)
+				if InternalVariables["HaltLightingCycle"] == false then --// Used to prevent lighting changes from occuring while the players is also in a region since regions take precedent
+					LightingHandling.TweenLighting(SettingName, false, false, TimeChange)
+				end
 			end
 		elseif ChangeType == "Weather" then
 			if Type == "Set" then

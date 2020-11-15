@@ -36,8 +36,10 @@ local module = {
      --// Region Variables
      ["CurrentRegions"] = {}, --// Stores a dictionary with numerical indexes to indicate the order in which the region was joined (high numbers = joined more recently)
      ["CurrentRegionsQuick"] = {}, --// This is a table, not a dictionary, that just stores strings of RegionName so that table.find can be used quickly
+    
      ["CurrentAudioRegions"] = 0, --// Number of the amount of audio regions the player is currently in
      ["CurrentLightingRegions"] = 0, --// Number of the amount of lighting regions the player is currently in
+     
      ["Regions"] = {}, --// Stores Audio, Lighting, etc. regions 
 }
 

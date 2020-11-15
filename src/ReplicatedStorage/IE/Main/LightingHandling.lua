@@ -655,13 +655,50 @@ local function Tween(LightingSettings, TimeChange)
 	end
 end
 
+local function HandleMultiRegions() --// Handles the transition of when a player is in multiple lighting regions by setting their lighting to the most recently joined lighting region
+	local MostRecentlyJoinedLightingRegion
+
+	for _, RegionName in ipairs (InternalVariables["CurrentRegions"]) do --// Looks at all the CurrentRegions (in order of join)
+		local RegionSettings = SettingsHandling:GetRegionSettings(RegionName, "Lighting")
+
+		if RegionSettings then --// If RegionSettings exist (some won't because they will be audio settings)
+			if RegionName ~= nil then
+				MostRecentlyJoinedLightingRegion = RegionName --// This is the most recently joined lighting region
+			end
+		end
+	end
+
+	module.TweenLighting(MostRecentlyJoinedLightingRegion, true, true, false)
+end
+
 function module.RegionEnter(RegionName)
 	local RegionSettings = SettingsHandling:GetRegionSettings(RegionName, "Lighting")
 
-	if RegionSettings then
-		InternalVariables["HaltLightingCycle"] = true
+	if not RegionSettings then
+		return
+	end
 
-		module.TweenLighting(RegionName, true, true, false)
+	InternalVariables["HaltLightingCycle"] = true
+
+	module.TweenLighting(RegionName, true, true, false)
+end
+
+function module.RegionLeave(RegionName)
+	print("Handling leave for ".. tostring(RegionName))
+
+	local RegionSettings = SettingsHandling:GetRegionSettings(RegionName, "Lighting")
+
+	if not RegionSettings then
+		print("No setting found for ".. tostring(RegionName))
+		return
+	end
+
+	if InternalVariables["CurrentLightingRegions"] > 0 then
+		HandleMultiRegions()
+	else
+		InternalVariables["HaltLightingCycle"] = false
+
+		LightingRemote:FireServer("TweenToServer")
 	end
 end
 
@@ -763,7 +800,9 @@ if InternalVariables["InitializedLighting"] == false then
 					wait(.1)
 				end
 
-				LightingRemote:FireClient(Player, "Lighting", InternalVariables["CurrentLightingPeriod"], "Set")
+				LightingRemote:FireClient(Player, "Lighting", InternalVariables["CurrentLightingPeriod"], "Set") --// Args: Lighting, se settings from current lighting period, and set
+			elseif Status == "TweenToServer" then
+				LightingRemote:FireClient(Player, "Lighting", InternalVariables["CurrentLightingPeriod"], "Tween", false) --// Args: Lighting, use settings from current lighting period, tween, and this is not a time based change (i.e. tween using region settings)
 			end
 		end)
 	end
