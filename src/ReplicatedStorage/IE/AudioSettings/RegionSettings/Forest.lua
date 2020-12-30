@@ -7,7 +7,7 @@ local module = {
 	},
 	
 	["SharedSounds"] = {
-		["TestSound8"] = {
+		["NarutoSound"] = {
 			["SoundId"] = "946008702",
 			
 			["Set"] = {
@@ -21,7 +21,7 @@ local module = {
 	},
 	
 	["RegionSounds"] = {
-		["TestSoundName"] = {
+		["ForestAmbience"] = {
 			["SoundId"] = "410408981",
 
 			["Set"] = {
@@ -35,7 +35,7 @@ local module = {
 	},
 	
 	["RandomSounds"] = { --// These do not tween
-		["Gun shot"] = {
+		["Gun shots"] = {
 			["ChanceOfPlay"] = 10,
 			["Frequency"] = .1,
 			["SoundId"] = "680140087",

@@ -1,6 +1,7 @@
 local module = {
     --// Audio Variables
     ["HaltAudioCycle"] = false, --// Halts the audio cycle when a region is entered
+    ["InitializedAudio"] = false, --// Whether the Lighting script has initialized (to prevent Remote event duplication and module infintie reloading)
 
     --// Lighting Variables
     ["HaltLightingCycle"] = false, --// Halts the lighting cycle when a region is entered
@@ -32,6 +33,8 @@ local module = {
     
     ["TotalAudioIndexes"] = 0, --// Used for sorted check cycles to know what index to look for next
     ["TotalLightingIndexes"] = 0, --// Used for sorted check cycles to know what index to look for next
+
+    ["TimeInitialized"] = false, --// Turns to true once TimeHandling has finished initialization
 
      --// Region Variables
      ["CurrentRegions"] = {}, --// Stores a dictionary with numerical indexes to indicate the order in which the region was joined (high numbers = joined more recently)

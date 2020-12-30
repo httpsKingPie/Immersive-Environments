@@ -127,7 +127,7 @@ function module:GenerateAudioSettings()
 
 	for i = 1, #ServerDescendants do
 		if ServerDescendants[i]:IsA("ModuleScript") then
-			if self["Audio"]["Audio"]["Server"][ServerDescendants[i].Name] == nil then
+			if self["Audio"]["Server"][ServerDescendants[i].Name] == nil then
 				self["Audio"]["Server"][ServerDescendants[i].Name] = require(ServerDescendants[i])
 			else
 				warn("Audio Server Setting already exists for ".. ServerDescendants[i].Name.. ".  Make sure settings with the same name do not exist")

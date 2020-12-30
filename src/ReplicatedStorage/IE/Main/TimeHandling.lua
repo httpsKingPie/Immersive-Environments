@@ -80,20 +80,29 @@ local function PopulateTimes(Type: string) --// Puts the times into a table so t
        return
    end
 
-    for LightingPeriodName, LightingPeriodSettings in pairs (SettingsHandling[Type]["Server"]) do
-		if LightingPeriodSettings["GeneralSettings"]["StartTime"] and LightingPeriodSettings["GeneralSettings"]["EndTime"] then
-			module[Type.."TimePeriods"][LightingPeriodName] = {
-				["StartTime"] = LightingPeriodSettings["GeneralSettings"]["StartTime"],
-				["EndTime"] = LightingPeriodSettings["GeneralSettings"]["EndTime"],
+    for TimePeriodName, TimePeriodSettings in pairs (SettingsHandling[Type]["Server"]) do
+		if TimePeriodSettings["GeneralSettings"]["StartTime"] and TimePeriodSettings["GeneralSettings"]["EndTime"] then
+			module[Type.."TimePeriods"][TimePeriodName] = {
+				["StartTime"] = TimePeriodSettings["GeneralSettings"]["StartTime"],
+				["EndTime"] = TimePeriodSettings["GeneralSettings"]["EndTime"],
 			}
+
+			--// Create uniformity and deal with midnight as a 0 time
+			if TimePeriodSettings["GeneralSettings"]["StartTime"] == 24 then
+				module[Type.."TimePeriods"][TimePeriodName]["StartTime"] = 0
+			end
+
+			if TimePeriodSettings["GeneralSettings"]["EndTime"] == 24 then
+				module[Type.."TimePeriods"][TimePeriodName]["EndTime"] = 0
+			end
 		end
 	end
 end
 
-local function SortTimes(Type: string)
+local function SortTimes(Type: string) --// Sorts the times into a definite sequence, that way the script only needs to look at the next time in line
 	local NewTable = {}
-	local InitialStart = 0
-	local CurrentIndex = 1
+	local InitialStart = 0 --// Initial time of 0 (eventually this gets replaced by the end time of the the period that was just determined to be the next in order)
+	local CurrentIndex = 1 --// Current index is 1 (the first one)
 
 	local TotalIndexes = 0
 	local TotalIndexesDetermined = false
@@ -102,53 +111,63 @@ local function SortTimes(Type: string)
 	local CurrentStart
 	local CurrentEnd
 
-	local CheckedNames = {}
+	local CheckedNames = {} --// Prevents duplicates
 	local Completed = false
 
-    local function Check()
-		local Ticked = false
+	local function Check()
 
-		for LightingPeriodName, Times in pairs (module[Type.."TimePeriods"]) do
-			Ticked = true
+		--// This loop returns the next period in the sequence, and populates the CurrentName, CurrentStart, and CurrentEnd with the properities of the period
+		local function GetNextPeriod()
+			local Ticked = false
 
-			if TotalIndexesDetermined == false then
-				TotalIndexes = TotalIndexes + 1
+			for TimePeriodName, Times in pairs (module[Type.."TimePeriods"]) do
+				Ticked = true
+	
+				if TotalIndexesDetermined == false then 
+					TotalIndexes = TotalIndexes + 1
+				end
+	
+				if not table.find(CheckedNames, TimePeriodName) then
+					if not CurrentStart and not CurrentEnd and not CurrentName then --// Becomes the initial values for CurrentName, CurrentStart, and CurrentEnd (because the first period in line, is by default, the one that gets sorted first until another proves that it starts earlier in the cycle)
+						CurrentName = TimePeriodName
+						CurrentStart = Times["StartTime"]
+						CurrentEnd = Times["EndTime"]
+					elseif Times["StartTime"] >= InitialStart and Times["StartTime"] < CurrentStart then --// If the start time is equal or greater than the starting value of 0, or the end time of the previous period and the StartTime is 
+						CurrentName = TimePeriodName
+						CurrentStart = Times["StartTime"]
+						CurrentEnd = Times["EndTime"]
+					end
+				end
 			end
 
-			if CurrentStart == nil and CurrentEnd  == nil and CurrentName == nil and table.find(CheckedNames, LightingPeriodName) == nil then
-				CurrentName = LightingPeriodName
-				CurrentStart = Times["StartTime"]
-				CurrentEnd = Times["EndTime"]
-			elseif Times["StartTime"] >= InitialStart and Times["StartTime"] < CurrentStart and table.find(CheckedNames, LightingPeriodName) == nil then
-				CurrentName = LightingPeriodName
-				CurrentStart = Times["StartTime"]
-				CurrentEnd = Times["EndTime"]
-			end
+			return Ticked
 		end
-
-		if Ticked == true then
+		
+		if GetNextPeriod() then
 			NewTable[CurrentIndex] = {
 				["Name"] = CurrentName,
 				["StartTime"] = CurrentStart,
 				["EndTime"] = CurrentEnd,
 			}
 
-			table.insert(CheckedNames, CurrentName)
+			table.insert(CheckedNames, CurrentName) --// Ensures that a period already checked is not checked again
 
 			CurrentIndex = CurrentIndex + 1
 			InitialStart = CurrentEnd
 
-			module[Type.."TimePeriods"][CurrentName] = nil
+			module[Type.."TimePeriods"][CurrentName] = nil --// Removes it from the TimePeriods
 
+			--// Clears these variables
 			CurrentName = nil
 			CurrentStart = nil
 			CurrentEnd = nil
 
+			--// Only runs once
 			if TotalIndexesDetermined == false then
 				TotalIndexesDetermined = true
 			end
 		else
-			return
+			return --// Means there are no time periods
 		end
 
 		if CurrentIndex > TotalIndexes then
@@ -374,7 +393,7 @@ local function Set(Type, PeriodName)
 	end
 
 	if Type == "Audio" then
-		
+		AudioHandling.TweenAudio(PeriodName, false, false, true) --// We use tween, rather than set, because audio settings already delinaeate which properties can be set
 	elseif Type == "Lighting" then
 		LightingHandling.SetLighting(PeriodName)
 	else
@@ -389,7 +408,7 @@ local function Tween(Type, PeriodName)
 	end
 
 	if Type == "Audio" then
-		
+		AudioHandling.TweenAudio(PeriodName, false, false, true)
 	elseif Type == "Lighting" then
 		LightingHandling.TweenLighting(PeriodName, false, false, true)
 	else
@@ -402,10 +421,14 @@ local function SetNextIndex(Type)
 		return
 	end
 
-	if InternalSettings["Current".. Type.. "Index"] + 1 <= InternalVariables["Total".. Type.. "Indexes"] then
-		InternalSettings["Next".. Type.. "Index"] = InternalSettings["Current".. Type.. "Index"] + 1
+	if InternalVariables["Current".. Type.. "Index"] + 1 <= InternalVariables["Total".. Type.. "Indexes"] then --// Not maxed
+		InternalVariables["Next".. Type.. "Index"] = InternalVariables["Current".. Type.. "Index"] + 1
 	else
-		InternalSettings["Next".. Type.. "Index"] = 1
+		InternalVariables["Next".. Type.. "Index"] = 1 --// Resets to first index in the sort
+	end
+
+	if Type == "Audio" then
+		print("Next index set to ".. tostring(InternalVariables["Next".. Type.. "Index"]))
 	end
 end
 
@@ -422,25 +445,29 @@ local function TrackCycle(Type)  --// New name for the CheckCycle; Type is eithe
 		GetCurrentPeriod(Type) --// This returns a value, but we don't need it
 	end
 
-	if Settings["EnableSorting"] == true then
+	if Settings["EnableSorting"] == true then --// Sorted loop
 		--// Get initial index
-
 		for Index, PeriodSettings in ipairs (module[Type.. "TimePeriods"]) do
 			if PeriodSettings["Name"] == InternalVariables["Current".. Type.. "Period"] then
-				InternalSettings["Current".. Type.. "Index"] = Index
+				InternalVariables["Current".. Type.. "Index"] = Index
 				SetNextIndex(Type)
 				break
 			end
 		end
 		
 		while wait(Settings["CheckTime"]) do
+			--// Function for handling period changes
 			local function HandleChange(Type)
-				InternalSettings["Current".. Type.. "Index"] = InternalSettings["Next".. Type.. "Index"]
-				InternalVariables["Current".. Type.. "Period"] = module[Type.. "TimePeriods"][InternalSettings["Current".. Type.. "Index"]]["Name"]
+				InternalVariables["Current".. Type.. "Index"] = InternalVariables["Next".. Type.. "Index"]
+				InternalVariables["Current".. Type.. "Period"] = module[Type.. "TimePeriods"][InternalVariables["Current".. Type.. "Index"]]["Name"]
 				SetNextIndex(Type)
+
+				if Type == "Audio" then print("Curent Index: ".. tostring(InternalVariables["Current".. Type.. "Index"]).. "; Next Index: ".. tostring(InternalVariables["Next".. Type.. "Index"]).. "; Total Indexes: ".. tostring(InternalVariables["Total".. Type.. "Indexes"])) end
 				
 				if Settings["Tween"]  == true then
-					Tween(Type, InternalVariables["Current".. Type.. "Period"] )
+					if Type == "Audio" then print("Jack called?") end
+
+					Tween(Type, InternalVariables["Current".. Type.. "Period"])
 				else
 					Set(Type, InternalVariables["Current".. Type.. "Period"])
 				end
@@ -448,31 +475,44 @@ local function TrackCycle(Type)  --// New name for the CheckCycle; Type is eithe
 
 			local CurrentTime = Lighting.ClockTime
 			
-			local StartTimeForNextPeriod = module[Type.. "AdjustedTimePeriods"][InternalSettings["Next".. Type.. "Index"]]["StartTime"]
-			local EndTimeForNextPeriod = module[Type.. "AdjustedTimePeriods"][InternalSettings["Next".. Type.. "Index"]]["EndTime"]
+			local StartTimeForNextPeriod = module[Type.. "AdjustedTimePeriods"][InternalVariables["Next".. Type.. "Index"]]["StartTime"]
+			local EndTimeForNextPeriod = module[Type.. "AdjustedTimePeriods"][InternalVariables["Next".. Type.. "Index"]]["EndTime"]
 
-			if EndTimeForNextPeriod > StartTimeForNextPeriod then
+			if Type == "Audio" then print("Current: ".. tostring(CurrentTime).. "; StartNextTime: ".. tostring(StartTimeForNextPeriod).. "; EndNextTime: ".. tostring(EndTimeForNextPeriod)) end
+
+			if EndTimeForNextPeriod > StartTimeForNextPeriod then --// "Normal time change"
+
+				if Type == "Audio" then print("FIRST") end
+
 				if CurrentTime >= StartTimeForNextPeriod then
+
+					if Type == "Audio" then print("SECOND") end
+
 					HandleChange(Type)
 				end
 			else --// Means times go over midnight, ex: start at 22 ends at 4
-				if (CurrentTime < 24 and CurrentTime >= StartTimeForNextPeriod) or (CurrentTime < EndTimeForNextPeriod) then
+				if Type == "Audio" then print("THIRD") end
+
+				if (CurrentTime >= StartTimeForNextPeriod) or (CurrentTime < EndTimeForNextPeriod) then
+					
+					if Type == "Audio" then print("FOURTH") end
+
 					HandleChange(Type)
 				end
 			end
 		end
-	else
+	else --// Non sorted loop
 		while wait(Settings["CheckTime"]) do
 			if InternalVariables["HaltLightingCycle"] == false then
 				local CurrentAdjustedPeriod = GetCurrentAdjustedPeriod(Type)
 
-				if CurrentAdjustedPeriod ~= InternalSettings["Current".. Type.. "Period"] then --// If this changes, that means they are entering a new period
-					InternalSettings["Current".. Type.. "Period"] = CurrentAdjustedPeriod
+				if CurrentAdjustedPeriod ~= InternalVariables["Current".. Type.. "Period"] then --// If this changes, that means they are entering a new period
+					InternalVariables["Current".. Type.. "Period"] = CurrentAdjustedPeriod
 	
 					if Settings["Tween"]  == true then
-						Tween(Type, InternalSettings["Current".. Type.. "Period"])
+						Tween(Type, InternalVariables["Current".. Type.. "Period"])
 					else
-						Set(Type, InternalSettings["Current".. Type.. "Period"])
+						Set(Type, InternalVariables["Current".. Type.. "Period"])
 					end
 				end
 			end
@@ -487,27 +527,31 @@ function module.Run()
     end
 
 	 --// Puts the differnet periods (in their individual modules) into a readable version for the script
-    --PopulateTimes("Audio")
+    PopulateTimes("Audio")
     PopulateTimes("Lighting")
 
 	if Settings["AutomaticTransitions"] == true and RunService:IsServer() then
-		
 		--// Sorts periods to reduce calculation time
 		if Settings["EnableSorting"] == true then
-		-- SortTimes("Audio")
+			SortTimes("Audio")
 			SortTimes("Lighting")
 		end
 
 		 --// Creates the adjusted start times
+		AdjustStartTimes("Audio")
 		AdjustStartTimes("Lighting")
 		
 		 --// Starts checking for period changes
+		coroutine.wrap(TrackCycle)("Audio")
 		coroutine.wrap(TrackCycle)("Lighting")
 
 		--// Sets the server to the current period settings
 		if Settings["ClientSided"] == false then
 			Set("Lighting", InternalVariables["CurrentLightingPeriod"])
+			Tween("Audio", InternalVariables["CurrentAudioPeriod"]) --// Right now it's set to tween vs setting, because audio sounds really bad when it just abrubtly starts - lighting is kind of fine for this
 		end
+
+		InternalVariables["TimeInitialized"] = true
 
 		--// Rechecks day and night if the time does not pass at the same rate
 		if Settings["TimeForDay"] ~= Settings["TimeForNight"] then

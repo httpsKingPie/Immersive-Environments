@@ -11,6 +11,8 @@ local IEFolder = Main.Parent
 
 local RemoteFolder = IEFolder:WaitForChild("RemoteFolder")
 
+local LightingRemote = RemoteFolder:WaitForChild("LightingRemote")
+
 local Settings = require(IEFolder.Settings)
 
 local InternalSettings = require(Main.InternalSettings)
@@ -25,7 +27,7 @@ local LitLightTable = {} --// Reference table, only used when Settings["AlwaysCh
 
 local CurrentLightingPeriod --// String
 
-local LightingRemote = RemoteFolder:WaitForChild("LightingRemote")
+
 
 local function GetSearchCategory()
 	if Settings["ChangingInstanceChildrenOfWorkspace"] == true then
@@ -437,7 +439,7 @@ end
 local function Tween(LightingSettings, TimeChange)
 	local TweenInformation
 
-	if TimeChange and TimeChange == true then
+	if TimeChange then
 		TweenInformation = Settings["TimeEffectTweenInformation"]
 	else
 		TweenInformation = Settings["LightingRegionTweenInformation"]
@@ -684,12 +686,10 @@ function module.RegionEnter(RegionName)
 end
 
 function module.RegionLeave(RegionName)
-	print("Handling leave for ".. tostring(RegionName))
-
 	local RegionSettings = SettingsHandling:GetRegionSettings(RegionName, "Lighting")
 
 	if not RegionSettings then
-		print("No setting found for ".. tostring(RegionName))
+		warn("No setting found for ".. tostring(RegionName))
 		return
 	end
 
@@ -707,7 +707,7 @@ function module.TweenLighting(LightingName, WeatherOverride: boolean, Region: bo
 
 	local NewLightingSettings
 
-	if Region ~= nil and Region == true then
+	if Region then
 		NewLightingSettings = SettingsHandling:GetRegionSettings(LightingName, "Lighting")
 	else
 		NewLightingSettings = SettingsHandling:GetServerSettings(LightingName, "Lighting")
@@ -796,8 +796,16 @@ if InternalVariables["InitializedLighting"] == false then
 	if RunService:IsServer() then
 		LightingRemote.OnServerEvent:Connect(function(Player, Status)
 			if Status == "Entered" then
-				while InternalVariables["CurrentLightingPeriod"] == "" do --// Sometimes (especialy in Studio) where the client is loading in really fast, it will load in before the CurrentLightingPeriod is set
-					wait(.1)
+				local NumberOfTries = 0
+
+				while InternalVariables["TimeInitialized"] == false do --// Sometimes (especialy in Studio) where the client is loading in really fast, it will load in before the CurrentLightingPeriod is set
+					wait(.2)
+					NumberOfTries = NumberOfTries + 1
+
+					if NumberOfTries > InternalSettings["RemoteInitializationMaxTries"] then
+						warn("Max Tries has been reached for Remote Initialization")
+						return
+					end
 				end
 
 				LightingRemote:FireClient(Player, "Lighting", InternalVariables["CurrentLightingPeriod"], "Set") --// Args: Lighting, se settings from current lighting period, and set

@@ -33,6 +33,8 @@ local function GenerateRemotes()
 end
 
 function module.Run()
+	local Time1 = tick()
+
 	GenerateRemotes()
 	
 	if Initialized == false then

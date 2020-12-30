@@ -10,6 +10,10 @@ local LocalPlayer --// Filled in if this is run on the client
 local Main = script.Parent
 local IEFolder = Main.Parent
 
+local RemoteFolder = IEFolder:WaitForChild("RemoteFolder")
+
+local AudioRemote = RemoteFolder:WaitForChild("AudioRemote")
+
 local InternalSettings = require(Main.InternalSettings)
 local InternalVariables = require(Main.InternalVariables)
 local SettingsHandling = require(Main.SettingsHandling)
@@ -19,9 +23,9 @@ local Settings = require(IEFolder.Settings)
 
 --// SoundService
 
-local ActiveRegionSounds
-local ActiveServerSounds
-local SharedSounds
+local ActiveRegionSounds --// Created on the client (ony visible to client)
+local ActiveServerSounds --// Created on the server.  However, when client sided - individually clients just put their server sounds in there for easy organization
+local SharedSounds --// Created on the client (ony visible to client)
 
 --// Functions
 
@@ -45,9 +49,13 @@ function module.Run() --// Initial run, basically just creating folders
 			SharedSounds.Parent = SoundService
 		end
 
+		ActiveServerSounds = SoundService:WaitForChild("ActiveServerSounds")
+
 		LocalPlayer = Players.LocalPlayer
 	end
 end
+
+--// Region controls
 
 local function GetRegionSoundFolder(RegionName: string) --// Gets the sound folder for a RegionName and if one does not exist it creates one
 	local RegionSoundFolder = ActiveRegionSounds:FindFirstChild(RegionName)
@@ -78,10 +86,14 @@ end
 local function Tween(InstanceToTween: any, InstanceSettings: table, ClassName: string, TimeChange: boolean) --// This is Tween rather than TweenSound, TweenIn, etc. because it also makes changes to the SoundService and is really just used to change any property
 	local TweenInformation
 
-	if TimeChange and TimeChange == true then
-		TweenInformation = Settings["TimeEffectTweenInformation"]
+	if TimeChange ~= nil then
+		if TimeChange == true then 
+			TweenInformation = Settings["TimeEffectTweenInformation"] --// Time based change
+		else
+			--// Weather tween information
+		end
 	else
-		TweenInformation = Settings["AudioRegionTweenInformation"]
+		TweenInformation = Settings["AudioRegionTweenInformation"] --// Region based change
 	end
 	
 	local ChangeTable = {}
@@ -119,23 +131,35 @@ local function Tween(InstanceToTween: any, InstanceSettings: table, ClassName: s
 	end)
 end
 
-local function TweenOut(InstanceToTween: any) --// Tweens out a single sound
-	if InstanceToTween:IsA("Sound") then
-		local ChangeTween = TweenService:Create(InstanceToTween, Settings["AudioRegionTweenInformation"], {Volume = 0})
-		ChangeTween:Play()
+local function TweenOut(InstanceToTween: Sound, TimeChange: boolean) --// Tweens out a single sound
+	local TweenInformation
 
-		ChangeTween.Completed:Connect(function()
-			ChangeTween:Destroy()
-			InstanceToTween:Destroy()
-		end)
+	print("TweenOut " .. tostring(TimeChange))
+
+	if TimeChange ~= nil then
+		if TimeChange == true then 
+			TweenInformation = Settings["TimeEffectTweenInformation"] --// Time based change
+		else
+			--// Weather tween information
+		end
+	else
+		TweenInformation = Settings["AudioRegionTweenInformation"] --// Region based change
 	end
+
+	local ChangeTween = TweenService:Create(InstanceToTween, TweenInformation, {Volume = 0})
+	ChangeTween:Play()
+
+	ChangeTween.Completed:Connect(function()
+		ChangeTween:Destroy()
+		InstanceToTween:Destroy()
+	end)
 end
 
 local function TweenOutRegionSounds(RegionName) --// Tweens out the sounds of this region
 	local RegionSoundFolder = GetRegionSoundFolder(RegionName)
 
 	for _, Sound in pairs (RegionSoundFolder:GetChildren()) do
-		TweenOut(Sound)
+		TweenOut(Sound, false)
 	end
 end
 
@@ -173,16 +197,16 @@ local function AdjustSharedSounds() --// Determines whether a SharedSound is sti
 	end
 
 	for i = 1, #CurrentSharedSounds do
-		TweenOut(CurrentSharedSounds[i])
+		TweenOut(CurrentSharedSounds[i], false)
 	end
 end
 
-local function HandleSound(SoundName: string, SoundSettings, SoundFolder: Folder, TweenOverride: boolean) --// TweenOverride is used for SharedSounds
+local function CheckForSound(SoundName: string, SoundFolder: Folder, SoundSettings: table) --// Checks to see if the sound exists, if it does it returns it.  If not, it creates it
 	local Sound = SoundFolder:FindFirstChild(SoundName)
 
 	local CreatedSound = false
-	
-	if not Sound then --// Prevents sound duplication (ex: respawning in the same region)
+
+	if not Sound then
 		Sound = Instance.new("Sound")
 		Sound.Name = SoundName
 		Sound.SoundId = InternalSettings["AssetPrefix"] ..tostring(SoundSettings.SoundId)
@@ -192,9 +216,15 @@ local function HandleSound(SoundName: string, SoundSettings, SoundFolder: Folder
 		CreatedSound = true
 	end
 
+	return Sound, CreatedSound
+end
+
+local function HandleSound(SoundName: string, SoundSettings: table, SoundFolder: Folder, TimeChange: boolean, TweenOverride: boolean) --// TweenOverride is used for SharedSounds, it basically means that regardless of whether the sound exists, it is going to be changed (aka tweened)
+	local Sound, CreatedSound = CheckForSound(SoundName, SoundFolder, SoundSettings)
+
 	if CreatedSound or TweenOverride then
 		Set(Sound, SoundSettings["Set"], "Sound")
-		Tween(Sound, SoundSettings["Tween"], "Sound")
+		Tween(Sound, SoundSettings["Tween"], "Sound", TimeChange)
 
 		if CreatedSound then
 			Sound:Play()
@@ -202,21 +232,38 @@ local function HandleSound(SoundName: string, SoundSettings, SoundFolder: Folder
 	end
 end
 
-local function GenerateRegionSounds(RegionSoundSettings, RegionName) --// Generates sounds for the region
-	local RegionSoundFolder = GetRegionSoundFolder(RegionName)
-	
+local function GenerateServerSounds(ServerSoundSettings: table, TimeChange: boolean)
+	local ActiveSounds = {} --// Used to filter out server sounds that are not currently playing anymore
+
+	for SoundName, SoundSettings in pairs (ServerSoundSettings) do
+		HandleSound(SoundName, SoundSettings, ActiveServerSounds, TimeChange)
+		table.insert(ActiveSounds, SoundName)
+	end
+
+	local ActiveServerSoundsChildren = ActiveServerSounds:GetChildren()
+
+	for i = 1, #ActiveServerSoundsChildren do
+		local ServerSound = ActiveServerSoundsChildren[i]
+
+		if not table.find(ActiveSounds, ServerSound.Name) then
+			TweenOut(ServerSound, TimeChange)
+		end
+	end
+end
+
+local function GenerateRegionSounds(RegionSoundSettings: table, RegionSoundFolder: Folder) --// Generates sounds for the region
 	for SoundName, SoundSettings in pairs (RegionSoundSettings) do
 		HandleSound(SoundName, SoundSettings, RegionSoundFolder)
 	end
 end
 
-local function HandleSharedSounds(SharedSoundSettings) --// Handles shared sounds for the region's shared sounds (i.e. just adjusting them)
+local function HandleSharedSounds(SharedSoundSettings: table) --// Handles shared sounds for the region's shared sounds (i.e. just adjusting them)
 	for SoundName, SoundSettings in pairs (SharedSoundSettings) do
-		HandleSound(SoundName, SoundSettings, SharedSounds, true)
+		HandleSound(SoundName, SoundSettings, SharedSounds, false, true)
 	end
 end
 
-local function HandleRandomSound(SoundName: string, SoundSettings, SoundFolder: Folder) --// Actual function that handles sounds.  If it doesn't exist, it's created.  If it does exists, it's a shared sound and the properties are adjusted
+local function HandleRandomSound(SoundName: string, SoundSettings: table, SoundFolder: Folder) --// Actual function that handles sounds.  If it doesn't exist, it's created.  If it does exists, it's a shared sound and the properties are adjusted
 	local RegionName = SoundFolder.Name
 
 	local Sound = SoundFolder:FindFirstChild(SoundName)
@@ -270,35 +317,47 @@ local function HandleRandomSound(SoundName: string, SoundSettings, SoundFolder: 
 	end
 end
 
-local function GenerateRandomSounds(RandomSoundSettings, RegionName) --// These are really a subset of RegionSounds
-	local RegionSoundFolder = GetRegionSoundFolder(RegionName)
-
+local function GenerateRandomSounds(RandomSoundSettings: table, RegionSoundFolder: Folder) --// These are really a subset of RegionSounds
 	for SoundName, SoundSettings in pairs (RandomSoundSettings) do
 		coroutine.wrap(HandleRandomSound)(SoundName, SoundSettings, RegionSoundFolder)
 	end
 end
 
-function module.RegionEnter(RegionName) --// Client sided function only (RegionType is either Audio or Lighting, RegionName equivalent to the Setting name)
+local function HandleAudioSettings(AudioSettings: table, RegionName: string) --// RegionName is optional and only needs to be sent when required.  Stuff like ServerSounds, SharedSounds, and SoundService changes don't require the RegionName, only the settings.
+	local RegionSoundFolder
+
+	if RegionName then
+		RegionSoundFolder = GetRegionSoundFolder(RegionName)
+	end
+	
+	for SettingCategory, SpecificSettings in pairs (AudioSettings) do
+		if SettingCategory == "SoundService" then
+			Tween(SoundService, SpecificSettings, "SoundService")
+		elseif SettingCategory == "RegionSounds" then
+			GenerateRegionSounds(SpecificSettings, RegionSoundFolder)
+		elseif SettingCategory == "SharedSounds" then
+			HandleSharedSounds(SpecificSettings)
+		elseif SettingCategory == "RandomSounds" then
+			GenerateRandomSounds(SpecificSettings, RegionSoundFolder)
+		elseif SettingCategory == "ServerSounds" then
+			GenerateServerSounds(SpecificSettings, true) --// Weather is the only time where this bool will be false
+		end
+	end
+end
+
+function module.RegionEnter(RegionName: string) --// Client sided function only (RegionType is either Audio or Lighting, RegionName equivalent to the Setting name)
 	local RegionSettings = SettingsHandling:GetRegionSettings(RegionName, "Audio")
 
 	if not RegionSettings then
 		return
 	end
-	
-	for SettingCategory, SpecificSettings in pairs (RegionSettings) do
-		if SettingCategory == "SoundService" then
-			Tween(SoundService, SpecificSettings, "SoundService")
-		elseif SettingCategory == "RegionSounds" then
-			GenerateRegionSounds(SpecificSettings, RegionName)
-		elseif SettingCategory == "SharedSounds" then
-			HandleSharedSounds(SpecificSettings)
-		elseif SettingCategory == "RandomSounds" then
-			GenerateRandomSounds(SpecificSettings, RegionName)
-		end
-	end 
+
+	InternalVariables["HaltAudioCycle"] = true
+
+	module.TweenAudio(RegionName, true, true, false)
 end
 
-function module.RegionLeave(RegionName) --// Client sided function only (RegionName equivalent to the Setting name)
+function module.RegionLeave(RegionName: string) --// Client sided function only (RegionName equivalent to the Setting name)
 	local RegionSettings = SettingsHandling:GetRegionSettings(RegionName, "Audio")
 
 	if not RegionSettings then
@@ -330,6 +389,65 @@ function module.RegionLeave(RegionName) --// Client sided function only (RegionN
 
 	if InternalVariables["CurrentAudioRegions"]  <= 0 then
 		--// Tween to server default
+	end
+end
+
+--// Server controls
+
+function module.TweenAudio(AudioName: string, WeatherOverride: boolean, Region: boolean, TimeChange: boolean)
+	--[[
+		Play time based sounds on ActiveServerSounds - if this is ran client sided, only client will hear it, if server sided everyone will hear it!
+	]]
+
+	local NewAudioSettings
+
+	if Region then
+		NewAudioSettings = SettingsHandling:GetRegionSettings(AudioName, "Audio")
+	else
+		NewAudioSettings = SettingsHandling:GetServerSettings(AudioName, "Audio")
+	end
+
+	if NewAudioSettings then
+		if Settings["ClientSided"] == false or RunService:IsClient() then
+			if InternalVariables["Weather"] == false or WeatherOverride == true then
+				if Region then
+					HandleAudioSettings(NewAudioSettings, AudioName) --// Makes changes for region sounds
+				else
+					HandleAudioSettings(NewAudioSettings) --// Makes changes for server sounds (time based)
+				end
+			end
+		else
+			if RunService:IsServer() then
+				AudioRemote:FireAllClients("Audio", AudioName, TimeChange)
+			end
+		end
+	end
+end
+
+if InternalVariables["InitializedAudio"] == false then
+	InternalVariables["InitializedAudio"] = true
+
+	if RunService:IsServer() then
+		AudioRemote.OnServerEvent:Connect(function(Player, Status)
+			if Status == "Entered" then
+				local NumberOfTries = 0
+
+				while InternalVariables["TimeInitialized"] == false do --// Sometimes (especialy in Studio) where the client is loading in really fast, it will load in before the CurrentLightingPeriod is set
+					wait(.2)
+					NumberOfTries = NumberOfTries + 1
+
+					if NumberOfTries > InternalSettings["RemoteInitializationMaxTries"] then
+						warn("Max Tries has been reached for Remote Initialization")
+						return
+					end
+				end
+
+				AudioRemote:FireClient(Player, "Audio", InternalVariables["CurrentAudioPeriod"], false) --// Args: Lighting, use settings from current audio period, tween, and this is not a time based change (i.e. tween using region settings)
+				--// Note: above normal is a hard set, but for now we're just using tweens being audio sets sound bad imo
+			elseif Status == "TweenToServer" then
+				AudioRemote:FireClient(Player, "Audio", InternalVariables["CurrentAudioPeriod"], false) --// Args: Lighting, use settings from current audio period, tween, and this is not a time based change (i.e. tween using region settings)
+			end
+		end)
 	end
 end
 

@@ -64,11 +64,8 @@ local function HandleRegionLeave(RegionType, RegionName)
 		AudioHandling.RegionLeave(RegionName)
 	elseif RegionType == "Lighting" then
 		if InternalVariables["CurrentLightingRegions"] > 0 then
-			print("Minused")
 			InternalVariables["CurrentLightingRegions"] = InternalVariables["CurrentLightingRegions"] - 1
 		end
-
-		print(InternalVariables["CurrentLightingRegions"])
 
 		LightingHandling.RegionLeave(RegionName)
 	end

@@ -78,6 +78,8 @@ local module = {
 	["DayNightCheck"] = 5, --// In seconds, the amount of time the script checks for whether times need to be adjusted (used for when Day and Night in-game time passage occur at different rates)
 	
 	["DayNightWait"] = 1,
+
+	["RemoteInitializationMaxTries"] = 50, --// Remote checkss every .2 seconds.  100 tries = 20 seconds.
 	
 	["NonPropertySettings"] = {
 		"ChanceOfChange",

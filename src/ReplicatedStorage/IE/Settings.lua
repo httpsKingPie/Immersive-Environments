@@ -14,8 +14,6 @@ local module = {
 	["ChangingInstanceChildrenOfWorkspace"] = false, --// Allows you to improve the performance of the script if all affected instances are direct children of Workspace
 	
 	--// Audio Settings
-	
-	
 	["GenerateNewRandomSounds"] = false, --// Generates new round sounds each time (each Sound is destroyed once it is finished if set to true)
 	["WaitForRandomSoundToEnd"] = false, --// Waits for a random sound that is set to play to finish before looping
 
@@ -40,8 +38,8 @@ local module = {
 		20, --// Recommended to only adjust the time variable (default set to 20 seconds)
 		Enum.EasingStyle.Linear
 		),
-	["TimeForDay"] = 20, --// The amount of minutes it takes to go from 0600 to 1800
-	["TimeForNight"] = 20, --// The amount of minutes it takes to go from 1800 to 0600
+	["TimeForDay"] = .7, --// The amount of minutes it takes to go from 0600 to 1800
+	["TimeForNight"] = .7, --// The amount of minutes it takes to go from 1800 to 0600
 }
 
 return module
