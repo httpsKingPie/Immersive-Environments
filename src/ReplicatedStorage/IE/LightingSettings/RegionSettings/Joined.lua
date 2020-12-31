@@ -5,6 +5,7 @@ local module = {
 		["EndTime"] = 16,
 		
 		["AdjustOnlyLightsOn"] = true,
+		["WeatherExemption"] = true,
 	},
 	
 	

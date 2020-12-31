@@ -316,6 +316,7 @@ local function AdjustStartTimes(Type)
 				end
 			end
 		end
+		
 	end
 end
 
@@ -393,9 +394,9 @@ local function Set(Type, PeriodName)
 	end
 
 	if Type == "Audio" then
-		AudioHandling.TweenAudio(PeriodName, false, false, true) --// We use tween, rather than set, because audio settings already delinaeate which properties can be set
+		AudioHandling.TweenAudio("TimeChange", PeriodName) --// We use tween, rather than set, because audio settings already delinaeate which properties can be set
 	elseif Type == "Lighting" then
-		LightingHandling.SetLighting(PeriodName)
+		LightingHandling.SetLighting("ToServer", PeriodName)
 	else
 		warn("Unexpected input type for Set: ".. tostring(Type))
 	end
@@ -408,9 +409,9 @@ local function Tween(Type, PeriodName)
 	end
 
 	if Type == "Audio" then
-		AudioHandling.TweenAudio(PeriodName, false, false, true)
+		AudioHandling.TweenAudio("TimeChange", PeriodName)
 	elseif Type == "Lighting" then
-		LightingHandling.TweenLighting(PeriodName, false, false, true)
+		LightingHandling.TweenLighting("TimeChange", PeriodName)
 	else
 		warn("Unexpected input type for Tween: ".. tostring(Type))
 	end
@@ -425,10 +426,6 @@ local function SetNextIndex(Type)
 		InternalVariables["Next".. Type.. "Index"] = InternalVariables["Current".. Type.. "Index"] + 1
 	else
 		InternalVariables["Next".. Type.. "Index"] = 1 --// Resets to first index in the sort
-	end
-
-	if Type == "Audio" then
-		print("Next index set to ".. tostring(InternalVariables["Next".. Type.. "Index"]))
 	end
 end
 
@@ -445,6 +442,7 @@ local function TrackCycle(Type)  --// New name for the CheckCycle; Type is eithe
 		GetCurrentPeriod(Type) --// This returns a value, but we don't need it
 	end
 
+	--// We never pause the loops, even when in regions or during weather, because we always need to go back and find which period we are in.  The loops are extremely low intensity though
 	if Settings["EnableSorting"] == true then --// Sorted loop
 		--// Get initial index
 		for Index, PeriodSettings in ipairs (module[Type.. "TimePeriods"]) do
@@ -460,16 +458,15 @@ local function TrackCycle(Type)  --// New name for the CheckCycle; Type is eithe
 			local function HandleChange(Type)
 				InternalVariables["Current".. Type.. "Index"] = InternalVariables["Next".. Type.. "Index"]
 				InternalVariables["Current".. Type.. "Period"] = module[Type.. "TimePeriods"][InternalVariables["Current".. Type.. "Index"]]["Name"]
+
 				SetNextIndex(Type)
 
-				if Type == "Audio" then print("Curent Index: ".. tostring(InternalVariables["Current".. Type.. "Index"]).. "; Next Index: ".. tostring(InternalVariables["Next".. Type.. "Index"]).. "; Total Indexes: ".. tostring(InternalVariables["Total".. Type.. "Indexes"])) end
-				
-				if Settings["Tween"]  == true then
-					if Type == "Audio" then print("Jack called?") end
-
-					Tween(Type, InternalVariables["Current".. Type.. "Period"])
-				else
-					Set(Type, InternalVariables["Current".. Type.. "Period"])
+				if InternalVariables["Halt".. Type.. "Cycle"] == false then --// Cycle is not halted, changes can occur
+					if Settings["Tween"]  == true then
+						Tween(Type, InternalVariables["Current".. Type.. "Period"])
+					else
+						Set(Type, InternalVariables["Current".. Type.. "Period"])
+					end
 				end
 			end
 
@@ -478,24 +475,15 @@ local function TrackCycle(Type)  --// New name for the CheckCycle; Type is eithe
 			local StartTimeForNextPeriod = module[Type.. "AdjustedTimePeriods"][InternalVariables["Next".. Type.. "Index"]]["StartTime"]
 			local EndTimeForNextPeriod = module[Type.. "AdjustedTimePeriods"][InternalVariables["Next".. Type.. "Index"]]["EndTime"]
 
-			if Type == "Audio" then print("Current: ".. tostring(CurrentTime).. "; StartNextTime: ".. tostring(StartTimeForNextPeriod).. "; EndNextTime: ".. tostring(EndTimeForNextPeriod)) end
-
 			if EndTimeForNextPeriod > StartTimeForNextPeriod then --// "Normal time change"
 
-				if Type == "Audio" then print("FIRST") end
-
-				if CurrentTime >= StartTimeForNextPeriod then
-
-					if Type == "Audio" then print("SECOND") end
+				if CurrentTime >= StartTimeForNextPeriod and CurrentTime < EndTimeForNextPeriod then
 
 					HandleChange(Type)
 				end
 			else --// Means times go over midnight, ex: start at 22 ends at 4
-				if Type == "Audio" then print("THIRD") end
 
 				if (CurrentTime >= StartTimeForNextPeriod) or (CurrentTime < EndTimeForNextPeriod) then
-					
-					if Type == "Audio" then print("FOURTH") end
 
 					HandleChange(Type)
 				end
@@ -503,17 +491,15 @@ local function TrackCycle(Type)  --// New name for the CheckCycle; Type is eithe
 		end
 	else --// Non sorted loop
 		while wait(Settings["CheckTime"]) do
-			if InternalVariables["HaltLightingCycle"] == false then
-				local CurrentAdjustedPeriod = GetCurrentAdjustedPeriod(Type)
+			local CurrentAdjustedPeriod = GetCurrentAdjustedPeriod(Type)
 
-				if CurrentAdjustedPeriod ~= InternalVariables["Current".. Type.. "Period"] then --// If this changes, that means they are entering a new period
-					InternalVariables["Current".. Type.. "Period"] = CurrentAdjustedPeriod
-	
-					if Settings["Tween"]  == true then
-						Tween(Type, InternalVariables["Current".. Type.. "Period"])
-					else
-						Set(Type, InternalVariables["Current".. Type.. "Period"])
-					end
+			if CurrentAdjustedPeriod ~= InternalVariables["Current".. Type.. "Period"] then --// If this changes, that means they are entering a new period
+				InternalVariables["Current".. Type.. "Period"] = CurrentAdjustedPeriod
+
+				if Settings["Tween"]  == true then
+					Tween(Type, InternalVariables["Current".. Type.. "Period"])
+				else
+					Set(Type, InternalVariables["Current".. Type.. "Period"])
 				end
 			end
 		end
@@ -531,13 +517,13 @@ function module.Run()
     PopulateTimes("Lighting")
 
 	if Settings["AutomaticTransitions"] == true and RunService:IsServer() then
-		--// Sorts periods to reduce calculation time
+		--// Sorts periods to reduce calculation time (sorting also usually takes a few microseconds)
 		if Settings["EnableSorting"] == true then
 			SortTimes("Audio")
 			SortTimes("Lighting")
 		end
 
-		 --// Creates the adjusted start times
+		 --// Creates the adjusted start times (takes the longest time)
 		AdjustStartTimes("Audio")
 		AdjustStartTimes("Lighting")
 		

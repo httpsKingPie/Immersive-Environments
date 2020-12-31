@@ -33,8 +33,6 @@ local function GenerateRemotes()
 end
 
 function module.Run()
-	local Time1 = tick()
-
 	GenerateRemotes()
 	
 	if Initialized == false then
@@ -44,10 +42,12 @@ function module.Run()
 
 	SettingsHandling.Run() --// Not a coroutine, because we want Settings to populate before everything first
 
+	coroutine.wrap(AudioHandling.Run)() --// Sets up the client sound folders, etc.
+
 	coroutine.wrap(TimeHandling.Run)() --// Generates time cycles, periods, etc.
 
 	coroutine.wrap(RegionHandling.Run)() --// Initializes regions
-	coroutine.wrap(AudioHandling.Run)() --// Sets up the client sound folders, etc.
+	
 end
 
 return module

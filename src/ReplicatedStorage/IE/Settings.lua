@@ -8,14 +8,12 @@ local module = {
 	["RegionCheckTime"] = 5, --// The time it checks for the creation of new regions (probably doesn't have to be that low of a number)
 	["Tween"] = true, --// Turn this off if you do not want tween changes and want hard changes
 	
-	--// Lighting Settings
-	
-	["AdjustmentTime"] = 5, --// This is the amount of time alloated to the script to detect how fast time passes in your day/night script.  5 seconds is the recommended default.  Note: if DetectIndependentTimeChange is false and IE's native day/night integration is used, the adjustment will be automatically calculated - i.e. no wait and detect
-	["ChangingInstanceChildrenOfWorkspace"] = false, --// Allows you to improve the performance of the script if all affected instances are direct children of Workspace
-	
 	--// Audio Settings
 	["GenerateNewRandomSounds"] = false, --// Generates new round sounds each time (each Sound is destroyed once it is finished if set to true)
 	["WaitForRandomSoundToEnd"] = false, --// Waits for a random sound that is set to play to finish before looping
+
+	--// Lighting Settings
+	["ChangingInstanceChildrenOfWorkspace"] = false, --// Allows you to improve the performance of the script if all affected instances are direct children of Workspace
 
 	--// Region Settings
 	["AudioRegionTweenInformation"] = TweenInfo.new( --// Tween information for when a player enters an audio region
@@ -23,7 +21,6 @@ local module = {
 		Enum.EasingStyle.Linear
 	),
 	["BackupValidation"] = 5, --// This is the amount of time between when the server does backup validation
-	["DetectIndependentTimeChange"] = true, --// Used when the day/night cycle used is not the native one for IE.  This will delay the amount of time it takes to determine the adjustment (see the AdjustmentTime setting)
 	["LightingRegionTweenInformation"] = TweenInfo.new( --// Tween information for when a player enters a lighting region
 		3, --// Recommended to only adjust the time variable (default set to 3 seconds)
 		Enum.EasingStyle.Linear
@@ -31,15 +28,23 @@ local module = {
 	--// Time Settings
 
 	["AutomaticTransitions"] = true, --// Turn this off if you want to manually transition and remove the time based auto transitions
+	["AdjustmentTime"] = 5, --// This is the amount of time alloated to the script to detect how fast time passes in your day/night script.  5 seconds is the recommended default.  Note: if DetectIndependentTimeChange is false and IE's native day/night integration is used, the adjustment will be automatically calculated - i.e. no wait and detect
 	["CheckTime"] = 1, --// The time in seconds that the script checks for Lighting Period changes, if AutomaticTransitions is set to false, you don't need to worry about this
+	["DetectIndependentTimeChange"] = false, --// Set to true if you are not using the built-in day/night cycle.  Key notes, please read: this will make the system take longer to initialize, because it will wait for the amount of seconds specified in AdjustmentTime to try to accurately gauage how fast time passes in-game.  If you are using the day/night cycle for IE, set this to true.  If you want the speed enhancement but are using a different day/night cycle, consider switch to the built in one for IE to get the speed boost and more accurate adjusted time periods.
 	["EnableDayNightTransitions"] = true, --// Turns on day/night cycle
 	["EnableSorting"] = true, --// Setting to true reduces the work done by the script, however, this denies the ability to make changes to ClockTime or TimeOfDay via admin or other controls and have the script automatically follow.  Set to false if you would like to preserve the ability to make changes in admin.
 	["TimeEffectTweenInformation"] = TweenInfo.new(
 		20, --// Recommended to only adjust the time variable (default set to 20 seconds)
 		Enum.EasingStyle.Linear
 		),
-	["TimeForDay"] = .7, --// The amount of minutes it takes to go from 0600 to 1800
-	["TimeForNight"] = .7, --// The amount of minutes it takes to go from 1800 to 0600
+	["TimeForDay"] = 2, --// The amount of minutes it takes to go from 0600 to 1800
+	["TimeForNight"] = 2, --// The amount of minutes it takes to go from 1800 to 0600
+
+	--// Weather Settings
+	["WeatherTweenInformation"] = TweenInfo.new(
+		10, --// Recommended to only adjust the time variable (default set to 10 seconds)
+		Enum.EasingStyle.Linear
+	)
 }
 
 return module

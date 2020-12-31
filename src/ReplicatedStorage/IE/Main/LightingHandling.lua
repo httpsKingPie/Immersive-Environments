@@ -436,13 +436,15 @@ local function Set(LightingSettings)
 	end
 end
 
-local function Tween(LightingSettings, TimeChange)
+local function Tween(LightingSettings, Event: string)
 	local TweenInformation
 
-	if TimeChange then
-		TweenInformation = Settings["TimeEffectTweenInformation"]
-	else
-		TweenInformation = Settings["LightingRegionTweenInformation"]
+	if Event == "ToRegion" or Event == "ToServer" then
+		TweenInformation = Settings["AudioRegionTweenInformation"] --// Region based change
+	elseif Event == "TimeChange" then
+		TweenInformation = Settings["TimeEffectTweenInformation"] --// Time based change
+	elseif Event == "Weather" then
+		TweenInformation = Settings["WeatherTweenInformation"] --// Weather based change
 	end
 
 	local AdjustOnlyLightsOn
@@ -670,19 +672,23 @@ local function HandleMultiRegions() --// Handles the transition of when a player
 		end
 	end
 
-	module.TweenLighting(MostRecentlyJoinedLightingRegion, true, true, false)
+	module.TweenLighting("ToRegion", MostRecentlyJoinedLightingRegion)
 end
 
 function module.RegionEnter(RegionName)
 	local RegionSettings = SettingsHandling:GetRegionSettings(RegionName, "Lighting")
 
-	if not RegionSettings then
+	if not RegionSettings then --// If there are no settings
+		return
+	end
+
+	if InternalVariables["AudioLighting"] and not RegionSettings["GeneralSettings"]["WeatherExemption"] then --// If weather is active and the region does not have a weather exemption
 		return
 	end
 
 	InternalVariables["HaltLightingCycle"] = true
 
-	module.TweenLighting(RegionName, true, true, false)
+	module.TweenLighting("ToRegion", RegionName)
 end
 
 function module.RegionLeave(RegionName)
@@ -702,26 +708,92 @@ function module.RegionLeave(RegionName)
 	end
 end
 
-function module.TweenLighting(LightingName, WeatherOverride: boolean, Region: boolean, TimeChange: boolean)
+function module.TweenLighting(Event: string, LightingName: string)
 	SettingsHandling.WaitForSettings("Lighting")
 
 	local NewLightingSettings
 
-	if Region then
+	if Event == "ToRegion" then
 		NewLightingSettings = SettingsHandling:GetRegionSettings(LightingName, "Lighting")
-	else
+	elseif Event == "TimeChange" then
 		NewLightingSettings = SettingsHandling:GetServerSettings(LightingName, "Lighting")
+	elseif Event == "ToServer" then
+		if not RunService:IsClient() then
+			warn("Improperly tried to sync from server while on the server")
+			return
+		end
+
+		if not LightingName then --// If no lighting name is provided, that means it needs to sync and get that name
+			LightingRemote:FireServer("SyncToServer") --// This gets called on the client, so we basically do the same thing that we do when the player joins the game - talk to the server, which knows the current audio period, and sync to it
+		else --// If a lighting name is provided, that means we've already synced and can make the set now
+			NewLightingSettings = SettingsHandling:GetServerSettings(LightingName, "Lighting")
+
+			Tween(NewLightingSettings, Event)
+		end
+
+		return
+
+	elseif Event == "Weather" then
+		module.TweenWeather(LightingName)
+		return
 	end
 
-	if NewLightingSettings then
-		if Settings["ClientSided"] == false or RunService:IsClient() then
-			if InternalVariables["Weather"] == false or WeatherOverride == true then
-				Tween(NewLightingSettings, TimeChange)
-			end
-		else
-			if RunService:IsServer() then
-				LightingRemote:FireAllClients("Lighting", LightingName, "Tween", TimeChange)
-			end
+	if Settings["ClientSided"] == false or RunService:IsClient() then
+		if Event == "ToRegion" then
+			Tween(NewLightingSettings, Event)
+		elseif Event == "TimeChange" and InternalVariables["LightingWeather"] == false and InternalVariables["HaltLightingCycle"] == false then
+			Tween(NewLightingSettings, Event) --// Does time changes if there is not interrupting weather
+		end
+	else
+		if RunService:IsServer() then
+			LightingRemote:FireAllClients(Event, LightingName, "Tween")
+		end
+	end
+end
+
+function module.SetLighting(Event: string, LightingName: string)
+	SettingsHandling.WaitForSettings("Lighting")
+
+	local NewLightingSettings
+
+	if Event == "ToRegion" then
+		NewLightingSettings = SettingsHandling:GetRegionSettings(LightingName, "Lighting")
+	elseif Event == "TimeChange" then
+		NewLightingSettings = SettingsHandling:GetServerSettings(LightingName, "Lighting")
+	elseif Event == "ToServer" then --// If there is no lighting name provided, that means that 
+		if not RunService:IsClient() then
+			warn("Improperly tried to sync from server while on the server")
+			return
+		end
+
+		if not LightingName then --// If no lighting name is provided, that means it needs to sync and get that name
+			LightingRemote:FireServer("SyncToServer") --// This gets called on the client, so we basically do the same thing that we do when the player joins the game - talk to the server, which knows the current audio period, and sync to it
+		else --// If a lighting name is provided, that means we've already synced and can make the set now
+			NewLightingSettings = SettingsHandling:GetServerSettings(LightingName, "Lighting")
+
+			Set(NewLightingSettings)
+		end
+		
+		return
+	elseif Event == "Weather" then
+		module.TweenWeather(LightingName)
+		return
+	end
+
+	if not NewLightingSettings then
+		warn("No lighting settings found")
+		return
+	end
+
+	if Settings["ClientSided"] == false or RunService:IsClient() then
+		if Event == "ToRegion" then
+			Set(NewLightingSettings)
+		elseif Event == "TimeChange" and InternalVariables["LightingWeather"] == false and InternalVariables["HaltLightingCycle"] == false then
+			Set(NewLightingSettings) --// Does time changes if there is not interrupting weather
+		end
+	else
+		if RunService:IsServer() then
+			LightingRemote:FireAllClients(Event, LightingName, "Tween")
 		end
 	end
 end
@@ -729,12 +801,14 @@ end
 function module.TweenWeather(WeatherName)
 	SettingsHandling.WaitForSettings("Lighting")
 
-	local NewWeatherSettings = SettingsHandling:GetWeatherSettings(WeatherName)
+	local NewWeatherSettings = SettingsHandling:GetWeatherSettings("Lighting", WeatherName)
 
 	if NewWeatherSettings then
+		InternalVariables["LightingWeather"] = true
+		InternalVariables["CurrentLightingWeather"] = WeatherName
+
 		if Settings["ClientSided"] == false or RunService:IsClient() then
-			InternalVariables["Weather"] = true
-			Tween(NewWeatherSettings, false)
+			Tween(NewWeatherSettings, "Weather")
 		else
 			if RunService:IsServer() then
 				LightingRemote:FireAllClients("Weather", WeatherName, "Tween")
@@ -744,47 +818,30 @@ function module.TweenWeather(WeatherName)
 end
 
 function module.ClearWeather(Type)
-	if Type == "Set" then
-		InternalVariables["Weather"] = false
+	InternalVariables["LightingWeather"] = false
+	InternalVariables["CurrentLightingWeather"] = ""
 
+	if Type == "Set" then
 		Set(InternalVariables["CurrentLightingPeriod"])
 	elseif Type == "Tween" then
-		InternalVariables["Weather"] = false
-
-		Tween(InternalVariables["CurrentLightingPeriod"], false)
+		Tween(InternalVariables["CurrentLightingPeriod"], "Weather")
 	end
 end
 
 function module.SetWeather(WeatherName)
 	SettingsHandling.WaitForSettings("Lighting")
 
-	local NewWeatherSettings = SettingsHandling:GetWeatherSettings(WeatherName)
+	local NewWeatherSettings = SettingsHandling:GetWeatherSettings("Lighting", WeatherName)
 
 	if NewWeatherSettings then
+		InternalVariables["LightingWeather"] = true
+		InternalVariables["CurrentLightingWeather"] = WeatherName
+
 		if Settings["ClientSided"] == false or RunService:IsClient() then
-			InternalVariables["Weather"] = true
 			Set(NewWeatherSettings)
 		else
 			if RunService:IsServer() then
 				LightingRemote:FireAllClients("Weather", WeatherName, "Set")
-			end
-		end
-	end
-end
-
-function module.SetLighting(LightingName, WeatherOverride)
-	SettingsHandling.WaitForSettings("Lighting")
-
-	local NewLightingSettings = SettingsHandling:GetServerSettings(LightingName, "Lighting")
-
-	if NewLightingSettings then
-		if Settings["ClientSided"] == false or RunService:IsClient() then
-			if InternalVariables["Weather"] == false or WeatherOverride == true then
-				Set(NewLightingSettings)
-			end
-		else
-			if RunService:IsServer() then
-				LightingRemote:FireAllClients("Lighting", LightingName, "Set")
 			end
 		end
 	end
@@ -795,7 +852,16 @@ if InternalVariables["InitializedLighting"] == false then
 
 	if RunService:IsServer() then
 		LightingRemote.OnServerEvent:Connect(function(Player, Status)
-			if Status == "Entered" then
+			--// Quick denoter to save space for determining if things are being tweened vs set
+			local ChangeType
+
+			if Settings["Tween"] then
+				ChangeType = "Tween"
+			else
+				ChangeType = "Set"
+			end
+
+			if Status == "SyncToServer" then --// Used when someone first joins the game
 				local NumberOfTries = 0
 
 				while InternalVariables["TimeInitialized"] == false do --// Sometimes (especialy in Studio) where the client is loading in really fast, it will load in before the CurrentLightingPeriod is set
@@ -808,9 +874,18 @@ if InternalVariables["InitializedLighting"] == false then
 					end
 				end
 
-				LightingRemote:FireClient(Player, "Lighting", InternalVariables["CurrentLightingPeriod"], "Set") --// Args: Lighting, se settings from current lighting period, and set
+				if InternalVariables["LightingWeather"] then
+					LightingRemote:FireClient(Player, "ToServer", InternalVariables["CurrentLightingPeriod"], "Set", InternalVariables["CurrentLightingWeather"])
+				else
+					LightingRemote:FireClient(Player, "ToServer", InternalVariables["CurrentLightingPeriod"], "Set")
+				end
+
 			elseif Status == "TweenToServer" then
-				LightingRemote:FireClient(Player, "Lighting", InternalVariables["CurrentLightingPeriod"], "Tween", false) --// Args: Lighting, use settings from current lighting period, tween, and this is not a time based change (i.e. tween using region settings)
+				if InternalVariables["LightingWeather"] then
+					LightingRemote:FireClient(Player, "ToServer", InternalVariables["CurrentLightingPeriod"], ChangeType, InternalVariables["CurrentLightingWeather"])
+				else
+					LightingRemote:FireClient(Player, "ToServer", InternalVariables["CurrentLightingPeriod"], ChangeType)
+				end
 			end
 		end)
 	end

@@ -6,9 +6,9 @@ local module = {
    },
 
    ["ServerSounds"] = {
-        ["Hikaru Nara :D"] = {
-            ["SoundId"] = "5690938660",
-            
+        ["Akame"] = {
+            ["SoundId"] = "662279421",
+
             ["Set"] = {
 
 			},

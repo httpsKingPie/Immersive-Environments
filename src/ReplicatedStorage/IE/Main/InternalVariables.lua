@@ -1,12 +1,15 @@
 local module = {
     --// Audio Variables
-    ["HaltAudioCycle"] = false, --// Halts the audio cycle when a region is entered
+    ["CurrentAudioWeather"] = "", --// Identifies which weather setting is currently being used (audio)
+    ["HaltAudioCycle"] = false, --// Halts the audio cycle when a region is entered (this is only used and viewed by the client)
     ["InitializedAudio"] = false, --// Whether the Lighting script has initialized (to prevent Remote event duplication and module infintie reloading)
+    ["AudioWeather"] = false, --// Identifies whether audio weather settings are active
 
     --// Lighting Variables
-    ["HaltLightingCycle"] = false, --// Halts the lighting cycle when a region is entered
+    ["CurrentLightingWeather"] = "", --// Identifies which weather setting is currently being used (lighting)
+    ["HaltLightingCycle"] = false, --// Halts the lighting cycle when a region is entered (this is only used and viewed by the client)
     ["InitializedLighting"] = false, --// Whether the Lighting script has initialized (to prevent Remote event duplication and module infintie reloading)
-    ["Weather"] = false, --// Identifies whether weather is active
+    ["LightingWeather"] = false, --// Identifies whether lighting weather are active
 
     --// Settings Variables
 

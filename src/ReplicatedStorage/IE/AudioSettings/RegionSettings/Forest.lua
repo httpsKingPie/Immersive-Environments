@@ -1,4 +1,6 @@
 local module = {
+	["WeatherExemption"] = true,
+
 	["SoundService"] = {
 		["AmbientReverb"] = Enum.ReverbType.UnderWater,
 		["DistanceFactor"] = 40,

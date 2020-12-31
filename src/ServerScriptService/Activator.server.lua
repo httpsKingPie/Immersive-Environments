@@ -1,9 +1,15 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Main = require(ReplicatedStorage.IE.Main)
+local IEFolder = ReplicatedStorage.IE
+local IEMain = require(IEFolder.Main)
 
-Main.Run()
+IEMain.Run()
+
+local AudioHandling = require(IEFolder.Main.AudioHandling)
+local LightingHandling = require(IEFolder.Main.LightingHandling)
 
 wait(5)
 
---Main.SetLighting("EarlyDay")
+print("Generating weather")
+AudioHandling.TweenWeather("TestWeather")
+LightingHandling.TweenWeather("TestWeather")
