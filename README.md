@@ -25,5 +25,20 @@ A player ventures into a local blacksmith’s forge.  As they enter the house, t
 
 These are immersive environments.
 
+IE also features unique lighting settings and capabilities that set it apart from other similar systems.
+
+#### Randomization
+
+In your lighting settings, you can create randomization for each instance affected.  This is great for generating dynamic environments (ex: cities where 80% of the lights turn on at night).  
+
+#### Complex Instance Support
+
+One of TDL’s strongest selling points was its ability to control complex instances (previously known/referred to as multi-instances).  If you are not familiar, please imagine a lantern model.  The lantern model might have an actual part (yellow and neon material), a participle emitter for effects, and a point light for providing light effects.  IE allows you to fully control this complex instance by indicating a reference part, indicating the relationships of instances that you want changed (ex: siblings, children, descendants, parents, etc.)
+
+Complex instances also support randomization, so you don’t have to worry about smoke appearing while the rest of the light is not on, or other weird situations.
+
+#### Denote lights that are "on"
+
+This is tougher to explain, so please refer to the time-based example above.  Imagining that we have 200 torches (each with a 50% chance of turning on), we will have approximately 100 torches once night falls.  When midnight comes, we only want to reduce the smoke and particle emitter properties of torches that are on.  It would look strange if some suddenly sprang to life, and might ruin the effect.  You can denote these torches as lights that are “on” within the settings of both periods so that lighting changes only affect lights that are “on” or that after a lighting period comes to pass, the lights are considered “on”.  This can be applied creatively to generate unique game environments.  
 
 ### Key Features
