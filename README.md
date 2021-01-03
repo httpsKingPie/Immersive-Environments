@@ -72,13 +72,27 @@ Because weather mixes both lighting and audio, it is possible to generate custom
 
 # Distinguishing Features of Immersive Enviornments
 
-## Easy set-up, designed for people with 0 programming experience
+## Easy Set-up
 
-IE uses a simple modular setting system.  Compared to TDL, settings are now in a much more readable format to streamline editing, organization, and comprehension.  Settings are created and read by the system by placing them in either ServerSettings (for settings that are native to the audio or lighting cycle), RegionSettings (for settings that are used for regions), and WeatherSettings (for settings that are used in the creation of weather)
+IE uses a simple modular setting system, and is designed for people with 0 programming experience.  Compared to TDL, settings are now in a much more readable format to streamline editing, organization, and comprehension.  Settings are created and read by the system by placing them in either ServerSettings (for settings that are native to the audio or lighting cycle), RegionSettings (for settings that are used for regions), and WeatherSettings (for settings that are used in the creation of weather)
 
 Here’s an example of the simplicity of set-up
 
 ![Audio Settings Example](https://i.vgy.me/iq7UUn.png)
+
+IE is designed to be simple to set-up and easy to understand.
+
+## Scalable to the Extreme
+
+As mentioned above, IE is a class based manipulation system.  While it is tailored to settings based around lighting and audio, the lighting system allows for the manipulation of any class of instances.  By default, IE is set to work with instances in the workspace and lighting services, however, it is relatively simple to edit the system to expand its capabilities to include other services.  If you’re not an extreme programmer, don’t fret.  Experiment with different classes in the workspace and see what IE is able to do!
+
+## Server Side or Client Side Settings
+
+Lighting can be very tricky, especially when the server and client are simultaneously vying to control things.  IE allows you to client side the entire system with the flip of a boolean (i.e. go to settings and set [“ClientSided”] to true - it’s really simple!)  This is highly recommended, and is set by default.  
+
+## Day/Night options
+
+IE is bundled with a native Day/Night changer.  It allows you to easily determine how many minutes (in real life) you want the length of a day to be.  Unlike many other changers, it also allows you to have time pass differently during the day and the night.  For example, if your game is a horror game, it might make sense to have 15 minute nights and 10 minute days.  If you want your days and nights to progress at the same rate, that is possible as well.
 
 ## Auto Calculated Tween Starts
 
