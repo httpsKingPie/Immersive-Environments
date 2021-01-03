@@ -91,6 +91,7 @@ local module = {
 		["BloomEffect"] = ReturnExistence(Lighting, "BloomEffect"),
 		["BlurEffect"] = ReturnExistence(Lighting, "BlurEffect"),
 		["ColorCorrectionEffect"] = ReturnExistence(Lighting, "ColorCorrectionEffect"),
+		["DepthOfFieldEffect"] = ReturnExistence(Lighting, "DepthOfFieldEffect"),
 		["LightingService"] = ReturnExistence(Lighting),
 		["Sky"] = ReturnExistence(Lighting, "Sky"),
 		["SunRaysEffect"] = ReturnExistence(Lighting, "SunRaysEffect"),

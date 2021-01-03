@@ -438,7 +438,7 @@ function module.ClearWeather(CurrentAudioPeriod: string) --// Don't pass this as
 	end
 end
 
-function module.TweenWeather(WeatherName: string)
+function module.ChangeWeather(WeatherName: string)
 	SettingsHandling.WaitForSettings("Audio")
 
 	local NewWeatherSettings = SettingsHandling:GetWeatherSettings(WeatherName, "Audio")
@@ -484,7 +484,7 @@ function module.TweenAudio(Event: string, AudioName: string)
 		return
 
 	elseif Event == "Weather" then
-		module.TweenWeather(AudioName)
+		module.ChangeWeather(AudioName)
 		return
 	elseif Event == "ClearWeather" then
 		module.ClearWeather(AudioName)
