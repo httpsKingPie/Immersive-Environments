@@ -834,23 +834,23 @@ function module.ClearWeather(CurrentLightingPeriod: string) --// Don't pass this
 	InternalVariables["LightingWeather"] = false
 	InternalVariables["CurrentLightingWeather"] = ""
 
-	
-
-	if RunService:IsServer() then
-		local Type
-
-		if Settings["Tween"] then
-			Type = "Tween"
-		else
-			Type = "Set"
-		end
-
-		LightingRemote:FireAllClients("ClearWeather", InternalVariables["CurrentLightingPeriod"], Type)
-	else
+	if Settings["ClientSided"] == false or RunService:IsClient() then
 		if Settings["Tween"] then
 			Tween(TimeLightingSettings, "ClearWeather")
 		else
 			Set(TimeLightingSettings)
+		end
+	else
+		if RunService:IsServer() then
+			local Type
+
+			if Settings["Tween"] then
+				Type = "Tween"
+			else
+				Type = "Set"
+			end
+
+			LightingRemote:FireAllClients("ClearWeather", InternalVariables["CurrentLightingPeriod"], Type)
 		end
 	end
 end

@@ -15,5 +15,7 @@ LightingHandling.ChangeWeather("TestWeather")
 
 wait(12)
 
+print("Clearing")
+
 AudioHandling.ClearWeather()
 LightingHandling.ClearWeather()

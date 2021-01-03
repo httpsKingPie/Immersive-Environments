@@ -431,10 +431,12 @@ function module.ClearWeather(CurrentAudioPeriod: string) --// Don't pass this as
 	InternalVariables["AudioWeather"] = false
 	InternalVariables["CurrentAudioWeather"] = ""
 
-	if RunService:IsServer() then
-		AudioRemote:FireAllClients("ClearWeather", InternalVariables["CurrentAudioPeriod"])
-	else
+	if Settings["ClientSided"] == false or RunService:IsClient() then
 		HandleAudioSettings(TimeAudioSettings, "ClearWeather")
+	else
+		if RunService:IsServer() then
+			AudioRemote:FireAllClients("ClearWeather", InternalVariables["CurrentAudioPeriod"])
+		end
 	end
 end
 
