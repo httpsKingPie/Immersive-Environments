@@ -80,3 +80,24 @@ Here’s an example of the simplicity of set-up
 
 ![Audio Settings Example](https://i.vgy.me/iq7UUn.png)
 
+## Auto Calculated Tween Starts
+
+IE, like TDL, features a system that auto-calculates how fast time moves in your game (i.e. the speed of your Day/Night cycle) and will automatically adjust your audio and lighting periods so that the completion of the setting changes corresponds exactly to the beginnings of your lighting period.  This can be disabled as well.  
+
+Here’s why this is necessary.
+
+![Adjusted Period](https://i.gyazo.com/265de5b46b7d54e2ba45542d4032e12a.png)
+
+*The black lines are the ranges of each lighting period and when we want those settings to be applied. The red lines are approximately where those settings are going to be applied if the tween starts at the beginning of the lighting period. This can result in Lighting Periods behaving as the developer does not intend*
+
+Auto-calculation solves this problem and ensures that your time based settings begin exactly where you want them to.
+
+If you are using IE’s built-in day/night changer (which is recommended), then this conversion happens instantly.  If you are not, IE will wait for a specified amount of time (this can be changed in settings) to measure the rate at which time passes in your game, and make the correction accordingly.  Note: this will take a few extra seconds for IE to initialize, which is why the use of IE’s built-in day/night changer is recommended, as this allows the calculation to occur instantly.  
+
+## Blazing Fast and Lightweight
+
+IE is designed to load fast, get the job done, and do all of this with minimal performance impacts.
+
+While running a test of IE in Roblox Studio, I was able to get >300 FPS, CPU usage remains low, and performance activity is low too.  
+
+IE offers different settings to enhance performance as well.  Custom tailor the amount of time IE checks for changes to time, use sorted periods (optimized way of tracking time changes), and more to reduce (or increase) overhead as much as you like.  
