@@ -443,7 +443,7 @@ local function Tween(LightingSettings, Event: string)
 		TweenInformation = Settings["AudioRegionTweenInformation"] --// Region based change
 	elseif Event == "TimeChange" then
 		TweenInformation = Settings["TimeEffectTweenInformation"] --// Time based change
-	elseif Event == "Weather" then
+	elseif Event == "Weather" or Event == "ClearWeather" then
 		TweenInformation = Settings["WeatherTweenInformation"] --// Weather based change
 	end
 
@@ -671,8 +671,12 @@ local function HandleMultiRegions() --// Handles the transition of when a player
 			end
 		end
 	end
-
-	module.TweenLighting("ToRegion", MostRecentlyJoinedLightingRegion)
+	
+	if Settings["Tween"] then
+		module.TweenLighting("ToRegion", MostRecentlyJoinedLightingRegion)
+	else
+		module.SetLighting("ToRegion", MostRecentlyJoinedLightingRegion)
+	end
 end
 
 function module.RegionEnter(RegionName)
@@ -687,6 +691,12 @@ function module.RegionEnter(RegionName)
 	end
 
 	InternalVariables["HaltLightingCycle"] = true
+
+	if Settings["Tween"] then
+		module.TweenLighting("ToRegion", RegionName)
+	else
+		module.SetLighting("ToRegion", RegionName)
+	end
 
 	module.TweenLighting("ToRegion", RegionName)
 end
@@ -704,7 +714,7 @@ function module.RegionLeave(RegionName)
 	else
 		InternalVariables["HaltLightingCycle"] = false
 
-		LightingRemote:FireServer("TweenToServer")
+		LightingRemote:FireServer("ResyncToServer")
 	end
 end
 
@@ -724,7 +734,7 @@ function module.TweenLighting(Event: string, LightingName: string)
 		end
 
 		if not LightingName then --// If no lighting name is provided, that means it needs to sync and get that name
-			LightingRemote:FireServer("SyncToServer") --// This gets called on the client, so we basically do the same thing that we do when the player joins the game - talk to the server, which knows the current audio period, and sync to it
+			LightingRemote:FireServer("ResyncToServer") --// This gets called on the client, so we basically do the same thing that we do when the player joins the game - talk to the server, which knows the current audio period, and sync to it
 		else --// If a lighting name is provided, that means we've already synced and can make the set now
 			NewLightingSettings = SettingsHandling:GetServerSettings(LightingName, "Lighting")
 
@@ -735,6 +745,9 @@ function module.TweenLighting(Event: string, LightingName: string)
 
 	elseif Event == "Weather" then
 		module.TweenWeather(LightingName)
+		return
+	elseif Event == "ClearWeather" then
+		module.ClearWeather(LightingName)
 		return
 	end
 
@@ -767,7 +780,7 @@ function module.SetLighting(Event: string, LightingName: string)
 		end
 
 		if not LightingName then --// If no lighting name is provided, that means it needs to sync and get that name
-			LightingRemote:FireServer("SyncToServer") --// This gets called on the client, so we basically do the same thing that we do when the player joins the game - talk to the server, which knows the current audio period, and sync to it
+			LightingRemote:FireServer("ResyncToServer") --// This gets called on the client, so we basically do the same thing that we do when the player joins the game - talk to the server, which knows the current audio period, and sync to it
 		else --// If a lighting name is provided, that means we've already synced and can make the set now
 			NewLightingSettings = SettingsHandling:GetServerSettings(LightingName, "Lighting")
 
@@ -776,7 +789,10 @@ function module.SetLighting(Event: string, LightingName: string)
 		
 		return
 	elseif Event == "Weather" then
-		module.TweenWeather(LightingName)
+		module.SetWeather(LightingName)
+		return
+	elseif Event == "ClearWeather" then
+		module.ClearWeather(LightingName)
 		return
 	end
 
@@ -798,51 +814,121 @@ function module.SetLighting(Event: string, LightingName: string)
 	end
 end
 
-function module.TweenWeather(WeatherName)
-	SettingsHandling.WaitForSettings("Lighting")
+function module.ClearWeather(CurrentLightingPeriod: string) --// Don't pass this as an argument, trust me.  It will fill in the rest!
+	InternalVariables["LightingWeather"] = false
+	InternalVariables["CurrentLightingWeather"] = ""
 
-	local NewWeatherSettings = SettingsHandling:GetWeatherSettings("Lighting", WeatherName)
+	local TimeLightingSettings
 
-	if NewWeatherSettings then
-		InternalVariables["LightingWeather"] = true
-		InternalVariables["CurrentLightingWeather"] = WeatherName
+	if RunService:IsServer() then
+		TimeLightingSettings = SettingsHandling:GetServerSettings(InternalVariables["CurrentLightingPeriod"], "Lighting")
+	else
+		TimeLightingSettings = SettingsHandling:GetServerSettings(CurrentLightingPeriod, "Lighting")
+	end
 
-		if Settings["ClientSided"] == false or RunService:IsClient() then
-			Tween(NewWeatherSettings, "Weather")
+	if not TimeLightingSettings then
+		warn("Unable to clear weather - no lighting period found")
+		return
+	end
+
+	InternalVariables["LightingWeather"] = false
+	InternalVariables["CurrentLightingWeather"] = ""
+
+	
+
+	if RunService:IsServer() then
+		local Type
+
+		if Settings["Tween"] then
+			Type = "Tween"
 		else
-			if RunService:IsServer() then
-				LightingRemote:FireAllClients("Weather", WeatherName, "Tween")
-			end
+			Type = "Set"
+		end
+
+		LightingRemote:FireAllClients("ClearWeather", InternalVariables["CurrentLightingPeriod"], Type)
+	else
+		if Settings["Tween"] then
+			Tween(TimeLightingSettings, "ClearWeather")
+		else
+			Set(TimeLightingSettings)
 		end
 	end
 end
 
-function module.ClearWeather(Type)
-	InternalVariables["LightingWeather"] = false
-	InternalVariables["CurrentLightingWeather"] = ""
+function module.ChangeWeather(WeatherName)
+	SettingsHandling.WaitForSettings("Lighting")
 
-	if Type == "Set" then
-		Set(InternalVariables["CurrentLightingPeriod"])
-	elseif Type == "Tween" then
-		Tween(InternalVariables["CurrentLightingPeriod"], "Weather")
+	local NewWeatherSettings = SettingsHandling:GetWeatherSettings(WeatherName, "Lighting")
+
+	if not NewWeatherSettings then
+		warn("Unable to tween weather - no lighting period found")
+		return
+	end
+
+	InternalVariables["LightingWeather"] = true
+	InternalVariables["CurrentLightingWeather"] = WeatherName
+
+	if Settings["ClientSided"] == false or RunService:IsClient() then
+		if Settings["Tween"] then
+			Tween(NewWeatherSettings, "Weather")
+		else
+			Set(NewWeatherSettings)
+		end
+	else
+		if RunService:IsServer() then
+			local Type
+			
+			if Settings["Tween"] then
+				Type = "Tween"
+			else
+				Type = "Set"
+			end
+
+			LightingRemote:FireAllClients("Weather", WeatherName, Type)
+		end
+	end
+end
+
+function module.TweenWeather(WeatherName)
+	SettingsHandling.WaitForSettings("Lighting")
+
+	local NewWeatherSettings = SettingsHandling:GetWeatherSettings(WeatherName, "Lighting")
+
+	if not NewWeatherSettings then
+		warn("Unable to tween weather - no lighting period found")
+		return
+	end
+
+	InternalVariables["LightingWeather"] = true
+	InternalVariables["CurrentLightingWeather"] = WeatherName
+
+	if Settings["ClientSided"] == false or RunService:IsClient() then
+		Tween(NewWeatherSettings, "Weather")
+	else
+		if RunService:IsServer() then
+			LightingRemote:FireAllClients("Weather", WeatherName, "Tween")
+		end
 	end
 end
 
 function module.SetWeather(WeatherName)
 	SettingsHandling.WaitForSettings("Lighting")
 
-	local NewWeatherSettings = SettingsHandling:GetWeatherSettings("Lighting", WeatherName)
+	local NewWeatherSettings = SettingsHandling:GetWeatherSettings(WeatherName, "Lighting")
 
-	if NewWeatherSettings then
-		InternalVariables["LightingWeather"] = true
-		InternalVariables["CurrentLightingWeather"] = WeatherName
+	if not NewWeatherSettings then
+		warn("Unable to set weather - no lighting period found")
+		return
+	end
 
-		if Settings["ClientSided"] == false or RunService:IsClient() then
-			Set(NewWeatherSettings)
-		else
-			if RunService:IsServer() then
-				LightingRemote:FireAllClients("Weather", WeatherName, "Set")
-			end
+	InternalVariables["LightingWeather"] = true
+	InternalVariables["CurrentLightingWeather"] = WeatherName
+
+	if Settings["ClientSided"] == false or RunService:IsClient() then
+		Set(NewWeatherSettings)
+	else
+		if RunService:IsServer() then
+			LightingRemote:FireAllClients("Weather", WeatherName, "Set")
 		end
 	end
 end
@@ -880,7 +966,7 @@ if InternalVariables["InitializedLighting"] == false then
 					LightingRemote:FireClient(Player, "ToServer", InternalVariables["CurrentLightingPeriod"], "Set")
 				end
 
-			elseif Status == "TweenToServer" then
+			elseif Status == "ResyncToServer" then
 				if InternalVariables["LightingWeather"] then
 					LightingRemote:FireClient(Player, "ToServer", InternalVariables["CurrentLightingPeriod"], ChangeType, InternalVariables["CurrentLightingWeather"])
 				else

@@ -396,7 +396,7 @@ local function Set(Type, PeriodName)
 	if Type == "Audio" then
 		AudioHandling.TweenAudio("TimeChange", PeriodName) --// We use tween, rather than set, because audio settings already delinaeate which properties can be set
 	elseif Type == "Lighting" then
-		LightingHandling.SetLighting("ToServer", PeriodName)
+		LightingHandling.SetLighting("TimeChange", PeriodName)
 	else
 		warn("Unexpected input type for Set: ".. tostring(Type))
 	end

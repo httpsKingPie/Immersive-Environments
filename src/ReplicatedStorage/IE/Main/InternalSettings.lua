@@ -5,7 +5,7 @@ local Workspace = game:GetService("Workspace")
 
 local function ReturnExistence(Location, ClassName)
 	if ClassName == nil then
-		return Lighting
+		return Location
 	end
 	
 	local AInstance = Location:FindFirstChildWhichIsA(ClassName)

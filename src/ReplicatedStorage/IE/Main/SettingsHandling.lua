@@ -58,7 +58,7 @@ function module:GetServerSettings(SettingName: string, Type: string)
     end
 end
 
-function module:GetWeatherSettings(Type: string, SettingName: string)
+function module:GetWeatherSettings(SettingName: string, Type: string)
 	if not self[Type] then
         warn("Type: ".. tostring(Type) .. ", not found within SettingsHandling")
         return nil

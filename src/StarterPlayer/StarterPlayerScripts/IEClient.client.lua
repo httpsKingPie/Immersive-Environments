@@ -23,11 +23,9 @@ if Settings["ClientSided"] == true then
 	--// The audio Remote does not feature Type, like Tween and Set, because the audio settings already allow for delineation of which settings to tween and set
 	AudioRemote.OnClientEvent:Connect(function(Event:string, SettingName: string, WeatherName: string) --// Only possible Events are "TimeChange", "Weather", and "ToServer" because all region changes happen on the client
 		if InternalVariables["HaltAudioCycle"] == false then --// Used to prevent audio changes from occuring while the players is also in a region since regions take precedent.  
-			if WeatherName then
-				print('weatheraaaaa')
+			if WeatherName then --// This one is used when the Event is "ToServer", since that indiscriminately fires back the Event == "ToServer", SettingName == CurrentAudioName, and WeatherName == CurrentWeatherName (empty string if none)
 				AudioHandling.TweenWeather(WeatherName)
 			else
-				print("weatheeerararar sarasrasrs ")
 				AudioHandling.TweenAudio(Event, SettingName)
 			end
 		end

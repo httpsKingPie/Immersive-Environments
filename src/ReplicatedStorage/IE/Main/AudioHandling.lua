@@ -63,7 +63,7 @@ local function GetTweenInformation(Event: string)
 		TweenInformation = Settings["AudioRegionTweenInformation"] --// Region based change
 	elseif Event == "TimeChange" then
 		TweenInformation = Settings["TimeEffectTweenInformation"] --// Time based change
-	elseif Event == "Weather" then
+	elseif Event == "Weather" or Event == "ClearWeather" then
 		TweenInformation = Settings["WeatherTweenInformation"] --// Weather based change
 	end
 
@@ -412,21 +412,50 @@ end
 
 --// Server controls
 
+function module.ClearWeather(CurrentAudioPeriod: string) --// Don't pass this as an argument, trust me.  It will fill in the rest!
+	SettingsHandling.WaitForSettings("Audio")
+
+	local TimeAudioSettings
+
+	if RunService:IsServer() then
+		TimeAudioSettings = SettingsHandling:GetServerSettings(InternalVariables["CurrentAudioPeriod"], "Audio")
+	else
+		TimeAudioSettings = SettingsHandling:GetServerSettings(CurrentAudioPeriod, "Audio")
+	end
+
+	if not TimeAudioSettings then
+		warn("Unable to clear weather - no audio period found")
+		return
+	end
+
+	InternalVariables["AudioWeather"] = false
+	InternalVariables["CurrentAudioWeather"] = ""
+
+	if RunService:IsServer() then
+		AudioRemote:FireAllClients("ClearWeather", InternalVariables["CurrentAudioPeriod"])
+	else
+		HandleAudioSettings(TimeAudioSettings, "ClearWeather")
+	end
+end
+
 function module.TweenWeather(WeatherName: string)
 	SettingsHandling.WaitForSettings("Audio")
 
-	local NewWeatherSettings = SettingsHandling:GetWeatherSettings("Audio", WeatherName)
+	local NewWeatherSettings = SettingsHandling:GetWeatherSettings(WeatherName, "Audio")
 
-	if NewWeatherSettings then
-		InternalVariables["AudioWeather"] = true
-		InternalVariables["CurrentAudioWeather"] = WeatherName
+	if not NewWeatherSettings then
+		warn("Unable to tween weather - no weather settings found")
+		return
+	end
 
-		if Settings["ClientSided"] == false or RunService:IsClient() then
-			HandleAudioSettings(NewWeatherSettings, "Weather")
-		else
-			if RunService:IsServer() then
-				AudioRemote:FireAllClients("Weather", WeatherName)
-			end
+	InternalVariables["AudioWeather"] = true
+	InternalVariables["CurrentAudioWeather"] = WeatherName
+
+	if Settings["ClientSided"] == false or RunService:IsClient() then
+		HandleAudioSettings(NewWeatherSettings, "Weather")
+	else
+		if RunService:IsServer() then
+			AudioRemote:FireAllClients("Weather", WeatherName)
 		end
 	end
 end
@@ -445,9 +474,9 @@ function module.TweenAudio(Event: string, AudioName: string)
 		end
 
 		if not AudioName then --// If no lighting name is provided, that means it needs to sync and get that name
-			AudioRemote:FireServer("TweenToServer") --// This gets called on the client, so we basically do the same thing that we do when the player joins the game - talk to the server, which knows the current audio period, and sync to it
+			AudioRemote:FireServer("ResyncToServer") --// This gets called on the client, so we basically do the same thing that we do when the player joins the game - talk to the server, which knows the current audio period, and sync to it
 		else --// If a lighting name is provided, that means we've already synced and can make the set now
-			NewAudioSettings = SettingsHandling:GetServerSettings(AudioName, "Lighting")
+			NewAudioSettings = SettingsHandling:GetServerSettings(AudioName, "Audio")
 
 			HandleAudioSettings(NewAudioSettings, Event)
 		end
@@ -456,6 +485,9 @@ function module.TweenAudio(Event: string, AudioName: string)
 
 	elseif Event == "Weather" then
 		module.TweenWeather(AudioName)
+		return
+	elseif Event == "ClearWeather" then
+		module.ClearWeather(AudioName)
 		return
 	end
 
@@ -485,7 +517,7 @@ if InternalVariables["InitializedAudio"] == false then
 			if Status == "SyncToServer" then
 				local NumberOfTries = 0
 
-				while InternalVariables["TimeInitialized"] == false do --// Sometimes (especialy in Studio) where the client is loading in really fast, it will load in before the CurrentLightingPeriod is set
+				while InternalVariables["TimeInitialized"] == false do --// Sometimes (especialy in Studio) where the client is loading in really fast, it will load in before the CurrentAudioPeriod is set
 					wait(.2)
 					NumberOfTries = NumberOfTries + 1
 
@@ -500,7 +532,7 @@ if InternalVariables["InitializedAudio"] == false then
 				else
 					AudioRemote:FireClient(Player, "TimeChange", InternalVariables["CurrentAudioPeriod"])
 				end
-			elseif Status == "TweenToServer" then
+			elseif Status == "ResyncToServer" then
 				if InternalVariables["AudioWeather"] then
 					AudioRemote:FireClient(Player, "ToServer", InternalVariables["CurrentAudioPeriod"], InternalVariables["CurrentAudioWeather"])
 				else

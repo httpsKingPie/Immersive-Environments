@@ -37,8 +37,8 @@ local module = {
 		20, --// Recommended to only adjust the time variable (default set to 20 seconds)
 		Enum.EasingStyle.Linear
 		),
-	["TimeForDay"] = 2, --// The amount of minutes it takes to go from 0600 to 1800
-	["TimeForNight"] = 2, --// The amount of minutes it takes to go from 1800 to 0600
+	["TimeForDay"] = 10, --// The amount of minutes it takes to go from 0600 to 1800
+	["TimeForNight"] = 10, --// The amount of minutes it takes to go from 1800 to 0600
 
 	--// Weather Settings
 	["WeatherTweenInformation"] = TweenInfo.new(
