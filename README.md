@@ -1,13 +1,13 @@
 
-## Table of Contents
+# Table of Contents
 
-### Summary
+## Summary
 
 Immersive Environments (IE) is the sequel to [Truly Dynamic Lighting](https://devforum.roblox.com/t/truly-dynamic-lighting-module-advanced-lighting-capabilities-and-control/508173) (aka TDL).  Originally named Truly Dynamic Lighting 2, the focus of the project was shifted to overhaul the initial framework and direction of the system, while also meeting all of the current, anticipated, and potential needs of my current project.  IE features all of the same settings as TDL, and also features a host of other new features, settings, and optimizations to expand developer creative control.  The final product is a robust system that allows for time-based and region-based lighting and audio control.  However, this barely scratches the surface of IE.  Please continue reading for a more in-depth explanation of what sets IE apart from TDL.
 
-### A more in-depth explanation
+## A more in-depth explanation
 
-#### Lighting
+### Lighting
 
 Immersive Environments uses a class-based conversion system that is tailored towards classes normally placed in the Lighting and Workspace services, as well as the Lighting service itself.  However, it is set up to work with any class of instances 
 
