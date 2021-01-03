@@ -5,7 +5,6 @@
 {:toc}
 
 # Summary
-chala
 
 Immersive Environments (IE) is the successor to [Truly Dynamic Lighting](https://devforum.roblox.com/t/truly-dynamic-lighting-module-advanced-lighting-capabilities-and-control/508173) (aka TDL).  Originally named Truly Dynamic Lighting 2, the focus of the project was shifted to overhaul the initial framework and direction of the system, while also meeting all of the current, anticipated, and potential needs of my current project.  IE features all of the same settings as TDL, and also features a host of other new features, settings, and optimizations to expand developer creative control.  The final product is a robust system that allows for time-based and region-based lighting and audio control.  However, this barely scratches the surface of IE.  Please continue reading for a more in-depth explanation of what sets IE apart from TDL.
 
@@ -55,7 +54,20 @@ Server sounds are sounds that the entire server can hear.  An example of this is
 
 Region sounds are sounds native to a region.  An example of this are the sounds of background noise when entering a restaurant.  
 
-Shared sounds are sounds that are native to multiple regions.  An example of this is a three room building, with music playing from a radio in one room.  Using shared sounds, you can precisely tailor how loud the music of the radio sounds in each room.  This is particularly useful while also combining SoundService manipulation (AmbientReverb in most cases).  
+Shared sounds are sounds that are native to multiple regions.  An example of this is a three room building, with music playing from a radio in one room.  Using shared sounds, you can precisely tailor how loud the music of the radio or other actives sounds behave in each room.  This is particularly useful while also combining SoundService manipulation (AmbientReverb in most cases).  
 
+While the lighting system is, in a broad sense, a class manipulation system - the audio system is tailored specifically for audio related instances.  Instances in the class of SoundEffect are not currently supported, however, those may be added in at a later point to expand developer creative control.  Audio behaves similarly to lighting, in the sense that you can control for different audio triggers, depending on time or region.  
+
+### Implementing Randomization
+
+The IE audio system also features a special category of random sounds.  These random sounds are native only to regions, but allow for randomized sound generation.  Developers can specify the frequency and chance of playing that a sound has.  An example of this, is the sound of a gun being fired.  By manipulating the frequency in which the sound might play and the probability that the sound actually does play, a truly unique environment such as a battlefield can be easily generated. 
+
+## Weather
+
+Immersive Environments features a weather control system for developers to leverage.  In a sense, the weather system can be thought of as manual triggers/overrides for the current lighting or audio cycles.  IE separates weather into lighting and audio categories.  This allows developers to mix and match weather settings easily.  An example of this is having one lighting profile for a thunderstorm, but three audio profiles for the sound of thunder and lightning, to create variety.  
+
+Weather, by default, halts the cycle of either lighting or audio (depending on whether lighting-based or audio-based weather is active).  Developers can control whether regions supersede active weather.  For example, regions that are outdoors may seem unnatural if they are unaffected by weather.  Regions that are indoors may have their effects ruined if their settings suddenly change, despite not being close to the outdoors at all.  
+
+Because weather mixes both lighting and audio, it is possible to generate custom events that are not inherently weather or climate related.  Through tailored configuration, it is possible to generate fireworks displays, firestorms, sudden ambience changes for an environment like a club, etc.  
 
 ### Key Features
