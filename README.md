@@ -43,4 +43,15 @@ This is tougher to explain, so please refer to the time-based example above.  Im
 
 ## Audio
 
+Immersive Environments utilizes a categorical audio definition system.  Audio is split into four different categories: the SoundService, server sounds, region sounds, and shared sounds.  The later two categories are only used for regions.
+
+The SoundService is a built in service, but it is criminally under-used by developers.  The SoundService allows for manipulations to AmbientReverb, which adjusts the ambient sound environment preset used, and other useful settings for controlling 3D sound.  If you are not familiar with it, I highly recommend doing some research on why this service is a great tool.
+
+Server sounds are sounds that the entire server can hear.  An example of this is a nature ambience for a game that takes place in a forest.
+
+Region sounds are sounds native to a region.  An example of this are the sounds of background noise when entering a restaurant.  
+
+Shared sounds are sounds that are native to multiple regions.  An example of this is a three room building, with music playing from a radio in one room.  Using shared sounds, you can precisely tailor how loud the music of the radio sounds in each room.  This is particularly useful while also combining SoundService manipulation (AmbientReverb in most cases).  
+
+
 ### Key Features
