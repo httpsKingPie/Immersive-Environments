@@ -1,3 +1,6 @@
+# Audio and Lighting System
+
+Developed by https_KingPie
 
 # Table of Contents
 
@@ -88,7 +91,7 @@ As mentioned above, IE is a class based manipulation system.  While it is tailor
 
 ## Server Side or Client Side Settings
 
-Lighting can be very tricky, especially when the server and client are simultaneously vying to control things.  IE allows you to client side the entire system with the flip of a boolean (i.e. go to settings and set [“ClientSided”] to true - it’s really simple!)  This is highly recommended, and is set by default.  
+Lighting can be very tricky, especially when the server and client are simultaneously vying to control things.  IE allows you to client side the entire system with the flip of a boolean (i.e. go to settings and set [“ClientSided”] to true - it’s really simple!)  This is highly recommended (as it also required to enable region functionality), and is set by default.  
 
 ## Day/Night options
 
