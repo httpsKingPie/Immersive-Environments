@@ -70,4 +70,13 @@ Weather, by default, halts the cycle of either lighting or audio (depending on w
 
 Because weather mixes both lighting and audio, it is possible to generate custom events that are not inherently weather or climate related.  Through tailored configuration, it is possible to generate fireworks displays, firestorms, sudden ambience changes for an environment like a club, etc.  
 
-### Key Features
+# Distinguishing Features of Immersive Enviornments
+
+## Easy set-up, designed for people with 0 programming experience
+
+IE uses a simple modular setting system.  Compared to TDL, settings are now in a much more readable format to streamline editing, organization, and comprehension.  Settings are created and read by the system by placing them in either ServerSettings (for settings that are native to the audio or lighting cycle), RegionSettings (for settings that are used for regions), and WeatherSettings (for settings that are used in the creation of weather)
+
+Here’s an example of the simplicity of set-up
+
+![Audio Settings Example](https://i.vgy.me/iq7UUn.png)
+
