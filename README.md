@@ -1,4 +1,4 @@
-# Audio and Lighting System
+# Immersive Environments: Advanced Audio and Lighting System
 
 Developed by https_KingPie
 
@@ -12,6 +12,24 @@ Developed by https_KingPie
 Immersive Environments (IE) is the successor to [Truly Dynamic Lighting](https://devforum.roblox.com/t/truly-dynamic-lighting-module-advanced-lighting-capabilities-and-control/508173) (aka TDL).  Originally named Truly Dynamic Lighting 2, the focus of the project was shifted to overhaul the initial framework and direction of the system, while also meeting all of the current, anticipated, and potential needs of my current project.  IE features all of the same settings as TDL, and also features a host of other new features, settings, and optimizations to expand developer creative control.  The final product is a robust system that allows for time-based and region-based lighting and audio control.  However, this barely scratches the surface of IE.  Please continue reading for a more in-depth explanation of what sets IE apart from TDL.
 
 # In-depth Explanation
+
+## Audio
+
+Immersive Environments utilizes a categorical audio definition system.  Audio is split into four different categories: the SoundService, server sounds, region sounds, and shared sounds.  The later two categories are only used for regions.
+
+The SoundService is a built in service, but it is criminally under-used by developers.  The SoundService allows for manipulations to AmbientReverb, which adjusts the ambient sound environment preset used, and other useful settings for controlling 3D sound.  If you are not familiar with it, I highly recommend doing some research on why this service is a great tool.
+
+Server sounds are sounds that the entire server can hear.  An example of this is a nature ambience for a game that takes place in a forest.
+
+Region sounds are sounds native to a region.  An example of this are the sounds of background noise when entering a restaurant.  
+
+Shared sounds are sounds that are native to multiple regions.  An example of this is a three room building, with music playing from a radio in one room.  Using shared sounds, you can precisely tailor how loud the music of the radio or other actives sounds behave in each room.  This is particularly useful while also combining SoundService manipulation (AmbientReverb in most cases).  
+
+While the lighting system is, in a broad sense, a class manipulation system - the audio system is tailored specifically for audio related instances.  Instances in the class of SoundEffect are not currently supported, however, those may be added in at a later point to expand developer creative control.  Audio behaves similarly to lighting, in the sense that you can control for different audio triggers, depending on time or region.  
+
+### Implementing Randomization
+
+The IE audio system also features a special category of random sounds.  These random sounds are native only to regions, but allow for randomized sound generation.  Developers can specify the frequency and chance of playing that a sound has.  An example of this, is the sound of a gun being fired.  By manipulating the frequency in which the sound might play and the probability that the sound actually does play, a truly unique environment such as a battlefield can be easily generated. 
 
 ## Lighting
 
@@ -46,24 +64,6 @@ Complex instances also support randomization, so you don’t have to worry about
 ### Denote lights that are "on"
 
 This is tougher to explain, so please refer to the time-based example above.  Imagining that we have 200 torches (each with a 50% chance of turning on), we will have approximately 100 torches once night falls.  When midnight comes, we only want to reduce the smoke and particle emitter properties of torches that are on.  It would look strange if some suddenly sprang to life, and might ruin the effect.  You can denote these torches as lights that are “on” within the settings of both periods so that lighting changes only affect lights that are “on” or that after a lighting period comes to pass, the lights are considered “on”.  This can be applied creatively to generate unique game environments.  
-
-## Audio
-
-Immersive Environments utilizes a categorical audio definition system.  Audio is split into four different categories: the SoundService, server sounds, region sounds, and shared sounds.  The later two categories are only used for regions.
-
-The SoundService is a built in service, but it is criminally under-used by developers.  The SoundService allows for manipulations to AmbientReverb, which adjusts the ambient sound environment preset used, and other useful settings for controlling 3D sound.  If you are not familiar with it, I highly recommend doing some research on why this service is a great tool.
-
-Server sounds are sounds that the entire server can hear.  An example of this is a nature ambience for a game that takes place in a forest.
-
-Region sounds are sounds native to a region.  An example of this are the sounds of background noise when entering a restaurant.  
-
-Shared sounds are sounds that are native to multiple regions.  An example of this is a three room building, with music playing from a radio in one room.  Using shared sounds, you can precisely tailor how loud the music of the radio or other actives sounds behave in each room.  This is particularly useful while also combining SoundService manipulation (AmbientReverb in most cases).  
-
-While the lighting system is, in a broad sense, a class manipulation system - the audio system is tailored specifically for audio related instances.  Instances in the class of SoundEffect are not currently supported, however, those may be added in at a later point to expand developer creative control.  Audio behaves similarly to lighting, in the sense that you can control for different audio triggers, depending on time or region.  
-
-### Implementing Randomization
-
-The IE audio system also features a special category of random sounds.  These random sounds are native only to regions, but allow for randomized sound generation.  Developers can specify the frequency and chance of playing that a sound has.  An example of this, is the sound of a gun being fired.  By manipulating the frequency in which the sound might play and the probability that the sound actually does play, a truly unique environment such as a battlefield can be easily generated. 
 
 ## Weather
 
