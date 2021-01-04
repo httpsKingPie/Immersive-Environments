@@ -211,10 +211,11 @@ While there are a couple other functions that you might notice in the source cod
 # Setting Up Immersive Environments
 
 1. Head over to the src branch of the GitHub.  This can be found [here](https://github.com/httpsKingPie/Immersive-Environments/tree/main/src)
-2. If you are using Rojo, you can port the files over as they are.  Skip to step 4
-3. If you are using studios, download the files from the Roblox Library [here](https://www.roblox.com/library/6187781975/Immersive-Environments)
+2. If you are using Rojo, you can port the files over as they are
+3. If you are using Studio, download the files from the Roblox Library [here](https://www.roblox.com/library/6187781975/Immersive-Environments)
 4. When setting up audio and lighting time settings make sure that every time is covered.  Do not allow any gaps ex: 4-5, 6-7, etc. it must be continuous like 4-5, 5-6, etc. or IE will break
 5. For examples on how to set up settings, check ReplicatedStorage>IE>Helplful Utilities
-6. Run IE by requiring the Main module and calling 
+6. Run IE by requiring the Main module and calling:
 ```lua 
-Main.Run()```
+Main.Run()
+```
