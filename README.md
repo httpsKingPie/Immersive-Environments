@@ -18,6 +18,8 @@ Within these periods of time, you can assign different settings for lighting and
 
 However, this barely scratches the surface of IE.  Please continue reading for a more in-depth explanation of what sets IE apart from TDL.
 
+If you would like to check out an example place with IE in action - [click here](https://www.roblox.com/games/5889648780/Immersive-Environments-Testing)
+
 # In-depth Explanation
 
 ## Audio
@@ -118,7 +120,7 @@ IE is bundled with a native Day/Night changer.  It allows you to easily determin
 
 ## Auto Calculated Tween Starts
 
-IE, like TDL, features a system that auto-calculates how fast time moves in your game (i.e. the speed of your Day/Night cycle) and will automatically adjust your audio and lighting periods so that the completion of the setting changes corresponds exactly to the beginnings of your lighting period.  This can be disabled as well.  
+IE, like TDL, features a system that auto-calculates how fast time moves in your game (i.e. the speed of your Day/Night cycle) and will automatically adjust your audio and lighting periods so that the completion of the setting changes corresponds exactly to the beginnings of your audio or lighting period.  This can be disabled as well.  
 
 Here’s why this is necessary.
 
