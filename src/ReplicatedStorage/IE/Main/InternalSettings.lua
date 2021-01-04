@@ -79,7 +79,7 @@ local module = {
 	
 	["DayNightWait"] = 1,
 
-	["RemoteInitializationMaxTries"] = 50, --// Remote checkss every .2 seconds.  100 tries = 20 seconds.
+	["RemoteInitializationMaxTries"] = 50, --// Remote checks every .2 seconds.  100 tries = 20 seconds.
 	
 	["NonPropertySettings"] = {
 		"ChanceOfChange",

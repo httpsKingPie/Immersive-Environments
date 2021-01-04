@@ -4,7 +4,8 @@ local module = {
 		["StartTime"] = 12,
 		["EndTime"] = 16,
 		
-		["AdjustOnlyLightsOn"] = true,
+		["AdjustOnlyLightsOn"] = false, --// This means that instances affected will only be those that are considered "on"
+		["WeatherExemption"] = true, --// This setting is only used for regions - feel free to delete if this is not a region setting.  If you want these settings to apply, even when there is weather, set this to true.  Read the Weather section of the IE documentation site (https://httpskingpie.github.io/Immersive-Environments/) for more info.
 	},
 	
 	["Instances"] = {
