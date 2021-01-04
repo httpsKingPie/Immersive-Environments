@@ -1,4 +1,4 @@
-# Immersive Environments: Advanced Audio and Lighting System
+# Immersive Environments: Advanced Audio and Lighting Control System
 
 Developed by https_KingPie
 
@@ -9,7 +9,14 @@ Developed by https_KingPie
 
 # Summary
 
-Immersive Environments (IE) is the successor to [Truly Dynamic Lighting](https://devforum.roblox.com/t/truly-dynamic-lighting-module-advanced-lighting-capabilities-and-control/508173) (aka TDL).  Originally named Truly Dynamic Lighting 2, the focus of the project was shifted to overhaul the initial framework and direction of the system, while also meeting all of the current, anticipated, and potential needs of my current project.  IE features all of the same settings as TDL, and also features a host of other new features, settings, and optimizations to expand developer creative control.  The final product is a robust system that allows for time-based and region-based lighting and audio control.  However, this barely scratches the surface of IE.  Please continue reading for a more in-depth explanation of what sets IE apart from TDL.
+Immersive Environments (IE) is the successor to [Truly Dynamic Lighting](https://devforum.roblox.com/t/truly-dynamic-lighting-module-advanced-lighting-capabilities-and-control/508173) (aka TDL).  Originally named Truly Dynamic Lighting 2, the focus of the project was shifted to overhaul the initial framework and direction of the system, while also meeting all of the current, anticipated, and potential needs of my current project.  IE features all of the same settings as TDL, and also features a host of other new features, settings, and optimizations to expand developer creative control.  The final product is a robust system that allows for time-based and region-based lighting and audio controls.  
+
+With IE you can create periods of time, such as
+![Example Periods](https://i.gyazo.com/8e7d60361fb68c108a7670c00a351e17.png)
+
+Within these periods of time, you can assign different settings for lighting and audio.  IE also comes with advanced region controls, for creating different lighting and audio environments in specific regions.  IE also features compatability with different weather profiles, which can also control the lighting and audio.
+
+However, this barely scratches the surface of IE.  Please continue reading for a more in-depth explanation of what sets IE apart from TDL.
 
 # In-depth Explanation
 
@@ -211,12 +218,14 @@ While there are a couple other functions that you might notice in the source cod
 # Setting Up Immersive Environments
 
 1. Head over to the src branch of the GitHub.  This can be found [here](https://github.com/httpsKingPie/Immersive-Environments/tree/main/src)
-2. If you are using Rojo, you can port the files over as they are.  Skip to step AHADSDD JASD JSAPDj
-2. For regular Studio Users, create a folder named "IE" in ReplicatedStorage.  
-3. Copy
+2. If you are using Rojo, you can port the files over as they are
+3. If you are using Studio, download the files from the Roblox Library [here](https://www.roblox.com/library/6187781975/Immersive-Environments)
+4. When setting up audio and lighting time settings make sure that every time is covered.  Do not allow any gaps ex: 4-5, 6-7, etc. it must be continuous like 4-5, 5-6, etc. or IE will break
+5. For examples on how to set up settings, check ReplicatedStorage>IE>Helplful Utilities
+6. Run IE by requiring the Main module and calling:
+```lua 
+Main.Run()
+```
+7. IE will begin running automatically - no further setup is required
 
-# Understanding Lighting and Audio Settings
-
-## Lighting Settings
-
-## Audio Settings
+* Note - always require and call the `Run` function of the Main module before requiring the LightingHandling or AudioHandling module for weather controls
