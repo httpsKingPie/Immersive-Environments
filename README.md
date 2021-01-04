@@ -65,6 +65,16 @@ Complex instances also support randomization, so you don’t have to worry about
 
 This is tougher to explain, so please refer to the time-based example above.  Imagining that we have 200 torches (each with a 50% chance of turning on), we will have approximately 100 torches once night falls.  When midnight comes, we only want to reduce the smoke and particle emitter properties of torches that are on.  It would look strange if some suddenly sprang to life, and might ruin the effect.  You can denote these torches as lights that are “on” within the settings of both periods so that lighting changes only affect lights that are “on” or that after a lighting period comes to pass, the lights are considered “on”.  This can be applied creatively to generate unique game environments.  
 
+## Regions
+
+Regions are handled using [VerdommeManDevAcc’s](https://devforum.roblox.com/u/verdommemandevacc) [Object Tracker & Area Manager ](https://verdommeman.github.io/OT-AM/) module.  This allows for efficient and fast tracking of regions, with minimal performance impacts.  
+
+Side note: If you wish to change IE to a different module, check out the RegionHandling module and make changes there.  It should be relatively straightforward.
+
+IE uses smart checks to prevent region glitching and can handle overlapping regions, which greatly expands the creative potential of developers - particularly when paired with shared sounds.  
+
+Here’s an example of where this might be handy - when entering 3 regions that all exist within one another (imagine a giant house with different overlapping regions for the house itself, the floor you are on, and the specific room you enter), the settings for the most recently joined region are always applied.  IE also tracks the order of regions that you have joined, so if you leave the most recent region (while remaining in the other two regions), IE will automatically adjust relevant lighting and audio settings to the next most recently joined region that you are still in.
+
 ## Weather
 
 Immersive Environments features a weather control system for developers to leverage.  In a sense, the weather system can be thought of as manual triggers/overrides for the current lighting or audio cycles.  IE separates weather into lighting and audio categories.  This allows developers to mix and match weather settings easily.  An example of this is having one lighting profile for a thunderstorm, but three audio profiles for the sound of thunder and lightning, to create variety.  
@@ -153,3 +163,4 @@ Besides customizing your audio and lighting regions, server, and weather setting
 * Weather Settings
   * **WeatherTweenInformation** - tween information.  The tween information applied to audio or lighting settings when a weather period is started.  The same tween information is used here to allow them to sync if necessary.  Default; time = 20, EasingStyle = Linear.
 
+Internal Settings can also be found in the the source code.  They are not listed, because most people will not find them useful.
