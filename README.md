@@ -178,7 +178,7 @@ Main.Run()
 
 This starts IE and should be the **first** function called.  Do not require the other modules (or call their functions) until this function has been called.
 
-AudioHandling
+**AudioHandling**
 
 ```lua
 AudioHandling.ClearWeather()
@@ -192,7 +192,7 @@ AudioHandling.ChangeWeather(WeatherName: string)
 
 This allows you to change the weather.  Simply pass the name of the audio weather setting you want to call and IE will handle the rest.
 
-LightingHandling
+**LightingHandling**
 
 ```lua
 LightingHandling.ClearWeather()
@@ -207,3 +207,16 @@ LightingHandling.ChangeWeather(WeatherName: string)
 This allows you to change the weather.  Simply pass the name of the lighting weather setting you want to call and IE will handle the rest.
 
 While there are a couple other functions that you might notice in the source code, these are really the only ones you need to worry about.  If you know what you’re doing, feel free to experiment with some of the more hidden ones!
+
+# Setting Up Immersive Environments
+
+1. Head over to the src branch of the GitHub.  This can be found [here](https://github.com/httpsKingPie/Immersive-Environments/tree/main/src)
+2A. If you are using Rojo, you can port the files over as they are.  Skip to step AHADSDD JASD JSAPDj
+2B. For regular Studio Users, create a folder named "IE" in ReplicatedStorage.  
+3. Copy
+
+# Understanding Lighting and Audio Settings
+
+## Lighting Settings
+
+## Audio Settings
