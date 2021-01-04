@@ -1,4 +1,4 @@
-# Immersive Environments: Advanced Audio and Lighting System
+# Immersive Environments: Advanced Audio and Lighting Control System
 
 Developed by https_KingPie
 
