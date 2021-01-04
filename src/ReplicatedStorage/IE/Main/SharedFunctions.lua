@@ -37,25 +37,6 @@ function module:RemoteCooldownTimer(RemoteName, PlayerName, Time)
 	end
 end
 
-function module.PlayerAdded(BoundFunction, ...)
-	local Args = {...}
-	
-	if type(BoundFunction) ~= "function" then
-		warn("Pass a function as the first argument")
-		return
-	end
-	
-	Players.PlayerAdded:Connect(function(Player)
-		BoundFunction(Player, table.unpack(Args))
-	end)
-	
-	local AllPlayers = Players:GetPlayers()
-	
-	for i = 1, #AllPlayers do
-		BoundFunction(AllPlayers[i], table.unpack(Args))
-	end
-end
-
 --// Just use regular PlayerRemoving - there's no way to really improve that one (that I know of atm)
 
 function module.CharacterAdded(Player: Player, BoundFunction, ...)
