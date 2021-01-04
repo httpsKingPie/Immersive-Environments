@@ -126,30 +126,30 @@ Besides customizing your audio and lighting regions, server, and weather setting
 ### Settings List
 
 * General Settings
-  * DefaultSettings - boolean.  Enable if you want to run IE with recommended settings.  Default true (although all the recommended settings are already enabled)
-  * AlwaysCheckInstances - boolean.  Enable if you want to search through workspace every time a Lighting setting is applied.  Default true.  Recommended for when IE is client sided, games that use StreamingEnabled or custom streaming, games that add various parts in that you want to be affected by IE 
-  * ClientSided - boolean.  Enable if you want to run IE on the client (this unlocks regions).  Default true.
-  * RegionCheckTime - number.  Adjust the time in which IE checks for the creation of new regions.  Useful for games that use StreamingEnabled or an alternative.  Only necessary when ClientSided is enabled and when AlwaysCheckInstances is enabled.  Default 5.
-  * Tween - boolean.  Whether tweens are used versus hard “sets”.  Default true.
+  * **DefaultSettings** - boolean.  Enable if you want to run IE with recommended settings.  Default true (although all the recommended settings are already enabled)
+  * **AlwaysCheckInstances** - boolean.  Enable if you want to search through workspace every time a Lighting setting is applied.  Default true.  Recommended for when IE is client sided, games that use StreamingEnabled or custom streaming, games that add various parts in that you want to be affected by IE 
+  * **ClientSided** - boolean.  Enable if you want to run IE on the client (this unlocks regions).  Default true.
+  * **RegionCheckTime** - number.  Adjust the time in which IE checks for the creation of new regions.  Useful for games that use StreamingEnabled or an alternative.  Only necessary when ClientSided is enabled and when AlwaysCheckInstances is enabled.  Default 5.
+  * **Tween** - boolean.  Whether tweens are used versus hard “sets”.  Default true.
 * Audio Settings
-  * GenerateNewRandomSounds - boolean.  Whether only one sound instance is used versus the creation of multiple random sounds.  Default false.  
-  * WaitForRandomSoundToEnd  - boolean.  Whether the random sound must be finished before another one can be generated.  Default false. 
+  * **GenerateNewRandomSounds** - boolean.  Whether only one sound instance is used versus the creation of multiple random sounds.  Default false.  
+  * **WaitForRandomSoundToEnd**  - boolean.  Whether the random sound must be finished before another one can be generated.  Default false. 
 * Lighting Settings
-  * ChangingInstanceChildrenOfWorkspace  - boolean  Whether instances affected by lighting periods are children (true) of workspace versus descendants (false).  Default false.  Set to true if all of your changing parts are children of workspace for a performance boost.
+  * **ChangingInstanceChildrenOfWorkspace**  - boolean  Whether instances affected by lighting periods are children (true) of workspace versus descendants (false).  Default false.  Set to true if all of your changing parts are children of workspace for a performance boost.
 * Region Settings
-  * AudioRegionTweenInformation - tween information.  The tween information applied to audio settings when a region is entered.  Default; time = 3, EasingStyle = Linear.
-  * BackupValidation - number.  The time between backup validation (implemented to prevent region glitching by quickly leaving and reentering)
-  * LightingRegionTweenInformation - tween information.  The tween information applied to lighting settings when a region is entered.  Default; time = 3, EasingStyle = Linear.
+  * **AudioRegionTweenInformation** - tween information.  The tween information applied to audio settings when a region is entered.  Default; time = 3, EasingStyle = Linear.
+  * **BackupValidation** - number.  The time between backup validation (implemented to prevent region glitching by quickly leaving and reentering)
+  * **LightingRegionTweenInformation** - tween information.  The tween information applied to lighting settings when a region is entered.  Default; time = 3, EasingStyle = Linear.
 * Time Settings
-  * AutomaticTransitions - boolean.  Whether IE handles time based audio and lighting setting changes.  This is one of IE’s core features, but this can be disabled if you want to handle that yourself.  Default true.
-  * AdjustmentTime - number.  When the IE day/night changer is not being used, this is the amount of time given to IE to determine the rate of time when adjusting period start times.  Default 5.
-  * CheckTime - number.  How often IE loops to check for Lighting changes.  Default 1.
-  * DetectIndependentTimeChange - boolean.  Whether you are using the IE built-in day/night changer (false) or whether you are using your own (true) and IE needs to calculate period start times.  Default false.
-  * EnableDayNightTransitions - boolean.  Turns on the IE day/night cycle.  Default true.
-  * EnableSorting - boolean.  Performance optimization for IE that comes at the cost of being able to make changes to ClockTime or TimeOfDay.  If your game relies on this (through things like admin or special changes that occur on the server) this is not recommended.  
-   * TimeEffectTweenInformation - tween information.  The tween information applied to audio or lighting settings when a new period is entered.  The same tween information is used here to allow them to sync if necessary.  Default; time = 20, EasingStyle = Linear.
-  * TimeForDay - number.  This is the amount of minutes it takes to go from 0600 to 1800, if IE’s day/night changer is enabled.  Default 10.
-  * TimeForNight - number.  This is the amount of minutes it takes to go from 1800 to 0600 , if IE’s day/night changer is enabled.  Default 10.
+  * **AutomaticTransitions** - boolean.  Whether IE handles time based audio and lighting setting changes.  This is one of IE’s core features, but this can be disabled if you want to handle that yourself.  Default true.
+  * **AdjustmentTime** - number.  When the IE day/night changer is not being used, this is the amount of time given to IE to determine the rate of time when adjusting period start times.  Default 5.
+  * **CheckTime** - number.  How often IE loops to check for Lighting changes.  Default 1.
+  * **DetectIndependentTimeChange** - boolean.  Whether you are using the IE built-in day/night changer (false) or whether you are using your own (true) and IE needs to calculate period start times.  Default false.
+  * **EnableDayNightTransitions** - boolean.  Turns on the IE day/night cycle.  Default true.
+  * **EnableSorting** - boolean.  Performance optimization for IE that comes at the cost of being able to make changes to ClockTime or TimeOfDay.  If your game relies on this (through things like admin or special changes that occur on the server) this is not recommended.  
+   * **TimeEffectTweenInformation** - tween information.  The tween information applied to audio or lighting settings when a new period is entered.  The same tween information is used here to allow them to sync if necessary.  Default; time = 20, EasingStyle = Linear.
+  * **TimeForDay** - number.  This is the amount of minutes it takes to go from 0600 to 1800, if IE’s day/night changer is enabled.  Default 10.
+  * **TimeForNight** - number.  This is the amount of minutes it takes to go from 1800 to 0600 , if IE’s day/night changer is enabled.  Default 10.
 * Weather Settings
-  * WeatherTweenInformation - tween information.  The tween information applied to audio or lighting settings when a weather period is started.  The same tween information is used here to allow them to sync if necessary.  Default; time = 20, EasingStyle = Linear.
+  * **WeatherTweenInformation** - tween information.  The tween information applied to audio or lighting settings when a weather period is started.  The same tween information is used here to allow them to sync if necessary.  Default; time = 20, EasingStyle = Linear.
 
