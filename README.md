@@ -211,8 +211,8 @@ While there are a couple other functions that you might notice in the source cod
 # Setting Up Immersive Environments
 
 1. Head over to the src branch of the GitHub.  This can be found [here](https://github.com/httpsKingPie/Immersive-Environments/tree/main/src)
-2A. If you are using Rojo, you can port the files over as they are.  Skip to step AHADSDD JASD JSAPDj
-2B. For regular Studio Users, create a folder named "IE" in ReplicatedStorage.  
+2. If you are using Rojo, you can port the files over as they are.  Skip to step AHADSDD JASD JSAPDj
+2. For regular Studio Users, create a folder named "IE" in ReplicatedStorage.  
 3. Copy
 
 # Understanding Lighting and Audio Settings
