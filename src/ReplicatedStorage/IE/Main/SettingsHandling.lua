@@ -1,6 +1,7 @@
 local Main = script.Parent
 local IEFolder = Main.Parent
 
+local Settings = require(IEFolder.Settings)
 local InternalVariables = require(Main.InternalVariables)
 
 local AudioSettings = IEFolder.AudioSettings
@@ -18,6 +19,53 @@ local module = {
 		["Weather"] = {},
     },
 }
+
+function module.ApplyDefaultSettings()
+	--// Default settings
+
+	module["AlwaysCheckInstances"] = false
+	module["ClientSided"] = true
+	module["RegionCheckTime"] = 5
+	module["Tween"] = true
+	
+	--// Audio Settings
+	module["GenerateNewRandomSounds"] = false
+	module["WaitForRandomSoundToEnd"] = false
+
+	--// Lighting Settings
+	module["ChangingInstanceChildrenOfWorkspace"] = false
+
+	--// Region Settings
+	module["AudioRegionTweenInformation"] = TweenInfo.new(
+		3,
+		Enum.EasingStyle.Linear
+	)
+	module["BackupValidation"] = 5
+	module["LightingRegionTweenInformation"] = TweenInfo.new(
+		3,
+		Enum.EasingStyle.Linear
+	)
+	--// Time Settings
+
+	module["AutomaticTransitions"] = true
+	module["AdjustmentTime"] = 5
+	module["CheckTime"] = 1
+	module["DetectIndependentTimeChange"] = false
+	module["EnableDayNightTransitions"] = true
+	module["EnableSorting"] = true
+	module["TimeEffectTweenInformation"] = TweenInfo.new(
+		20,
+		Enum.EasingStyle.Linear
+	)
+	module["TimeForDay"] = 10
+	module["TimeForNight"] = 10
+
+	--// Weather Settings
+	module["WeatherTweenInformation"] = TweenInfo.new(
+		10,
+		Enum.EasingStyle.Linear
+	)
+end
 
 --// Types are like Audio, Lighting, Weather
 function module:GetRegionSettings(RegionName: string, Type: string)
@@ -174,7 +222,11 @@ end
 
 function module.Run()
     module:GenerateAudioSettings()
-    module:GenerateLightingSettings()
+	module:GenerateLightingSettings()
+
+	if Settings["DefaultSettings"] then
+		module.ApplyDefaultSettings()
+	end
 end
 
 return module
