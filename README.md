@@ -103,6 +103,8 @@ As mentioned above, IE is a class based manipulation system.  While it is tailor
 
 Lighting can be very tricky, especially when the server and client are simultaneously vying to control things.  IE allows you to client side the entire system with the flip of a boolean (i.e. go to settings and set [“ClientSided”] to true - it’s really simple!)  This is highly recommended (as it also required to enable region functionality), and is set by default.  
 
+The best part is that, even when IE is Client Sided, you still run it through the server!  This allows you to track changes and automatically replicate lighting and audio settings to players without having to worry about complex remote functionalities!
+
 ## Day/Night options
 
 IE is bundled with a native Day/Night changer.  It allows you to easily determine how many minutes (in real life) you want the length of a day to be.  Unlike many other changers, it also allows you to have time pass differently during the day and the night.  For example, if your game is a horror game, it might make sense to have 15 minute nights and 10 minute days.  If you want your days and nights to progress at the same rate, that is possible as well.
@@ -164,3 +166,44 @@ Besides customizing your audio and lighting regions, server, and weather setting
   * **WeatherTweenInformation** - tween information.  The tween information applied to audio or lighting settings when a weather period is started.  The same tween information is used here to allow them to sync if necessary.  Default; time = 20, EasingStyle = Linear.
 
 Internal Settings can also be found in the the source code.  They are not listed, because most people will not find them useful.
+
+## Simple API
+
+The API for Immersive Environments was designed with non-programmers in mind.  Below are the only functions that you need to ever worry about.  Call all of these from the server, no matter what.  Everything else runs automatically.
+
+**Main**
+```lua 
+Main.Run()
+```
+
+This starts IE and should be the **first** function called.  Do not require the other modules (or call their functions) until this function has been called.
+
+AudioHandling
+
+```lua
+AudioHandling.ClearWeather()
+```
+
+This clears your audio weather.  Do not pass anything as an argument!  If you’re using VSC or requiring it directly you can probably see that it wants an argument, but trust me IE fills that in.
+
+```lua
+AudioHandling.ChangeWeather(WeatherName: string)
+```
+
+This allows you to change the weather.  Simply pass the name of the audio weather setting you want to call and IE will handle the rest.
+
+LightingHandling
+
+```lua
+LightingHandling.ClearWeather()
+```
+
+This clears your lighting weather.  Do not pass anything as an argument!  If you’re using VSC or requiring it directly you can probably see that it wants an argument, but trust me IE fills that in.
+
+```lua
+LightingHandling.ChangeWeather(WeatherName: string)
+```
+
+This allows you to change the weather.  Simply pass the name of the lighting weather setting you want to call and IE will handle the rest.
+
+While there are a couple other functions that you might notice in the source code, these are really the only ones you need to worry about.  If you know what you’re doing, feel free to experiment with some of the more hidden ones!
