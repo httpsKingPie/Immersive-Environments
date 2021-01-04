@@ -226,3 +226,6 @@ While there are a couple other functions that you might notice in the source cod
 ```lua 
 Main.Run()
 ```
+7. IE will begin running automatically - no further setup is required
+
+* Note - always require and call the `Run` function of the Main module before requiring the LightingHandling or AudioHandling module for weather controls
