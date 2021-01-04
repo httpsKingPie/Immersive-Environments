@@ -224,6 +224,10 @@ local function AdjustStartTimes(Type)
 
 	module[Type.."AdjustedTimePeriods"] = module[Type.."TimePeriods"]
 
+	if not Settings["Tween"] then --// This means set is active, so we don't adjust anything.
+		return
+	end
+
 	if DiffernetTimes == true then --// For when day (0600-1800) and night (1800-0600) pass at different rates
 		if Settings["EnableSorting"] == true then
 			for _, PeriodSettings in ipairs (module[Type.."AdjustedTimePeriods"]) do
@@ -316,7 +320,6 @@ local function AdjustStartTimes(Type)
 				end
 			end
 		end
-		
 	end
 end
 
