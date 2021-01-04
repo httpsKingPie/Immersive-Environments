@@ -215,4 +215,6 @@ While there are a couple other functions that you might notice in the source cod
 3. If you are using studios, download the files from the Roblox Library [here](https://www.roblox.com/library/6187781975/Immersive-Environments)
 4. When setting up audio and lighting time settings make sure that every time is covered.  Do not allow any gaps ex: 4-5, 6-7, etc. it must be continuous like 4-5, 5-6, etc. or IE will break
 5. For examples on how to set up settings, check ReplicatedStorage>IE>Helplful Utilities
-6. Run IE by requiring the Main module and calling ```lua Main.Run()```
+6. Run IE by requiring the Main module and calling 
+```lua 
+Main.Run()```
