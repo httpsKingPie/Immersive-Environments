@@ -231,3 +231,4 @@ Main.Run()
 7. IE will begin running automatically - no further setup is required
 
 * Note - always require and call the `Run` function of the Main module before requiring the LightingHandling or AudioHandling module for weather controls
+** Note - do not remove any of the settings folders, even if you aren't using them.  This throws a runtime error.
