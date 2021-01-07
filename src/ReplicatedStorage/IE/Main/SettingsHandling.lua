@@ -4,8 +4,8 @@ local IEFolder = Main.Parent
 local Settings = require(IEFolder.Settings)
 local InternalVariables = require(Main.InternalVariables)
 
-local AudioSettings = IEFolder.AudioSettings
-local LightingSettings = IEFolder.LightingSettings
+local AudioSettings = IEFolder:FindFirstChild("AudioSettings")
+local LightingSettings = IEFolder:FindFirstChild("LightingSettings")
 
 local module = {
     ["Audio"] = {
@@ -126,86 +126,120 @@ function module:GetWeatherSettings(SettingName: string, Type: string)
 end
 
 function module:GenerateLightingSettings()
-	local Count = 0
+	if not LightingSettings then
+		return
+	end
 
-	local RegionDesendants = LightingSettings.RegionSettings:GetDescendants()
-	local ServerDescendants = LightingSettings.ServerSettings:GetDescendants()
-	local WeatherDescendants = LightingSettings.WeatherSettings:GetDescendants()
+	local LightingRegionSettings = LightingSettings:FindFirstChild("RegionSettings")
+	local LightingServerSettings = LightingSettings:FindFirstChild("ServerSettings")
+	local LightingWeatherSettings = LightingSettings:FindFirstChild("WeatherSettings")
 
-	for i = 1, #RegionDesendants do
-		if RegionDesendants[i]:IsA("ModuleScript") then
-			if self["Lighting"]["Region"][RegionDesendants[i].Name] == nil then
-				self["Lighting"]["Region"][RegionDesendants[i].Name] = require(RegionDesendants[i])
-			else
-				warn("Lighting Region Setting already exists for ".. RegionDesendants[i].Name.. ".  Make sure settings with the same name do not exist")
+	if LightingRegionSettings then
+		local RegionDesendants = LightingSettings.RegionSettings:GetDescendants()
+
+		for i = 1, #RegionDesendants do
+			if RegionDesendants[i]:IsA("ModuleScript") then
+				if self["Lighting"]["Region"][RegionDesendants[i].Name] == nil then
+					self["Lighting"]["Region"][RegionDesendants[i].Name] = require(RegionDesendants[i])
+				else
+					warn("Lighting Region Setting already exists for ".. RegionDesendants[i].Name.. ".  Make sure settings with the same name do not exist")
+				end
 			end
 		end
 	end
 
-	for i = 1, #ServerDescendants do
-		if ServerDescendants[i]:IsA("ModuleScript") then
-			if self["Lighting"]["Server"][ServerDescendants[i].Name] == nil then
-				self["Lighting"]["Server"][ServerDescendants[i].Name] = require(ServerDescendants[i])
-				Count = Count + 1
-			else
-				warn("Lighting Server Setting already exists for ".. ServerDescendants[i].Name.. ".  Make sure settings with the same name do not exist")
+	if LightingServerSettings then
+		local ServerDescendants = LightingSettings.ServerSettings:GetDescendants()
+
+		local Count = 0
+
+		for i = 1, #ServerDescendants do
+			if ServerDescendants[i]:IsA("ModuleScript") then
+				if self["Lighting"]["Server"][ServerDescendants[i].Name] == nil then
+					self["Lighting"]["Server"][ServerDescendants[i].Name] = require(ServerDescendants[i])
+					Count = Count + 1
+				else
+					warn("Lighting Server Setting already exists for ".. ServerDescendants[i].Name.. ".  Make sure settings with the same name do not exist")
+				end
+			end
+		end
+
+		InternalVariables["TotalLightingIndexes"] = Count
+	end
+
+	if LightingWeatherSettings then
+		local WeatherDescendants = LightingSettings.WeatherSettings:GetDescendants()
+
+		for i = 1, #WeatherDescendants do
+			if WeatherDescendants[i]:IsA("ModuleScript") then
+				if self["Lighting"]["Weather"][WeatherDescendants[i].Name] == nil then
+					self["Lighting"]["Weather"][WeatherDescendants[i].Name] = require(WeatherDescendants[i])
+				else
+					warn("Weather Setting already exists for ".. WeatherDescendants[i].Name.. ".  Make sure settings with the same name do not exist")
+				end
 			end
 		end
 	end
 
-	for i = 1, #WeatherDescendants do
-		if WeatherDescendants[i]:IsA("ModuleScript") then
-			if self["Lighting"]["Weather"][WeatherDescendants[i].Name] == nil then
-				self["Lighting"]["Weather"][WeatherDescendants[i].Name] = require(WeatherDescendants[i])
-			else
-				warn("Weather Setting already exists for ".. WeatherDescendants[i].Name.. ".  Make sure settings with the same name do not exist")
-			end
-		end
-	end
-
-	InternalVariables["TotalLightingIndexes"] = Count
 	InternalVariables["LightingSettingTablesBuilt"] = true
 end
 
 function module:GenerateAudioSettings()
-	local Count = 0
+	if not AudioSettings then
+		return
+	end
 	
-	local RegionDescendants = AudioSettings.RegionSettings:GetDescendants()
-	local ServerDescendants = AudioSettings.ServerSettings:GetDescendants()
-	local WeatherDescendants = AudioSettings.WeatherSettings:GetDescendants()
+	local AudioRegionSettings = AudioSettings:FindFirstChild("RegionSettings")
+	local AudioServerSettings = AudioSettings:FindFirstChild("ServerSettings")
+	local AudioWeatherSettings = AudioSettings:FindFirstChild("WeatherSettings")
 
-	for i = 1, #RegionDescendants do
-		if RegionDescendants[i]:IsA("ModuleScript") then
-			if self["Audio"]["Region"][RegionDescendants[i].Name] == nil then
-				self["Audio"]["Region"][RegionDescendants[i].Name] = require(RegionDescendants[i])
-			else
-				warn("Audio Region Setting already exists for ".. RegionDescendants[i].Name.. ".  Make sure settings with the same name do not exist")
+	if AudioRegionSettings then
+		local RegionDescendants = AudioSettings.RegionSettings:GetDescendants()
+
+		for i = 1, #RegionDescendants do
+			if RegionDescendants[i]:IsA("ModuleScript") then
+				if self["Audio"]["Region"][RegionDescendants[i].Name] == nil then
+					self["Audio"]["Region"][RegionDescendants[i].Name] = require(RegionDescendants[i])
+				else
+					warn("Audio Region Setting already exists for ".. RegionDescendants[i].Name.. ".  Make sure settings with the same name do not exist")
+				end
 			end
 		end
 	end
 
-	for i = 1, #ServerDescendants do
-		if ServerDescendants[i]:IsA("ModuleScript") then
-			if self["Audio"]["Server"][ServerDescendants[i].Name] == nil then
-				self["Audio"]["Server"][ServerDescendants[i].Name] = require(ServerDescendants[i])
-				Count = Count + 1
-			else
-				warn("Audio Server Setting already exists for ".. ServerDescendants[i].Name.. ".  Make sure settings with the same name do not exist")
+	if AudioServerSettings then
+		local ServerDescendants = AudioSettings.ServerSettings:GetDescendants()
+
+		local Count = 0
+
+		for i = 1, #ServerDescendants do
+			if ServerDescendants[i]:IsA("ModuleScript") then
+				if self["Audio"]["Server"][ServerDescendants[i].Name] == nil then
+					self["Audio"]["Server"][ServerDescendants[i].Name] = require(ServerDescendants[i])
+					Count = Count + 1
+				else
+					warn("Audio Server Setting already exists for ".. ServerDescendants[i].Name.. ".  Make sure settings with the same name do not exist")
+				end
+			end
+		end
+
+		InternalVariables["TotalAudioIndexes"] = Count
+	end
+
+	if AudioWeatherSettings then
+		local WeatherDescendants = AudioSettings.WeatherSettings:GetDescendants()
+
+		for i = 1, #WeatherDescendants do
+			if WeatherDescendants[i]:IsA("ModuleScript") then
+				if self["Audio"]["Weather"][WeatherDescendants[i].Name] == nil then
+					self["Audio"]["Weather"][WeatherDescendants[i].Name] = require(WeatherDescendants[i])
+				else
+					warn("Weather Setting already exists for ".. WeatherDescendants[i].Name.. ".  Make sure settings with the same name do not exist")
+				end
 			end
 		end
 	end
 
-	for i = 1, #WeatherDescendants do
-		if WeatherDescendants[i]:IsA("ModuleScript") then
-			if self["Audio"]["Weather"][WeatherDescendants[i].Name] == nil then
-				self["Audio"]["Weather"][WeatherDescendants[i].Name] = require(WeatherDescendants[i])
-			else
-				warn("Weather Setting already exists for ".. WeatherDescendants[i].Name.. ".  Make sure settings with the same name do not exist")
-			end
-		end
-	end
-
-	InternalVariables["TotalAudioIndexes"] = Count
 	InternalVariables["AudioSettingTablesBuilt"] = true
 end
 
