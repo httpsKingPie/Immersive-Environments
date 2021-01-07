@@ -323,6 +323,26 @@ local function AdjustStartTimes(Type)
 	end
 end
 
+local function CheckInPeriod(CurrentTime, StartTime, EndTime) --// Returns name
+	if EndTime > StartTime then --// Most cases (ex: starts at 0200 ends at 0600)
+		if CurrentTime >= StartTime and CurrentTime <= EndTime then
+			return true
+		end
+	else --// Means midnight is crossed (ex: starts at 2200 and ends at 0200)
+		if CurrentTime > EndTime then --// Midnight has not yet been crossed (can process sort of like a normal period) 
+			if CurrentTime >= StartTime then
+				return true
+			end
+		else --// Midnight has already been crossed
+			if CurrentTime < EndTime then
+				return true
+			end
+		end
+	end
+
+	return false
+end
+
 local function GetCurrentAdjustedPeriod(Type)
 	if not CheckAdjustedTimePeriod(Type) then
 		return
@@ -331,16 +351,12 @@ local function GetCurrentAdjustedPeriod(Type)
 	local CurrentTime = Lighting.ClockTime
 	
 	for PeriodName, PeriodSettings in pairs (module[Type.. "AdjustedTimePeriods"]) do
-		if PeriodSettings["EndTime"] > PeriodSettings["StartTime"] then
-			if CurrentTime >= PeriodSettings["StartTime"] and CurrentTime < PeriodSettings["EndTime"] then
-				InternalVariables["Current".. Type.. "AdjustedPeriod"] = PeriodName
-				return
-			end
-		else
-			if (CurrentTime < 24 and CurrentTime >= PeriodSettings["StartTime"]) or (CurrentTime < PeriodSettings["EndTime"]) then
-				InternalVariables["Current".. Type.. "AdjustedPeriod"] = PeriodName
-				return
-			end
+		local StartTime = PeriodSettings["StartTime"]
+		local EndTime = PeriodSettings["EndTime"]
+
+		if CheckInPeriod(CurrentTime, StartTime, EndTime) then
+			InternalVariables["Current".. Type.. "AdjustedPeriod"] = PeriodName
+			return PeriodName
 		end
 	end
 end
@@ -356,37 +372,33 @@ local function GetCurrentPeriod(Type: string)
 		for _, PeriodSettings in ipairs (module[Type.. "TimePeriods"]) do
 			local StartTime = PeriodSettings["StartTime"]
 			local EndTime = PeriodSettings["EndTime"]
-			
-			if EndTime > StartTime then --// Most cases (ex: starts at 0200 ends at 0600)
-				if CurrentTime >= StartTime and CurrentTime <= EndTime then
-					InternalVariables["Current".. Type.. "Period"] = PeriodSettings["Name"]
-					return
-				end
-			else --// Means midnight is crossed (ex: starts at 2200 and ends at 0200)
-				if CurrentTime > EndTime then --// Midnight has not yet been crossed (can process sort of like a normal period) 
-					if CurrentTime >= StartTime then
-						InternalVariables["Current".. Type.. "Period"] = PeriodSettings["Name"]
-						return
-					end
-				else --// Midnight has already been crossed
-					if CurrentTime < EndTime then
-						InternalVariables["Current".. Type.. "Period"] = PeriodSettings["Name"]
-						return
-					end
-				end
-			end
-		end
-		
-		warn(Type.. " periods are not continuous - period not found")
-	else
-		for _, PeriodSettings in pairs (module[Type.. "TimePeriods"]) do
-			if CurrentTime >= PeriodSettings["StartTime"] and CurrentTime <= PeriodSettings["EndTime"] then
-				InternalVariables["Current".. Type.. "Period"] = PeriodSettings["Name"]
+			local PeriodName = PeriodSettings["Name"]
+
+			if not InternalVariables["Current".. Type.. "Period"] == "" then
 				return
 			end
+
+			if CheckInPeriod(CurrentTime, StartTime, EndTime) then
+				InternalVariables["Current".. Type.. "Period"] = PeriodName
+			end
 		end
-		
-		warn(Type.. "periods are not continuous - period not found")
+	else
+		for PeriodName, PeriodSettings in pairs (module[Type.. "TimePeriods"]) do
+			local StartTime = PeriodSettings["StartTime"]
+			local EndTime = PeriodSettings["EndTime"]
+
+			if not InternalVariables["Current".. Type.. "Period"] == "" then
+				return
+			end
+
+			if CheckInPeriod(CurrentTime, StartTime, EndTime) then
+				InternalVariables["Current".. Type.. "Period"] = PeriodName
+			end
+		end
+	end
+
+	if InternalVariables["Current".. Type.. "Period"] == "" then
+		warn(Type.. " periods are not continuous - period not found")
 	end
 end
 
@@ -478,18 +490,8 @@ local function TrackCycle(Type)  --// New name for the CheckCycle; Type is eithe
 			local StartTimeForNextPeriod = module[Type.. "AdjustedTimePeriods"][InternalVariables["Next".. Type.. "Index"]]["StartTime"]
 			local EndTimeForNextPeriod = module[Type.. "AdjustedTimePeriods"][InternalVariables["Next".. Type.. "Index"]]["EndTime"]
 
-			if EndTimeForNextPeriod > StartTimeForNextPeriod then --// "Normal time change"
-
-				if CurrentTime >= StartTimeForNextPeriod and CurrentTime < EndTimeForNextPeriod then
-
-					HandleChange(Type)
-				end
-			else --// Means times go over midnight, ex: start at 22 ends at 4
-
-				if (CurrentTime >= StartTimeForNextPeriod) or (CurrentTime < EndTimeForNextPeriod) then
-
-					HandleChange(Type)
-				end
+			if CheckInPeriod(CurrentTime, StartTimeForNextPeriod, EndTimeForNextPeriod) then
+				HandleChange(Type)
 			end
 		end
 	else --// Non sorted loop
@@ -529,7 +531,7 @@ function module.Run()
 		 --// Creates the adjusted start times (takes the longest time)
 		AdjustStartTimes("Audio")
 		AdjustStartTimes("Lighting")
-		
+
 		 --// Starts checking for period changes
 		coroutine.wrap(TrackCycle)("Audio")
 		coroutine.wrap(TrackCycle)("Lighting")
