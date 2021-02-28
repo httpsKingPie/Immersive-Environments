@@ -1,9 +1,9 @@
 local module = {
-    ["AudioAdjustedTimePeriods"] = {},
-    ["AudioTimePeriods"] = {},
-   
-    ["LightingAdjustedTimePeriods"] = {},
-    ["LightingTimePeriods"] = {},
+	["AudioAdjustedTimePeriods"] = {},
+	["AudioTimePeriods"] = {},
+
+	["LightingAdjustedTimePeriods"] = {},
+	["LightingTimePeriods"] = {},
 }
 
 local Lighting = game:GetService("Lighting")
@@ -22,65 +22,65 @@ local IEFolder = Main.Parent
 local Settings = require(IEFolder.Settings)
 
 local function CheckTimePeriod(Type)
-    if not SettingsHandling[Type] then
+	if not SettingsHandling[Type] then
 		warn("Type: ".. tostring(Type) .. ", not found within SettingsHandling")
-        return false
-    end
+		return false
+	end
 
-    if not module[Type.."TimePeriods"] then
-        warn("Type: ".. tostring(Type) .. ", is not set to have Time Periods")
-        return false
-    end
+	if not module[Type.."TimePeriods"] then
+		warn("Type: ".. tostring(Type) .. ", is not set to have Time Periods")
+		return false
+	end
 
-    return true
+	return true
 end
 
 local function CheckAdjustedTimePeriod(Type: string)
-    if not SettingsHandling[Type] then
-        warn("Type: ".. tostring(Type) .. ", not found within SettingsHandling")
-        return false
-    end
+	if not SettingsHandling[Type] then
+		warn("Type: ".. tostring(Type) .. ", not found within SettingsHandling")
+		return false
+	end
 
-    if not module[Type.."AdjustedTimePeriods"] then
-        warn("Type: ".. tostring(Type) .. ", is not set to have Time Periods")
-        return false
-    end
+	if not module[Type.."AdjustedTimePeriods"] then
+		warn("Type: ".. tostring(Type) .. ", is not set to have Time Periods")
+		return false
+	end
 
-    return true
+	return true
 end
 
 local function DayNightCycle()
-    local DayRatio = (12 * 60) / Settings["TimeForDay"] --// Ratio of in-game minutes to real-life minutes
-    local NightRatio = (12 * 60) / Settings["TimeForNight"] --// Ratio of in-game minutes to real-life minutes
-    --// Note: for above, 12 = the 12 hours for each day/night period (ex: 0600-1800; 1800-0600) and 60 converts it to in-game minutes
+	local DayRatio = (12 * 60) / Settings["TimeForDay"] --// Ratio of in-game minutes to real-life minutes
+	local NightRatio = (12 * 60) / Settings["TimeForNight"] --// Ratio of in-game minutes to real-life minutes
+	--// Note: for above, 12 = the 12 hours for each day/night period (ex: 0600-1800; 1800-0600) and 60 converts it to in-game minutes
 
-    local ActiviationPerMinute = 60 / InternalSettings["DayNightWait"] --// The amount of times the script activates in one minute (real life)
+	local ActiviationPerMinute = 60 / InternalSettings["DayNightWait"] --// The amount of times the script activates in one minute (real life)
 
-    local MinutesToAddDay = DayRatio / ActiviationPerMinute
-    local MinutesToAddNight = NightRatio / ActiviationPerMinute
-    --// Note: for above, the ratio tells how many in-game minutes pass per real life minute, and divides it by the amount of activates per real life minute = conversion of in-game minutes per activation
+	local MinutesToAddDay = DayRatio / ActiviationPerMinute
+	local MinutesToAddNight = NightRatio / ActiviationPerMinute
+	--// Note: for above, the ratio tells how many in-game minutes pass per real life minute, and divides it by the amount of activates per real life minute = conversion of in-game minutes per activation
 
-    InternalVariables["DayAdjustmentRate"] = DayRatio / (60^2) * Settings["TimeEffectTweenInformation"].Time
-    InternalVariables["NightAdjustmentRate"] = NightRatio / (60^2) * Settings["TimeEffectTweenInformation"].Time
-    --// Note: above are measured in in-game hours/real life second
+	InternalVariables["DayAdjustmentRate"] = DayRatio / (60^2) * Settings["TimeEffectTweenInformation"].Time
+	InternalVariables["NightAdjustmentRate"] = NightRatio / (60^2) * Settings["TimeEffectTweenInformation"].Time
+	--// Note: above are measured in in-game hours/real life second
 
-    while true do
-        wait(InternalSettings["DayNightWait"]) do
-            if Lighting.ClockTime > 18 or Lighting.ClockTime < 6 then --// Night time
-                Lighting:SetMinutesAfterMidnight(Lighting:GetMinutesAfterMidnight() + MinutesToAddNight)
-            else --// Day time
-                Lighting:SetMinutesAfterMidnight(Lighting:GetMinutesAfterMidnight() + MinutesToAddDay)
-            end
-        end
-    end
+	while true do
+		wait(InternalSettings["DayNightWait"]) do
+			if Lighting.ClockTime > 18 or Lighting.ClockTime < 6 then --// Night time
+				Lighting:SetMinutesAfterMidnight(Lighting:GetMinutesAfterMidnight() + MinutesToAddNight)
+			else --// Day time
+				Lighting:SetMinutesAfterMidnight(Lighting:GetMinutesAfterMidnight() + MinutesToAddDay)
+			end
+		end
+	end
 end
 
 local function PopulateTimes(Type: string) --// Puts the times into a table so that they can easily be evaluated
-   if not CheckTimePeriod(Type) then
-       return
-   end
+	if not CheckTimePeriod(Type) then
+		return
+	end
 
-    for TimePeriodName, TimePeriodSettings in pairs (SettingsHandling[Type]["Server"]) do
+	for TimePeriodName, TimePeriodSettings in pairs (SettingsHandling[Type]["Server"]) do
 		if TimePeriodSettings["GeneralSettings"]["StartTime"] and TimePeriodSettings["GeneralSettings"]["EndTime"] then
 			module[Type.."TimePeriods"][TimePeriodName] = {
 				["StartTime"] = TimePeriodSettings["GeneralSettings"]["StartTime"],
@@ -122,11 +122,11 @@ local function SortTimes(Type: string) --// Sorts the times into a definite sequ
 
 			for TimePeriodName, Times in pairs (module[Type.."TimePeriods"]) do
 				Ticked = true
-	
+
 				if TotalIndexesDetermined == false then 
 					TotalIndexes = TotalIndexes + 1
 				end
-	
+
 				if not table.find(CheckedNames, TimePeriodName) then
 					if not CurrentStart and not CurrentEnd and not CurrentName then --// Becomes the initial values for CurrentName, CurrentStart, and CurrentEnd (because the first period in line, is by default, the one that gets sorted first until another proves that it starts earlier in the cycle)
 						CurrentName = TimePeriodName
@@ -139,10 +139,15 @@ local function SortTimes(Type: string) --// Sorts the times into a definite sequ
 					end
 				end
 			end
+			
+			if not Ticked then
+				Completed = true
+				return
+			end
 
 			return Ticked
 		end
-		
+
 		if GetNextPeriod() then
 			NewTable[CurrentIndex] = {
 				["Name"] = CurrentName,
@@ -173,11 +178,11 @@ local function SortTimes(Type: string) --// Sorts the times into a definite sequ
 		if CurrentIndex > TotalIndexes then
 			Completed = true
 		end
-    end
-    
-    if not CheckTimePeriod(Type) then
-        return
-    end
+	end
+
+	if not CheckTimePeriod(Type) then
+		return
+	end
 
 	while Completed == false do
 		Check()
@@ -187,9 +192,9 @@ local function SortTimes(Type: string) --// Sorts the times into a definite sequ
 end
 
 local function AdjustStartTimes(Type)
-    if not CheckAdjustedTimePeriod(Type) then
-        return
-    end
+	if not CheckAdjustedTimePeriod(Type) then
+		return
+	end
 
 	local Adjustment
 	local DiffernetTimes = false --// Default set to false (indicates whether time passes at different rates in the day vs night)
@@ -349,7 +354,7 @@ local function GetCurrentAdjustedPeriod(Type)
 	end
 
 	local CurrentTime = Lighting.ClockTime
-	
+
 	for PeriodName, PeriodSettings in pairs (module[Type.. "AdjustedTimePeriods"]) do
 		local StartTime = PeriodSettings["StartTime"]
 		local EndTime = PeriodSettings["EndTime"]
@@ -367,7 +372,7 @@ local function GetCurrentPeriod(Type: string)
 	end
 
 	local CurrentTime = Lighting.ClockTime
-	
+
 	if Settings["EnableSorting"] == true then
 		for _, PeriodSettings in ipairs (module[Type.. "TimePeriods"]) do
 			local StartTime = PeriodSettings["StartTime"]
@@ -467,7 +472,7 @@ local function TrackCycle(Type)  --// New name for the CheckCycle; Type is eithe
 				break
 			end
 		end
-		
+
 		while wait(Settings["CheckTime"]) do
 			--// Function for handling period changes
 			local function HandleChange(Type)
@@ -486,9 +491,14 @@ local function TrackCycle(Type)  --// New name for the CheckCycle; Type is eithe
 			end
 
 			local CurrentTime = Lighting.ClockTime
+			local NextIndex = InternalVariables["Next".. Type.. "Index"]
 			
-			local StartTimeForNextPeriod = module[Type.. "AdjustedTimePeriods"][InternalVariables["Next".. Type.. "Index"]]["StartTime"]
-			local EndTimeForNextPeriod = module[Type.. "AdjustedTimePeriods"][InternalVariables["Next".. Type.. "Index"]]["EndTime"]
+			if NextIndex == 0 then --// Means there are no times (ex: no audio or lighting settings were created)
+				return
+			end
+
+			local StartTimeForNextPeriod = module[Type.. "AdjustedTimePeriods"][NextIndex]["StartTime"]
+			local EndTimeForNextPeriod = module[Type.. "AdjustedTimePeriods"][NextIndex]["EndTime"]
 
 			if CheckInPeriod(CurrentTime, StartTimeForNextPeriod, EndTimeForNextPeriod) then
 				HandleChange(Type)
@@ -513,13 +523,13 @@ end
 
 function module.Run()
 	--// Starts the day/night cycle
-    if Settings["EnableDayNightTransitions"] == true then
-        coroutine.wrap(DayNightCycle)()
-    end
+	if Settings["EnableDayNightTransitions"] == true then
+		coroutine.wrap(DayNightCycle)()
+	end
 
-	 --// Puts the differnet periods (in their individual modules) into a readable version for the script
-    PopulateTimes("Audio")
-    PopulateTimes("Lighting")
+	--// Puts the differnet periods (in their individual modules) into a readable version for the script
+	PopulateTimes("Audio")
+	PopulateTimes("Lighting")
 
 	if Settings["AutomaticTransitions"] == true and RunService:IsServer() then
 		--// Sorts periods to reduce calculation time (sorting also usually takes a few microseconds)
@@ -528,11 +538,11 @@ function module.Run()
 			SortTimes("Lighting")
 		end
 
-		 --// Creates the adjusted start times (takes the longest time)
+		--// Creates the adjusted start times (takes the longest time)
 		AdjustStartTimes("Audio")
 		AdjustStartTimes("Lighting")
 
-		 --// Starts checking for period changes
+		--// Starts checking for period changes
 		coroutine.wrap(TrackCycle)("Audio")
 		coroutine.wrap(TrackCycle)("Lighting")
 
@@ -549,11 +559,11 @@ function module.Run()
 			local Check = coroutine.create(function()
 				while true do
 					wait(InternalSettings["DayNightWait"])
-	
+
 					AdjustStartTimes()
 				end
 			end)
-			
+
 			coroutine.resume(Check)
 		end
 	end

@@ -1,4 +1,4 @@
--- @Author: VerdommeMan, see https://github.com/VerdommeMan/OT-AM for more information
+-- @Author: VerdommeMan, see https://github.com/VerdommeMan/OT-AM for more information, minor changes by https_KingPie for integration with Immersive Environments
 
 local shapes = {}
 shapes.AreaV2 = require(script:WaitForChild("AreaV2"))
@@ -45,6 +45,27 @@ local function checkIfAutoDetermineWhichArea(arg)
         return canUseAreaV2(arg)
     end
     return false -- cant determine for these types
+end
+
+--// https_KingPie function
+function module.RemoveAllAreas()
+	for Identifier, Area in pairs (Areas) do
+		module.removeArea(Identifier)
+	end
+end
+
+--// https_KingPie function
+function module.RemoveAreas(ListOfIdentifiers: table)
+	for Index, Identifier in pairs (ListOfIdentifiers) do
+		if Areas[Identifier] then
+			module.removeArea(Identifier)
+		end
+	end
+end
+
+--// https_KingPie function
+function module.GetAllAreas()
+	return Areas
 end
 
 function module.addArea(uniqueName, ...) -- first param needs to be unique key for the area, then you add the constructor parameters and as last you have an optional override 

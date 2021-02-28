@@ -25,10 +25,6 @@ local ComplexInstanceTable = {}
 
 local LitLightTable = {} --// Reference table, only used when Settings["AlwaysCheckInstances"] is true
 
-local CurrentLightingPeriod --// String
-
-
-
 local function GetSearchCategory()
 	if Settings["ChangingInstanceChildrenOfWorkspace"] == true then
 		return Workspace:GetChildren()

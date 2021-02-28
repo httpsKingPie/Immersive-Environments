@@ -162,38 +162,61 @@ local function ValidateRegions() --// Validates regions to make sure that player
 end
 
 local function CheckRegions(Looping)
+	local function BuildTableOfIndexes(TableToModify: table)
+		local NewTable = {}
+		
+		for Index, Value in pairs (TableToModify) do
+			table.insert(NewTable, Index)
+		end
+		
+		return NewTable
+	end
+	
 	local function HandleRegion(Descendants, RegionType) --// RegionName is either Audio or Lighting (used for organization)
-
-		InternalSettings["Regions"][RegionType] = {}
+		if not InternalVariables["Regions"][RegionType] then
+			InternalVariables["Regions"][RegionType] = {}
+		else
+			ObjectTracker.RemoveAreas(BuildTableOfIndexes(InternalVariables["Regions"][RegionType]))
+			InternalVariables["Regions"][RegionType] = {}
+		end
+		local CreatedRegions = {}
 
 		for i = 1, #Descendants do
 			local RegionName = Descendants[i].Name
-			local TrackedRegion = ObjectTracker.addArea(RegionName, Descendants[i])
 			
-			InternalSettings["Regions"][RegionType][RegionName] = TrackedRegion
+			local RegionAlreadyExists = table.find(CreatedRegions, RegionName)
 			
-			TrackedRegion.onEnter:Connect(function(Player)
-				if Player ~= LocalPlayer then
-					return
-				end
+			if not RegionAlreadyExists then
 				
-				AddRegion(RegionName)
-				HandleRegionEnter(RegionType, RegionName)
-			end)
-			
-			TrackedRegion.onLeave:Connect(function(Player)
-				if Player ~= LocalPlayer then
-					return
-				end
+				local TrackedRegion = ObjectTracker.addArea(RegionName, Descendants[i])
 				
-				RemoveRegion(RegionName)
-				HandleRegionLeave(RegionType, RegionName)
-			end)
+				InternalVariables["Regions"][RegionType][RegionName] = TrackedRegion
+				
+				TrackedRegion.onEnter:Connect(function(Player)
+					if Player ~= LocalPlayer then
+						return
+					end
+					
+					AddRegion(RegionName)
+					HandleRegionEnter(RegionType, RegionName)
+				end)
+				
+				TrackedRegion.onLeave:Connect(function(Player)
+					if Player ~= LocalPlayer then
+						return
+					end
+					
+					RemoveRegion(RegionName)
+					HandleRegionLeave(RegionType, RegionName)
+				end)
+			else
+				warn("Cannot have the regions with the same name and type.  Name: ".. RegionName.. "; Type: ".. RegionType)
+			end
 		end
 	end
 	
 	while true do
-		InternalSettings["Regions"] = {} --// Clears the previous table
+		--InternalVariables["Regions"] = {} --// Clears the previous table
 
 		local AudioDescendants = AudioRegions:GetDescendants()
 		local LightingDescendants = LightingRegions:GetDescendants()
