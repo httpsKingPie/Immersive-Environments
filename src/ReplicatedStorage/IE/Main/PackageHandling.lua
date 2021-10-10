@@ -98,6 +98,25 @@ local function HandlePackages(PackageType: string, PackageScope: string, ScopeFo
     end
 end
 
+function module:GetPackage(PackageType: string, PackageScope: string, PackageName: string)
+	if not self[PackageType] then
+		warn("Invalid PackageType:", PackageType)
+		return
+	end
+
+	if not self[PackageType][PackageScope] then
+		warn("Invalid PackageScope:", PackageScope, "for PackageType", PackageType)
+		return
+	end
+
+	local Package = self[PackageType][PackageScope][PackageName]
+
+	if not Package then
+		warn("Invalid PackageName:", PackageName, "for PackageType", PackageType, "and PackageScope", PackageScope)
+		return
+	end
+end
+
 --// Default setup for audio packages
 function module:GenerateAudioPackages()
 	if not AudioPackages then

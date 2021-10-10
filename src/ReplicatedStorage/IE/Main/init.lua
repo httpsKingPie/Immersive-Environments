@@ -45,7 +45,7 @@ function module:Run()
 	end
 
 	PackageHandling:Run()
-	SettingsHandling.Run()
+	SettingsHandling:Run()
 
 	coroutine.wrap(AudioHandling.Run)() --// Sets up the client sound folders, etc.
 

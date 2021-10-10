@@ -251,11 +251,11 @@ function module.WaitForSettings(Type)
 	end
 
 	while InternalVariables[tostring(Type).. "SettingTablesBuilt"] == false do
-		wait(.1)
+		task.wait(.1)
 	end
 end
 
-function module.Run()
+function module:Run()
     module:GenerateAudioSettings()
 	module:GenerateLightingSettings()
 
