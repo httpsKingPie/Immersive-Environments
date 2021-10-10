@@ -80,7 +80,7 @@ local function GetRegionSoundFolder(RegionName: string) --// Gets the sound fold
 	end
 
 	local function Disposal()
-		wait(1)
+		task.wait(1)
 
 		if #RegionSoundFolder:GetChildren() == 0 then
 			RegionSoundFolder:Destroy()
@@ -289,7 +289,7 @@ local function HandleRandomSound(SoundName: string, SoundSettings: table, SoundF
 	Set(Sound, SoundSettings["Set"], "Sound")
 
 	while true do
-		wait(SoundSettings["Frequency"])
+		task.wait(SoundSettings["Frequency"])
 
 		if SharedFunctions.DoesChange(SoundSettings["ChanceOfPlay"]) then
 			if table.find(InternalVariables["CurrentRegionsQuick"], RegionName) and Sound then --// Validates that the player is still in the region and that the Sound instance still exists
@@ -520,7 +520,7 @@ if InternalVariables["InitializedAudio"] == false then
 				local NumberOfTries = 0
 
 				while InternalVariables["TimeInitialized"] == false do --// Sometimes (especialy in Studio) where the client is loading in really fast, it will load in before the CurrentAudioPeriod is set
-					wait(.2)
+					task.wait(.2)
 					NumberOfTries = NumberOfTries + 1
 
 					if NumberOfTries > InternalSettings["RemoteInitializationMaxTries"] then

@@ -38,26 +38,26 @@ local Settings = require(IEFolder.Settings)
 --// Sanity check function (checks to make sure the package actually exists)
 local function CheckTimePeriod(PackageType: string)
 	if not PackageHandling[PackageType] then
-		warn("Type:", PackageType, "not found within PackageHandling")
+		warn("PackageType:", PackageType, "not found within PackageHandling")
 		return false
 	end
 
 	if not module[PackageType.."TimePeriods"] then
-		warn("Type:", PackageType, "is not set to have Time Periods")
+		warn("PackageType:", PackageType, "is not set to have Time Periods")
 		return false
 	end
 
 	return true
 end
 
-local function CheckAdjustedTimePeriod(Type: string)
-	if not SettingsHandling[Type] then
-		warn("Type: ".. tostring(Type) .. ", not found within SettingsHandling")
+local function CheckAdjustedTimePeriod(PackageType: string)
+	if not SettingsHandling[PackageType] then
+		warn("PackageType: ".. tostring(PackageType) .. ", not found within SettingsHandling")
 		return false
 	end
 
-	if not module[Type.."AdjustedTimePeriods"] then
-		warn("Type: ".. tostring(Type) .. ", is not set to have Time Periods")
+	if not module[PackageType.."AdjustedTimePeriods"] then
+		warn("PackageType: ".. tostring(PackageType) .. ", is not set to have Time Periods")
 		return false
 	end
 
@@ -383,104 +383,112 @@ local function CheckInPeriod(CurrentTime, StartTime, EndTime) --// Returns name
 	return false
 end
 
-local function GetCurrentAdjustedPeriod(Type)
-	if not CheckAdjustedTimePeriod(Type) then
+local function GetCurrentAdjustedPeriod(PackageType)
+	if not CheckAdjustedTimePeriod(PackageType) then
 		return
 	end
 
 	local CurrentTime = Lighting.ClockTime
 
-	for PeriodName, PeriodSettings in pairs (module[Type.. "AdjustedTimePeriods"]) do
+	for PeriodName, PeriodSettings in pairs (module[PackageType.. "AdjustedTimePeriods"]) do
 		local StartTime = PeriodSettings["StartTime"]
 		local EndTime = PeriodSettings["EndTime"]
 
 		if CheckInPeriod(CurrentTime, StartTime, EndTime) then
-			InternalVariables["Current".. Type.. "AdjustedPeriod"] = PeriodName
+			InternalVariables["Current".. PackageType.. "AdjustedPeriod"] = PeriodName
 			return PeriodName
 		end
 	end
 end
 
-local function GetCurrentPeriod(Type: string)
-	if not CheckTimePeriod(Type) then
+local function GetCurrentPeriod(PackageType: string)
+	if not CheckTimePeriod(PackageType) then
 		return
 	end
 
 	local CurrentTime = Lighting.ClockTime
 
 	if Settings["EnableSorting"] == true then
-		for _, PeriodSettings in ipairs (module[Type.. "TimePeriods"]) do
+		for _, PeriodSettings in ipairs (module[PackageType.. "TimePeriods"]) do
 			local StartTime = PeriodSettings["StartTime"]
 			local EndTime = PeriodSettings["EndTime"]
 			local PeriodName = PeriodSettings["Name"]
 
-			if not InternalVariables["Current".. Type.. "Period"] == "" then
+			if not InternalVariables["Current".. PackageType.. "Period"] == "" then
 				return
 			end
 
 			if CheckInPeriod(CurrentTime, StartTime, EndTime) then
-				InternalVariables["Current".. Type.. "Period"] = PeriodName
+				InternalVariables["Current".. PackageType.. "Period"] = PeriodName
 			end
 		end
 	else
-		for PeriodName, PeriodSettings in pairs (module[Type.. "TimePeriods"]) do
+		for PeriodName, PeriodSettings in pairs (module[PackageType.. "TimePeriods"]) do
 			local StartTime = PeriodSettings["StartTime"]
 			local EndTime = PeriodSettings["EndTime"]
 
-			if not InternalVariables["Current".. Type.. "Period"] == "" then
+			if not InternalVariables["Current".. PackageType.. "Period"] == "" then
 				return
 			end
 
 			if CheckInPeriod(CurrentTime, StartTime, EndTime) then
-				InternalVariables["Current".. Type.. "Period"] = PeriodName
+				InternalVariables["Current".. PackageType.. "Period"] = PeriodName
 			end
 		end
 	end
 
-	if InternalVariables["Current".. Type.. "Period"] == "" then
-		warn(Type.. " periods are not continuous - period not found")
+	if InternalVariables["Current".. PackageType.. "Period"] == "" then
+		warn(PackageType.. " periods are not continuous - period not found")
 	end
 end
 
-local function Set(Type, PeriodName)
+local function Set(PackageType, PeriodName)
 	if type(PeriodName) ~= "string" then
 		warn("Non string passed for PeriodName")
 		return
 	end
 
-	if Type == "Audio" then
+	if PackageType == "Audio" then
 		AudioHandling.TweenAudio("TimeChange", PeriodName) --// We use tween, rather than set, because audio settings already delinaeate which properties can be set
-	elseif Type == "Lighting" then
+	elseif PackageType == "Lighting" then
 		LightingHandling.SetLighting("TimeChange", PeriodName)
 	else
-		warn("Unexpected input type for Set: ".. tostring(Type))
+		warn("Unexpected input type for Set: ".. tostring(PackageType))
 	end
 end
 
-local function Tween(Type, PeriodName)
+local function Tween(PackageType, PeriodName)
 	if type(PeriodName) ~= "string" then
 		warn("Non string passed for PeriodName")
 		return
 	end
 
-	if Type == "Audio" then
+	if PackageType == "Audio" then
 		AudioHandling.TweenAudio("TimeChange", PeriodName)
-	elseif Type == "Lighting" then
+	elseif PackageType == "Lighting" then
 		LightingHandling.TweenLighting("TimeChange", PeriodName)
 	else
-		warn("Unexpected input type for Tween: ".. tostring(Type))
+		warn("Unexpected input type for Tween: ".. tostring(PackageType))
 	end
 end
 
-local function SetNextIndex(Type)
-	if not CheckAdjustedTimePeriod(Type) then
+local function SetNextIndex(PackageType: string, PackageScope: string, PackageName: string)
+	if not CheckAdjustedTimePeriod(PackageType) then
 		return
 	end
 
-	if InternalVariables["Current".. Type.. "Index"] + 1 <= InternalVariables["Total".. Type.. "Indexes"] then --// Not maxed
-		InternalVariables["Next".. Type.. "Index"] = InternalVariables["Current".. Type.. "Index"] + 1
+	local Package = PackageHandling:GetPackage(PackageType, PackageScope, PackageName)
+
+	if not Package then
+		return
+	end
+
+	local TotalIndexes = Package["Count"]
+
+	if InternalVariables["Current".. PackageType.. "Index"] + 1 <= TotalIndexes then --// Not maxed
+		InternalVariables["Next".. PackageType.. "Index"] = InternalVariables["Current".. PackageType.. "Index"] + 1
 	else
-		InternalVariables["Next".. Type.. "Index"] = 1 --// Resets to first index in the sort
+		InternalVariables["Next".. PackageType.. "Index"] = 1 --// Resets to first index in the sort
 	end
 end
 
@@ -524,7 +532,7 @@ local function TrackCycle(PackageType: string)
 		for Index, PeriodSettings in ipairs (module[PackageType.. "TimePeriods"]) do
 			if PeriodSettings["Name"] == InternalVariables["Current".. PackageType.. "Period"] then
 				InternalVariables["Current".. PackageType.. "Index"] = Index
-				SetNextIndex(PackageType)
+				SetNextIndex(PackageType, CycleScope, CycleName)
 				break
 			end
 		end
@@ -535,17 +543,17 @@ local function TrackCycle(PackageType: string)
 			end
 
 			--// Function for handling period changes
-			local function HandleChange(Type)
-				InternalVariables["Current".. Type.. "Index"] = InternalVariables["Next".. Type.. "Index"]
-				InternalVariables["Current".. Type.. "Period"] = module[Type.. "TimePeriods"][InternalVariables["Current".. Type.. "Index"]]["Name"]
+			local function HandleChange(PackageType)
+				InternalVariables["Current".. PackageType.. "Index"] = InternalVariables["Next".. PackageType.. "Index"]
+				InternalVariables["Current".. PackageType.. "Period"] = module[PackageType.. "TimePeriods"][InternalVariables["Current".. PackageType.. "Index"]]["Name"]
 
-				SetNextIndex(Type)
+				SetNextIndex(PackageType, CycleScope, CycleName)
 
-				if InternalVariables["Halt".. Type.. "Cycle"] == false then --// Cycle is not halted, changes can occur
+				if InternalVariables["Halt".. PackageType.. "Cycle"] == false then --// Cycle is not halted, changes can occur
 					if Settings["Tween"]  == true then
-						Tween(Type, InternalVariables["Current".. Type.. "Period"])
+						Tween(PackageType, InternalVariables["Current".. PackageType.. "Period"])
 					else
-						Set(Type, InternalVariables["Current".. Type.. "Period"])
+						Set(PackageType, InternalVariables["Current".. PackageType.. "Period"])
 					end
 				end
 			end
