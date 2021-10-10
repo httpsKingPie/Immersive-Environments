@@ -33,6 +33,7 @@ local module = {
 		["Server"] = {},
 		["Weather"] = {},
     },
+	
     ["Lighting"] = {
         ["Region"] = {},
 		["Server"] = {},
@@ -97,6 +98,7 @@ local function HandlePackages(PackageType: string, PackageScope: string, ScopeFo
     end
 end
 
+--// Default setup for audio packages
 function module:GenerateAudioPackages()
 	if not AudioPackages then
 		return
@@ -114,6 +116,7 @@ function module:GenerateAudioPackages()
 	InternalVariables["AudioSettingTablesBuilt"] = true
 end
 
+--// Default setup of lighting packages
 function module:GenerateLightingPackages()
 	if not LightingPackages then
 		return
@@ -126,18 +129,45 @@ function module:GenerateLightingPackages()
 
 	HandlePackages("Lighting", "Region", LightingRegion)
 	HandlePackages("Lighting", "Server", LightingServer)
-	HandlePackages("Lighting", "Server", LightingWeather)
+	HandlePackages("Lighting", "Weather", LightingWeather)
 
 	InternalVariables["LightingSettingTablesBuilt"] = true
 end
 
-function module.Run()
+--// Sets server packages (PackageType is "Audio" or "Lighting")
+function module:SetServerPackage(PackageType: string, PackageName: string)
+	if not module[PackageType] then
+		warn("Invalid PackageType", PackageType)
+		return
+	end
+
+	if not module[PackageType]["Server"][PackageName] then
+		warn("Invalid PackageName", PackageName, "for PackageType", PackageType)
+		return
+	end
+
+	InternalVariables["Current Package"][PackageType]["Server"] = PackageName
+end
+
+--// Sets weather packages (PackageType is "Audio" or "Lighting")
+function module:SetWeatherPackage(PackageType: string, PackageName: string)
+	if not module[PackageType] then
+		warn("Invalid PackageType", PackageType)
+		return
+	end
+
+	if not module[PackageType]["Weather"][PackageName] then
+		warn("Invalid PackageName", PackageName, "for PackageType", PackageType)
+		return
+	end
+
+	InternalVariables["Current Package"][PackageType]["Weather"] = PackageName
+end
+
+--// Basic run function
+function module:Run()
     module:GenerateAudioPackages()
 	module:GenerateLightingPackages()
-
-	if Settings["DefaultSettings"] == true then
-		module.ApplyDefaultSettings()
-	end
 end
 
 return module

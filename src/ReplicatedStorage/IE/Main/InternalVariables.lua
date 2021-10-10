@@ -1,4 +1,18 @@
 local module = {
+    --// Package Variables
+    ["Current Package"] = {
+        ["Audio"] = {
+            ["Region"] = false,
+            ["Server"] = false,
+            ["Weather"] = false,
+        },
+        ["Server"] = {
+            ["Region"] = false,
+            ["Server"] = false,
+            ["Weather"] = false,
+        },
+    },
+
     --// Audio Variables
     ["CurrentAudioWeather"] = "", --// Identifies which weather setting is currently being used (audio)
     ["HaltAudioCycle"] = false, --// Halts the audio cycle when a region is entered (this is only used and viewed by the client)
