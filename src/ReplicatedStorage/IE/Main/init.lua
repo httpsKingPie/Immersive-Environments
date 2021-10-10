@@ -36,15 +36,15 @@ local function GenerateRemotes()
 	end
 end
 
-function module.Run()
+function module:Run()
 	GenerateRemotes()
 	
-	if Initialized == false then
+	if not Initialized then
 		InitializeModules()
 		Initialized = true
 	end
 
-	PackageHandling.Run()
+	PackageHandling:Run()
 	SettingsHandling.Run()
 
 	coroutine.wrap(AudioHandling.Run)() --// Sets up the client sound folders, etc.
@@ -52,6 +52,30 @@ function module.Run()
 	coroutine.wrap(TimeHandling.Run)() --// Generates time cycles, periods, etc.
 
 	coroutine.wrap(RegionHandling.Run)() --// Initializes regions
+end
+
+--// Below functions just forward it to PackageHandling for easy API use
+
+--// Sets server packages (PackageType is "Audio" or "Lighting")
+function module:SetServerPackage(PackageType: string, PackageName: string)
+	if not Initialized then
+		warn("Initialize IE before setting packages")
+		return
+	end
+
+	PackageHandling:SetServerPackage(PackageType, PackageName)
+	TimeHandling:ReadPackage(PackageType, "Server", PackageName)
+end
+
+--// Sets weather packages (PackageType is "Audio" or "Lighting")
+function module:SetWeatherPackage(PackageType: string, PackageName: string)
+	if not Initialized then
+		warn("Initialize IE before setting packages")
+		return
+	end
+
+	PackageHandling:SetWeatherPackage(PackageType, PackageName)
+	TimeHandling:ReadPackage(PackageType, "Weather", PackageName)
 end
 
 return module

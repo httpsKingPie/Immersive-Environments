@@ -13,6 +13,7 @@ local module = {
 		["Server"] = {},
 		["Weather"] = {},
     },
+	
     ["Lighting"] = {
         ["Region"] = {},
 		["Server"] = {},

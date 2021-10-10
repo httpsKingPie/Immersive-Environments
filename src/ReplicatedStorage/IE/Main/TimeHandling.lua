@@ -1,9 +1,22 @@
+--// Prepped for Package transition
+
 local module = {
 	["AudioAdjustedTimePeriods"] = {},
 	["AudioTimePeriods"] = {},
 
 	["LightingAdjustedTimePeriods"] = {},
 	["LightingTimePeriods"] = {},
+
+	--// Tracks it internally so memory leaks don't occur when new packages are set
+	["Current Audio Package"] = {
+		["Name"] = false,
+		["Scope"] = false,
+	},
+
+	["Current Lighting Package"] = {
+		["Name"] = false,
+		["Scope"] = false,
+	},
 }
 
 local Lighting = game:GetService("Lighting")
@@ -15,20 +28,22 @@ local AudioHandling = require(Main.AudioHandling)
 local InternalSettings = require(Main.InternalSettings)
 local InternalVariables = require(Main.InternalVariables)
 local LightingHandling = require(Main.LightingHandling)
+local PackageHandling = require(Main.PackageHandling)
 local SettingsHandling = require(Main.SettingsHandling)
 
 local IEFolder = Main.Parent
 
 local Settings = require(IEFolder.Settings)
 
-local function CheckTimePeriod(Type)
-	if not SettingsHandling[Type] then
-		warn("Type: ".. tostring(Type) .. ", not found within SettingsHandling")
+--// Sanity check function (checks to make sure the package actually exists)
+local function CheckTimePeriod(PackageType: string)
+	if not PackageHandling[PackageType] then
+		warn("Type:", PackageType, "not found within PackageHandling")
 		return false
 	end
 
-	if not module[Type.."TimePeriods"] then
-		warn("Type: ".. tostring(Type) .. ", is not set to have Time Periods")
+	if not module[PackageType.."TimePeriods"] then
+		warn("Type:", PackageType, "is not set to have Time Periods")
 		return false
 	end
 
@@ -54,7 +69,7 @@ local function DayNightCycle()
 	local NightRatio = (12 * 60) / Settings["TimeForNight"] --// Ratio of in-game minutes to real-life minutes
 	--// Note: for above, 12 = the 12 hours for each day/night period (ex: 0600-1800; 1800-0600) and 60 converts it to in-game minutes
 
-	local ActiviationPerMinute = 60 / InternalSettings["DayNightWait"] --// The amount of times the script activates in one minute (real life)
+	local ActiviationPerMinute = 60 / InternalSettings["DayNighttask.wait"] --// The amount of times the script activates in one minute (real life)
 
 	local MinutesToAddDay = DayRatio / ActiviationPerMinute
 	local MinutesToAddNight = NightRatio / ActiviationPerMinute
@@ -65,7 +80,7 @@ local function DayNightCycle()
 	--// Note: above are measured in in-game hours/real life second
 
 	while true do
-		wait(InternalSettings["DayNightWait"]) do
+		task.wait(InternalSettings["DayNighttask.wait"]) do
 			if Lighting.ClockTime > 18 or Lighting.ClockTime < 6 then --// Night time
 				Lighting:SetMinutesAfterMidnight(Lighting:GetMinutesAfterMidnight() + MinutesToAddNight)
 			else --// Day time
@@ -75,31 +90,45 @@ local function DayNightCycle()
 	end
 end
 
-local function PopulateTimes(Type: string) --// Puts the times into a table so that they can easily be evaluated
-	if not CheckTimePeriod(Type) then
+--[[
+	Puts the times into a table so that they can easily be evaluated
+
+    Arguments: PackageType: string ("Lighting" or "Audio"), PackageScope: string ("Region", "Server", or "Weather")
+]]
+
+local function PopulateTimes(PackageType: string, PackageScope: string, PackageName: string)
+	if not CheckTimePeriod(PackageType) then
 		return
 	end
 
-	for TimePeriodName, TimePeriodSettings in pairs (SettingsHandling[Type]["Server"]) do
+	local PackageComponents = PackageHandling[PackageType][PackageScope][PackageName]["Components"]
+
+	for TimePeriodName, TimePeriodSettings in pairs (PackageComponents) do
 		if TimePeriodSettings["GeneralSettings"]["StartTime"] and TimePeriodSettings["GeneralSettings"]["EndTime"] then
-			module[Type.."TimePeriods"][TimePeriodName] = {
+			module[PackageType.."TimePeriods"][TimePeriodName] = {
 				["StartTime"] = TimePeriodSettings["GeneralSettings"]["StartTime"],
 				["EndTime"] = TimePeriodSettings["GeneralSettings"]["EndTime"],
 			}
 
 			--// Create uniformity and deal with midnight as a 0 time
 			if TimePeriodSettings["GeneralSettings"]["StartTime"] == 24 then
-				module[Type.."TimePeriods"][TimePeriodName]["StartTime"] = 0
+				module[PackageType.."TimePeriods"][TimePeriodName]["StartTime"] = 0
 			end
 
 			if TimePeriodSettings["GeneralSettings"]["EndTime"] == 24 then
-				module[Type.."TimePeriods"][TimePeriodName]["EndTime"] = 0
+				module[PackageType.."TimePeriods"][TimePeriodName]["EndTime"] = 0
 			end
 		end
 	end
 end
 
-local function SortTimes(Type: string) --// Sorts the times into a definite sequence, that way the script only needs to look at the next time in line
+--[[
+	Sorts the times into a definite sequence, that IE only needs to look at the next time in line
+
+    Arguments: PackageType: string ("Lighting" or "Audio")
+]]
+
+local function SortTimes(PackageType: string)
 	local NewTable = {}
 	local InitialStart = 0 --// Initial time of 0 (eventually this gets replaced by the end time of the the period that was just determined to be the next in order)
 	local CurrentIndex = 1 --// Current index is 1 (the first one)
@@ -120,7 +149,7 @@ local function SortTimes(Type: string) --// Sorts the times into a definite sequ
 		local function GetNextPeriod()
 			local Ticked = false
 
-			for TimePeriodName, Times in pairs (module[Type.."TimePeriods"]) do
+			for TimePeriodName, Times in pairs (module[PackageType.."TimePeriods"]) do
 				Ticked = true
 
 				if TotalIndexesDetermined == false then 
@@ -160,7 +189,7 @@ local function SortTimes(Type: string) --// Sorts the times into a definite sequ
 			CurrentIndex = CurrentIndex + 1
 			InitialStart = CurrentEnd
 
-			module[Type.."TimePeriods"][CurrentName] = nil --// Removes it from the TimePeriods
+			module[PackageType.."TimePeriods"][CurrentName] = nil --// Removes it from the TimePeriods
 
 			--// Clears these variables
 			CurrentName = nil
@@ -180,7 +209,7 @@ local function SortTimes(Type: string) --// Sorts the times into a definite sequ
 		end
 	end
 
-	if not CheckTimePeriod(Type) then
+	if not CheckTimePeriod(PackageType) then
 		return
 	end
 
@@ -188,11 +217,17 @@ local function SortTimes(Type: string) --// Sorts the times into a definite sequ
 		Check()
 	end
 
-	module[Type.."TimePeriods"] = NewTable
+	module[PackageType.."TimePeriods"] = NewTable
 end
 
-local function AdjustStartTimes(Type)
-	if not CheckAdjustedTimePeriod(Type) then
+--[[
+	Adjusts start times to be consistent with time-based transitions
+
+    Arguments: PackageType: string ("Lighting" or "Audio")
+]]
+
+local function AdjustStartTimes(PackageType: string)
+	if not CheckAdjustedTimePeriod(PackageType) then
 		return
 	end
 
@@ -208,7 +243,7 @@ local function AdjustStartTimes(Type)
 	else
 		local ClockTime1 = Lighting.ClockTime
 
-		wait(Settings["AdjustmentTime"])
+		task.wait(Settings["AdjustmentTime"])
 
 		local ClockTime2 = Lighting.ClockTime
 
@@ -216,7 +251,7 @@ local function AdjustStartTimes(Type)
 
 		if ClockTime1 == ClockTime2 then
 			warn("No day-night script is detected.  No adjustments made to times")
-			module[Type.."AdjustedTimePeriods"] = module[Type.."TimePeriods"]
+			module[PackageType.."AdjustedTimePeriods"] = module[PackageType.."TimePeriods"]
 			return
 		elseif ClockTime1 < ClockTime2 then
 			RateOfTime = (ClockTime2 - ClockTime1)/Settings["AdjustmentTime"]
@@ -227,7 +262,7 @@ local function AdjustStartTimes(Type)
 		Adjustment = RateOfTime * Settings["TimeEffectTweenInformation"].Time --// Adjustment results in a number of seconds for which all all Lighting Periods must have their start times adjusted
 	end
 
-	module[Type.."AdjustedTimePeriods"] = module[Type.."TimePeriods"]
+	module[PackageType.."AdjustedTimePeriods"] = module[PackageType.."TimePeriods"]
 
 	if not Settings["Tween"] then --// This means set is active, so we don't adjust anything.
 		return
@@ -235,7 +270,7 @@ local function AdjustStartTimes(Type)
 
 	if DiffernetTimes == true then --// For when day (0600-1800) and night (1800-0600) pass at different rates
 		if Settings["EnableSorting"] == true then
-			for _, PeriodSettings in ipairs (module[Type.."AdjustedTimePeriods"]) do
+			for _, PeriodSettings in ipairs (module[PackageType.."AdjustedTimePeriods"]) do
 				if PeriodSettings["StartTime"] < 18 or PeriodSettings["StartTime"] >= 6 then --// If it starts during the day then
 					if PeriodSettings["StartTime"] - InternalVariables["DayAdjustmentRate"] >= 0 then
 						PeriodSettings["StartTime"] = PeriodSettings["StartTime"] - InternalVariables["DayAdjustmentRate"]
@@ -265,7 +300,7 @@ local function AdjustStartTimes(Type)
 				end
 			end
 		else
-			for _, PeriodSettings in pairs (module[Type.."AdjustedTimePeriods"]) do
+			for _, PeriodSettings in pairs (module[PackageType.."AdjustedTimePeriods"]) do
 				if PeriodSettings["StartTime"] < 18 or PeriodSettings["StartTime"] >= 6 then --// If it starts during the day then
 					if PeriodSettings["StartTime"] - InternalVariables["DayAdjustmentRate"] >= 0 then
 						PeriodSettings["StartTime"] = PeriodSettings["StartTime"] - InternalVariables["DayAdjustmentRate"]
@@ -297,7 +332,7 @@ local function AdjustStartTimes(Type)
 		end
 	else
 		if Settings["EnableSorting"] == true then
-			for _, PeriodSettings in ipairs (module[Type.."AdjustedTimePeriods"]) do
+			for _, PeriodSettings in ipairs (module[PackageType.."AdjustedTimePeriods"]) do
 				if PeriodSettings["StartTime"] - Adjustment >= 0 then
 					PeriodSettings["StartTime"] = PeriodSettings["StartTime"] - Adjustment
 				else
@@ -311,7 +346,7 @@ local function AdjustStartTimes(Type)
 				end
 			end
 		else
-			for _, PeriodSettings in pairs (module[Type.."AdjustedTimePeriods"]) do
+			for _, PeriodSettings in pairs (module[PackageType.."AdjustedTimePeriods"]) do
 				if PeriodSettings["StartTime"] - Adjustment >= 0 then
 					PeriodSettings["StartTime"] = PeriodSettings["StartTime"] - Adjustment
 				else
@@ -449,31 +484,56 @@ local function SetNextIndex(Type)
 	end
 end
 
-local function TrackCycle(Type)  --// New name for the CheckCycle; Type is either "Audio" or "Lighting"
-	if not CheckAdjustedTimePeriod(Type) then
+--[[
+	Tracks the cycle and makes changes depending on different component settings and time
+
+    Arguments: PackageType: string ("Lighting" or "Audio")
+]]
+
+local function TrackCycle(PackageType: string)
+	if not CheckAdjustedTimePeriod(PackageType) then
 		return
 	end
 
-	if InternalVariables["Current".. Type.. "AdjustedPeriod"] == "" then
-		GetCurrentAdjustedPeriod(Type)
+	local CycleName = module["Current ".. PackageType.. " Package"]["Name"]
+	local CycleScope = module["Current ".. PackageType.. " Package"]["Scope"]
+
+	if InternalVariables["Current".. PackageType.. "AdjustedPeriod"] == "" then
+		GetCurrentAdjustedPeriod(PackageType)
 	end
 
-	if InternalVariables["Current".. Type.. "Period"] == "" then
-		GetCurrentPeriod(Type) --// This returns a value, but we don't need it
+	if InternalVariables["Current".. PackageType.. "Period"] == "" then
+		GetCurrentPeriod(PackageType) --// This returns a value, but we don't need it
+	end
+
+	--// Checks if the package has changed in order to terminate the loop
+	local function PackageChanged()
+		local CurrentCycleName = module["Current ".. PackageType.. " Package"]["Name"]
+		local CurrentCycleScope = module["Current ".. PackageType.. " Package"]["Scope"]
+
+		if CycleName ~= CurrentCycleName or CycleScope ~= CurrentCycleScope then
+			return true
+		end
+
+		return false
 	end
 
 	--// We never pause the loops, even when in regions or during weather, because we always need to go back and find which period we are in.  The loops are extremely low intensity though
 	if Settings["EnableSorting"] == true then --// Sorted loop
 		--// Get initial index
-		for Index, PeriodSettings in ipairs (module[Type.. "TimePeriods"]) do
-			if PeriodSettings["Name"] == InternalVariables["Current".. Type.. "Period"] then
-				InternalVariables["Current".. Type.. "Index"] = Index
-				SetNextIndex(Type)
+		for Index, PeriodSettings in ipairs (module[PackageType.. "TimePeriods"]) do
+			if PeriodSettings["Name"] == InternalVariables["Current".. PackageType.. "Period"] then
+				InternalVariables["Current".. PackageType.. "Index"] = Index
+				SetNextIndex(PackageType)
 				break
 			end
 		end
 
-		while wait(Settings["CheckTime"]) do
+		while task.wait(Settings["CheckTime"]) do
+			if PackageChanged() then
+				return
+			end
+
 			--// Function for handling period changes
 			local function HandleChange(Type)
 				InternalVariables["Current".. Type.. "Index"] = InternalVariables["Next".. Type.. "Index"]
@@ -491,33 +551,71 @@ local function TrackCycle(Type)  --// New name for the CheckCycle; Type is eithe
 			end
 
 			local CurrentTime = Lighting.ClockTime
-			local NextIndex = InternalVariables["Next".. Type.. "Index"]
+			local NextIndex = InternalVariables["Next".. PackageType.. "Index"]
 			
 			if NextIndex == 0 then --// Means there are no times (ex: no audio or lighting settings were created)
 				return
 			end
 
-			local StartTimeForNextPeriod = module[Type.. "AdjustedTimePeriods"][NextIndex]["StartTime"]
-			local EndTimeForNextPeriod = module[Type.. "AdjustedTimePeriods"][NextIndex]["EndTime"]
+			local StartTimeForNextPeriod = module[PackageType.. "AdjustedTimePeriods"][NextIndex]["StartTime"]
+			local EndTimeForNextPeriod = module[PackageType.. "AdjustedTimePeriods"][NextIndex]["EndTime"]
 
 			if CheckInPeriod(CurrentTime, StartTimeForNextPeriod, EndTimeForNextPeriod) then
-				HandleChange(Type)
+				HandleChange(PackageType)
 			end
 		end
 	else --// Non sorted loop
-		while wait(Settings["CheckTime"]) do
-			local CurrentAdjustedPeriod = GetCurrentAdjustedPeriod(Type)
+		while task.wait(Settings["CheckTime"]) do
+			if PackageChanged() then
+				return
+			end
 
-			if CurrentAdjustedPeriod ~= InternalVariables["Current".. Type.. "Period"] then --// If this changes, that means they are entering a new period
-				InternalVariables["Current".. Type.. "Period"] = CurrentAdjustedPeriod
+			local CurrentAdjustedPeriod = GetCurrentAdjustedPeriod(PackageType)
+
+			if CurrentAdjustedPeriod ~= InternalVariables["Current".. PackageType.. "Period"] then --// If this changes, that means they are entering a new period
+				InternalVariables["Current".. PackageType.. "Period"] = CurrentAdjustedPeriod
 
 				if Settings["Tween"]  == true then
-					Tween(Type, InternalVariables["Current".. Type.. "Period"])
+					Tween(PackageType, InternalVariables["Current".. PackageType.. "Period"])
 				else
-					Set(Type, InternalVariables["Current".. Type.. "Period"])
+					Set(PackageType, InternalVariables["Current".. PackageType.. "Period"])
 				end
 			end
 		end
+	end
+end
+
+function module:ReadPackage(PackageType: string, PackageScope: string, PackageName: string)
+	--// Records for TimeHandling internal tracking in order to terminate loops when packages change
+	module["Current ".. PackageType.. " Package"]["Name"] = PackageName
+	module["Current ".. PackageType.. " Package"]["Scope"] = PackageScope
+
+	--// Puts the different periods (in their individual modules) into a readable version for IE
+	PopulateTimes(PackageType, PackageScope, PackageName)
+
+	if not Settings["AutomaticTransitions"] == true then 
+		return
+	end
+		
+	if not RunService:IsServer() then
+		return
+	end
+
+	--// Sorts periods to reduce calculation time (sorting also usually takes a few microseconds)
+	if Settings["EnableSorting"] == true then
+		SortTimes(PackageType)
+	end
+
+	--// Creates the adjusted start times (takes the longest time)
+	AdjustStartTimes(PackageType)
+
+	--// Starts checking for period changes
+	coroutine.wrap(TrackCycle)(PackageType)
+
+	--// Sets the server to the current period settings
+	if Settings["ClientSided"] == false then
+		Set("Lighting", InternalVariables["CurrentLightingPeriod"])
+		Tween("Audio", InternalVariables["CurrentAudioPeriod"]) --// Right now it's set to tween vs setting, because audio sounds really bad when it just abrubtly starts - lighting is kind of fine for this
 	end
 end
 
@@ -527,45 +625,19 @@ function module.Run()
 		coroutine.wrap(DayNightCycle)()
 	end
 
-	--// Puts the differnet periods (in their individual modules) into a readable version for the script
-	PopulateTimes("Audio")
-	PopulateTimes("Lighting")
+	InternalVariables["TimeInitialized"] = true
 
-	if Settings["AutomaticTransitions"] == true and RunService:IsServer() then
-		--// Sorts periods to reduce calculation time (sorting also usually takes a few microseconds)
-		if Settings["EnableSorting"] == true then
-			SortTimes("Audio")
-			SortTimes("Lighting")
-		end
+	--// Rechecks day and night if the time does not pass at the same rate
+	if Settings["TimeForDay"] ~= Settings["TimeForNight"] then
+		local Check = coroutine.create(function()
+			while true do
+				task.wait(InternalSettings["DayNightWait"])
 
-		--// Creates the adjusted start times (takes the longest time)
-		AdjustStartTimes("Audio")
-		AdjustStartTimes("Lighting")
+				AdjustStartTimes()
+			end
+		end)
 
-		--// Starts checking for period changes
-		coroutine.wrap(TrackCycle)("Audio")
-		coroutine.wrap(TrackCycle)("Lighting")
-
-		--// Sets the server to the current period settings
-		if Settings["ClientSided"] == false then
-			Set("Lighting", InternalVariables["CurrentLightingPeriod"])
-			Tween("Audio", InternalVariables["CurrentAudioPeriod"]) --// Right now it's set to tween vs setting, because audio sounds really bad when it just abrubtly starts - lighting is kind of fine for this
-		end
-
-		InternalVariables["TimeInitialized"] = true
-
-		--// Rechecks day and night if the time does not pass at the same rate
-		if Settings["TimeForDay"] ~= Settings["TimeForNight"] then
-			local Check = coroutine.create(function()
-				while true do
-					wait(InternalSettings["DayNightWait"])
-
-					AdjustStartTimes()
-				end
-			end)
-
-			coroutine.resume(Check)
-		end
+		coroutine.resume(Check)
 	end
 end
 

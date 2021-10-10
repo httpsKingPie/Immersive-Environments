@@ -3,7 +3,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local IEFolder = ReplicatedStorage.IE
 local IEMain = require(IEFolder.Main)
 
-IEMain.Run()
+IEMain:Run()
+IEMain:SetServerPackage("Audio", "Default")
+IEMain:SetServerPackage("Lighting", "Default")
 
 --[[
 
