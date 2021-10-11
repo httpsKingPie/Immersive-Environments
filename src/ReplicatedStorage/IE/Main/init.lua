@@ -47,11 +47,11 @@ function module:Run()
 	PackageHandling:Run()
 	SettingsHandling:Run()
 
-	coroutine.wrap(AudioHandling.Run)() --// Sets up the client sound folders, etc.
+	coroutine.wrap(AudioHandling.Initialize)() --// Sets up the client sound folders, etc.
 
-	coroutine.wrap(TimeHandling.Run)() --// Generates time cycles, periods, etc.
+	coroutine.wrap(TimeHandling.Initialize)() --// Starts day night cycle
 
-	coroutine.wrap(RegionHandling.Run)() --// Initializes regions
+	coroutine.wrap(RegionHandling.Initialize)() --// Initializes regions
 end
 
 --// Below functions just forward it to PackageHandling for easy API use

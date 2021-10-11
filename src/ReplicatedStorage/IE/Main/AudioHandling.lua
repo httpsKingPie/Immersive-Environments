@@ -5,8 +5,6 @@ local RunService = game:GetService("RunService")
 local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
 
-local LocalPlayer --// Filled in if this is run on the client
-
 local Main = script.Parent
 local IEFolder = Main.Parent
 
@@ -27,9 +25,8 @@ local ActiveRegionSounds --// Created on the client (ony visible to client)
 local ActiveServerSounds --// Created on the server.  However, when client sided - individually clients just put their server sounds in there for easy organization
 local SharedSounds --// Created on the client (ony visible to client)
 
---// Functions
-
-function module.Run() --// Initial run, basically just creating folders
+--// Initialize
+function module.Initialize() --// Initial run, basically just creating folders
 	if not SoundService:FindFirstChild("ActiveServerSounds") and RunService:IsServer() then --// We only want/need this created on the server
 		ActiveServerSounds = Instance.new("Folder")
 		ActiveServerSounds.Name = "ActiveServerSounds"
@@ -50,12 +47,20 @@ function module.Run() --// Initial run, basically just creating folders
 		end
 
 		ActiveServerSounds = SoundService:WaitForChild("ActiveServerSounds")
-
-		LocalPlayer = Players.LocalPlayer
 	end
 end
 
---// Region controls
+--[[
+	Gets the correct tween information
+
+	Argument: Event
+		"ToRegion" - transitions to a region
+		"ToServer" - transitions to a server package
+		"TimeChange" - time change within the current package
+		"Weather" - shift to weather
+		"ClearWeather" - shift to the current region/server package
+]]
+
 local function GetTweenInformation(Event: string)
 	local TweenInformation
 
@@ -70,7 +75,8 @@ local function GetTweenInformation(Event: string)
 	return TweenInformation
 end
 
-local function GetRegionSoundFolder(RegionName: string) --// Gets the sound folder for a RegionName and if one does not exist it creates one
+--// Gets the sound folder for a RegionName and if one does not exist it creates one
+local function GetRegionSoundFolder(RegionName: string)
 	local RegionSoundFolder = ActiveRegionSounds:FindFirstChild(RegionName)
 
 	if not RegionSoundFolder then

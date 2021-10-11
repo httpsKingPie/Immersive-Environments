@@ -115,6 +115,8 @@ function module:GetPackage(PackageType: string, PackageScope: string, PackageNam
 		warn("Invalid PackageName:", PackageName, "for PackageType", PackageType, "and PackageScope", PackageScope)
 		return
 	end
+
+	return Package
 end
 
 --// Default setup for audio packages
@@ -151,6 +153,21 @@ function module:GenerateLightingPackages()
 	HandlePackages("Lighting", "Weather", LightingWeather)
 
 	InternalVariables["LightingSettingTablesBuilt"] = true
+end
+
+--// Sets region packages (PackageType is "Audio" or "Lighting")
+function module:SetRegionPackage(PackageType: string, PackageName: string)
+	if not module[PackageType] then
+		warn("Invalid PackageType", PackageType)
+		return
+	end
+
+	if not module[PackageType]["Region"][PackageName] then
+		warn("Invalid PackageName", PackageName, "for PackageType", PackageType)
+		return
+	end
+
+	InternalVariables["Current Package"][PackageType]["Region"] = PackageName
 end
 
 --// Sets server packages (PackageType is "Audio" or "Lighting")

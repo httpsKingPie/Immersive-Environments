@@ -9,13 +9,13 @@ local module = {
 
 	--// Tracks it internally so memory leaks don't occur when new packages are set
 	["Current Audio Package"] = {
-		["Name"] = false,
-		["Scope"] = false,
+		["Name"] = "",
+		["Scope"] = "",
 	},
 
 	["Current Lighting Package"] = {
-		["Name"] = false,
-		["Scope"] = false,
+		["Name"] = "",
+		["Scope"] = "",
 	},
 }
 
@@ -51,8 +51,8 @@ local function CheckTimePeriod(PackageType: string)
 end
 
 local function CheckAdjustedTimePeriod(PackageType: string)
-	if not SettingsHandling[PackageType] then
-		warn("PackageType: ".. tostring(PackageType) .. ", not found within SettingsHandling")
+	if not PackageHandling[PackageType] then
+		warn("PackageType: ".. tostring(PackageType) .. ", not found within PackageHandling")
 		return false
 	end
 
@@ -64,12 +64,13 @@ local function CheckAdjustedTimePeriod(PackageType: string)
 	return true
 end
 
+--// Runs a day night cycle
 local function DayNightCycle()
 	local DayRatio = (12 * 60) / Settings["TimeForDay"] --// Ratio of in-game minutes to real-life minutes
 	local NightRatio = (12 * 60) / Settings["TimeForNight"] --// Ratio of in-game minutes to real-life minutes
 	--// Note: for above, 12 = the 12 hours for each day/night period (ex: 0600-1800; 1800-0600) and 60 converts it to in-game minutes
 
-	local ActiviationPerMinute = 60 / InternalSettings["DayNighttask.wait"] --// The amount of times the script activates in one minute (real life)
+	local ActiviationPerMinute = 60 / InternalSettings["DayNightWait"] --// The amount of times the script activates in one minute (real life)
 
 	local MinutesToAddDay = DayRatio / ActiviationPerMinute
 	local MinutesToAddNight = NightRatio / ActiviationPerMinute
@@ -80,7 +81,7 @@ local function DayNightCycle()
 	--// Note: above are measured in in-game hours/real life second
 
 	while true do
-		task.wait(InternalSettings["DayNighttask.wait"]) do
+		task.wait(InternalSettings["DayNightWait"]) do
 			if Lighting.ClockTime > 18 or Lighting.ClockTime < 6 then --// Night time
 				Lighting:SetMinutesAfterMidnight(Lighting:GetMinutesAfterMidnight() + MinutesToAddNight)
 			else --// Day time
@@ -232,13 +233,13 @@ local function AdjustStartTimes(PackageType: string)
 	end
 
 	local Adjustment
-	local DiffernetTimes = false --// Default set to false (indicates whether time passes at different rates in the day vs night)
+	local DifferentTimes = false --// Default set to false (indicates whether time passes at different rates in the day vs night)
 
 	if Settings["DetectIndependentTimeChange"] == false then
 		if Settings["TimeForDay"] == Settings["TimeForNight"] then
 			Adjustment = InternalVariables["DayAdjustmentRate"]
 		else
-			DiffernetTimes = true
+			DifferentTimes = true
 		end
 	else
 		local ClockTime1 = Lighting.ClockTime
@@ -268,7 +269,7 @@ local function AdjustStartTimes(PackageType: string)
 		return
 	end
 
-	if DiffernetTimes == true then --// For when day (0600-1800) and night (1800-0600) pass at different rates
+	if DifferentTimes == true then --// For when day (0600-1800) and night (1800-0600) pass at different rates
 		if Settings["EnableSorting"] == true then
 			for _, PeriodSettings in ipairs (module[PackageType.."AdjustedTimePeriods"]) do
 				if PeriodSettings["StartTime"] < 18 or PeriodSettings["StartTime"] >= 6 then --// If it starts during the day then
@@ -363,7 +364,8 @@ local function AdjustStartTimes(PackageType: string)
 	end
 end
 
-local function CheckInPeriod(CurrentTime, StartTime, EndTime) --// Returns name
+--// Checks whether the current time is the specified period
+local function CheckInPeriod(CurrentTime: number, StartTime: number, EndTime: number) --// Returns name
 	if EndTime > StartTime then --// Most cases (ex: starts at 0200 ends at 0600)
 		if CurrentTime >= StartTime and CurrentTime <= EndTime then
 			return true
@@ -383,7 +385,8 @@ local function CheckInPeriod(CurrentTime, StartTime, EndTime) --// Returns name
 	return false
 end
 
-local function GetCurrentAdjustedPeriod(PackageType)
+--// Returns the current adjusted time period based on PackageType
+local function GetCurrentAdjustedPeriod(PackageType: string)
 	if not CheckAdjustedTimePeriod(PackageType) then
 		return
 	end
@@ -401,6 +404,7 @@ local function GetCurrentAdjustedPeriod(PackageType)
 	end
 end
 
+--// Bad syntax name here lol, doesn't return anything, more so just sets it to the correct version
 local function GetCurrentPeriod(PackageType: string)
 	if not CheckTimePeriod(PackageType) then
 		return
@@ -442,6 +446,7 @@ local function GetCurrentPeriod(PackageType: string)
 	end
 end
 
+--// Executes TweenAudio or SetLighting
 local function Set(PackageType, PeriodName)
 	if type(PeriodName) ~= "string" then
 		warn("Non string passed for PeriodName")
@@ -457,7 +462,8 @@ local function Set(PackageType, PeriodName)
 	end
 end
 
-local function Tween(PackageType, PeriodName)
+--// Executes TweenAudio or TweenLighting
+local function Tween(PackageType: string, PeriodName: string)
 	if type(PeriodName) ~= "string" then
 		warn("Non string passed for PeriodName")
 		return
@@ -472,6 +478,7 @@ local function Tween(PackageType, PeriodName)
 	end
 end
 
+--// Moves to the next index
 local function SetNextIndex(PackageType: string, PackageScope: string, PackageName: string)
 	if not CheckAdjustedTimePeriod(PackageType) then
 		return
@@ -593,6 +600,7 @@ local function TrackCycle(PackageType: string)
 	end
 end
 
+--// Reads the new package and loads the cycle in
 function module:ReadPackage(PackageType: string, PackageScope: string, PackageName: string)
 	--// Records for TimeHandling internal tracking in order to terminate loops when packages change
 	module["Current ".. PackageType.. " Package"]["Name"] = PackageName
@@ -627,7 +635,8 @@ function module:ReadPackage(PackageType: string, PackageScope: string, PackageNa
 	end
 end
 
-function module.Run()
+--// Basic initialization
+function module.Initialize()
 	--// Starts the day/night cycle
 	if Settings["EnableDayNightTransitions"] == true then
 		coroutine.wrap(DayNightCycle)()
