@@ -11,12 +11,12 @@ local InternalVariables = require(Main.InternalVariables)
 
 --[[ 'Mega table' which requires all packages in here, for fast reference.  It will look like
     local module = {
-        ["Audio"] = {
-            ["Region"] = {
-                [PackageName] = {
-                    ["Count"] = number (used for sorted checks),
-                    ["Components"] = {
-                        [Component Name] = module
+        ["Audio"] = { 												PackageType
+            ["Region"] = {											PackageScope
+                [PackageName] = {									PackageName
+                    ["Count"] = number (used for sorted checks),	-
+                    ["Components"] = {								-
+                        [ComponentName] = module					ComponentName
                         ...
                     },
                 },
@@ -98,6 +98,7 @@ local function HandlePackages(PackageType: string, PackageScope: string, ScopeFo
     end
 end
 
+--// Gets a package table by name
 function module:GetPackage(PackageType: string, PackageScope: string, PackageName: string)
 	if not self[PackageType] then
 		warn("Invalid PackageType:", PackageType)
@@ -119,41 +120,45 @@ function module:GetPackage(PackageType: string, PackageScope: string, PackageNam
 	return Package
 end
 
---// Default setup for audio packages
-function module:GenerateAudioPackages()
-	if not AudioPackages then
-		return
+--// Gets a component module by name
+function module:GetComponent(PackageType: string, PackageScope: string, PackageName: string, ComponentName: string)
+	local Package = module:GetPackage(PackageType, PackageScope, PackageName)
+
+	if not Package then
+		return --// Error already bundled in
 	end
+
+	local Component = Package["Components"][ComponentName]
 	
-	--// It doesn't matter if these don't exist or if the developer deletes these folders, there is a built in check
-	local AudioRegion: Folder = AudioPackages:FindFirstChild("Region")
-	local AudioServer: Folder = AudioPackages:FindFirstChild("Server")
-	local AudioWeather: Folder = AudioPackages:FindFirstChild("Weather")
-
-	HandlePackages("Audio", "Region", AudioRegion)
-	HandlePackages("Audio", "Server", AudioServer)
-	HandlePackages("Audio", "Weather", AudioWeather)
-
-	InternalVariables["AudioSettingTablesBuilt"] = true
+	if not Component then
+		warn("Invalid ComponentName:", ComponentName, "for PackageName", PackageName, "for PackageType", PackageType, "and PackageScope", PackageScope)
+		return
+	end
 end
 
---// Default setup of lighting packages
-function module:GenerateLightingPackages()
-	if not LightingPackages then
+--// Fast functions
+
+function module:GetCurrentPackage(PackageType: string, PackageScope: string)
+	if not self[PackageType] then
+		warn("Invalid PackageType:", PackageType)
 		return
 	end
 
-	--// It doesn't matter if these don't exist or if the developer deletes these folders, there is a built in check
-	local LightingRegion: Folder = LightingPackages:WaitForChild("Region")
-	local LightingServer: Folder = LightingPackages:WaitForChild("Server")
-	local LightingWeather: Folder = LightingPackages:WaitForChild("Weather")
+	if not self[PackageType][PackageScope] then
+		warn("Invalid PackageScope:", PackageScope, "for PackageType", PackageType)
+		return
+	end
 
-	HandlePackages("Lighting", "Region", LightingRegion)
-	HandlePackages("Lighting", "Server", LightingServer)
-	HandlePackages("Lighting", "Weather", LightingWeather)
+	local PackageName: string = InternalVariables[PackageType][PackageScope]
 
-	InternalVariables["LightingSettingTablesBuilt"] = true
+	local Package = module:GetPackage(PackageType, PackageScope, PackageName)
+
+	return Package
 end
+
+function module:GetCurrentComponent()
+
+--// Control functions
 
 --// Sets region packages (PackageType is "Audio" or "Lighting")
 function module:SetRegionPackage(PackageType: string, PackageName: string)
@@ -198,6 +203,45 @@ function module:SetWeatherPackage(PackageType: string, PackageName: string)
 	end
 
 	InternalVariables["Current Package"][PackageType]["Weather"] = PackageName
+end
+
+
+--// Initialization functions
+
+--// Default setup for audio packages
+function module:GenerateAudioPackages()
+	if not AudioPackages then
+		return
+	end
+	
+	--// It doesn't matter if these don't exist or if the developer deletes these folders, there is a built in check
+	local AudioRegion: Folder = AudioPackages:FindFirstChild("Region")
+	local AudioServer: Folder = AudioPackages:FindFirstChild("Server")
+	local AudioWeather: Folder = AudioPackages:FindFirstChild("Weather")
+
+	HandlePackages("Audio", "Region", AudioRegion)
+	HandlePackages("Audio", "Server", AudioServer)
+	HandlePackages("Audio", "Weather", AudioWeather)
+
+	InternalVariables["AudioSettingTablesBuilt"] = true
+end
+
+--// Default setup of lighting packages
+function module:GenerateLightingPackages()
+	if not LightingPackages then
+		return
+	end
+
+	--// It doesn't matter if these don't exist or if the developer deletes these folders, there is a built in check
+	local LightingRegion: Folder = LightingPackages:WaitForChild("Region")
+	local LightingServer: Folder = LightingPackages:WaitForChild("Server")
+	local LightingWeather: Folder = LightingPackages:WaitForChild("Weather")
+
+	HandlePackages("Lighting", "Region", LightingRegion)
+	HandlePackages("Lighting", "Server", LightingServer)
+	HandlePackages("Lighting", "Weather", LightingWeather)
+
+	InternalVariables["LightingSettingTablesBuilt"] = true
 end
 
 --// Basic run function

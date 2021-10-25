@@ -1,12 +1,27 @@
 local module = {
     --// Package Variables
+    --// Populated by strings
     ["Current Package"] = {
         ["Audio"] = {
             ["Region"] = false,
             ["Server"] = false,
             ["Weather"] = false,
         },
-        ["Server"] = {
+        ["Lighting"] = {
+            ["Region"] = false,
+            ["Server"] = false,
+            ["Weather"] = false,
+        },
+    },
+
+    --// Populated by strings
+    ["Current Component"] = {
+        ["Audio"] = {
+            ["Region"] = false,
+            ["Server"] = false,
+            ["Weather"] = false,
+        },
+        ["Lighting"] = {
             ["Region"] = false,
             ["Server"] = false,
             ["Weather"] = false,
