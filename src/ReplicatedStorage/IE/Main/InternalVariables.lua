@@ -1,5 +1,6 @@
 local module = {
-    --// Package Variables
+    --// New variables
+    
     --// Populated by strings
     ["Current Package"] = {
         ["Audio"] = {
@@ -27,6 +28,16 @@ local module = {
             ["Weather"] = false,
         },
     },
+
+    ["Current Scope"] = "Server", --// This will be Region, Server, or Weather (defaults to Server until manually changed)
+
+    --// Populated by strings (filled in when weather is added, so that things can quickly resync back)
+    ["Non Weather Package"] = {
+        ["Audio"] = false,
+        ["Lighting"] = false,
+    },
+
+    --// Old variables
 
     --// Audio Variables
     ["CurrentAudioWeather"] = "", --// Identifies which weather setting is currently being used (audio)

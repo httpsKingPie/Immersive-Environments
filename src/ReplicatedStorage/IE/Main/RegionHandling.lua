@@ -55,7 +55,7 @@ local function SetRegionPackage(PackageType: string, PackageName: string)
 		return
 	end
 
-	PackageHandling:SetServerPackage(PackageType, PackageName)
+	PackageHandling:SetPackage(PackageType, "Region", PackageName)
 	TimeHandling:ReadPackage(PackageType, "Region", PackageName)
 end
 
@@ -66,7 +66,9 @@ end
 ]]
 
 local function HandleRegionEnter(PackageType: string, RegionName: string)
-	local Package = PackageHandling:GetPackage(PackageType, "Region", RegionName)
+	PackageHandling:SetCurrentScope("Region")
+
+	local Package = PackageHandling:GetPackage(PackageType, RegionName)
 
 	--// Warning already bundled in
 	if not Package then
