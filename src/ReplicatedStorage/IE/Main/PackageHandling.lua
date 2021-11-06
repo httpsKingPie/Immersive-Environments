@@ -134,6 +134,8 @@ function module:GetComponent(PackageType: string, PackageScope: string, PackageN
 		warn("Invalid ComponentName:", ComponentName, "for PackageName", PackageName, "for PackageType", PackageType, "and PackageScope", PackageScope)
 		return
 	end
+
+	return Component
 end
 
 --// Fast functions
@@ -149,14 +151,36 @@ function module:GetCurrentPackage(PackageType: string, PackageScope: string)
 		return
 	end
 
-	local PackageName: string = InternalVariables[PackageType][PackageScope]
+	local PackageName: string = InternalVariables["Current Package"][PackageType][PackageScope]
 
 	local Package = module:GetPackage(PackageType, PackageScope, PackageName)
+
+	if not Package then --// Additional return in here not necessary, since it would be nil regardless
+		warn("No package found for PackageScope:", PackageScope, "for PackageType", PackageType)
+	end
 
 	return Package
 end
 
-function module:GetCurrentComponent()
+function module:GetCurrentComponent(PackageType: string, PackageScope: string)
+	local Package = module:GetCurrentPackage(PackageType, PackageScope)
+
+	if not Package then --// Warning already bundled in
+		return
+	end
+
+	local PackageName: string = InternalVariables["Current Package"][PackageType][PackageScope]
+	local ComponentName: string = InternalVariables["Current Component"][PackageType][PackageScope]
+
+	local Component = Package["Components"][ComponentName]
+	
+	if not Component then
+		warn("Invalid ComponentName:", ComponentName, "for PackageName", PackageName, "for PackageType", PackageType, "and PackageScope", PackageScope)
+		return
+	end
+
+	return Component
+end
 
 --// Control functions
 
