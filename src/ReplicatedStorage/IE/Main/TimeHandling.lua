@@ -484,7 +484,7 @@ local function SetNextIndex(PackageType: string, PackageScope: string, PackageNa
 		return
 	end
 
-	local Package = PackageHandling:GetPackage(PackageType, PackageScope, PackageName)
+	local Package = PackageHandling:GetPackage(PackageType, PackageName)
 
 	if not Package then
 		return

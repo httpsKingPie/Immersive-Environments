@@ -98,22 +98,34 @@ local function HandlePackages(PackageType: string, PackageScope: string, ScopeFo
     end
 end
 
+--// Neater way of getting the current scope
+function module:GetCurrentScope()
+	return InternalVariables["Current Scope"]
+end
+
+--// Neater way of changing the scope.  NewScope = "Region", "Server", or "Weather"
+function module:SetCurrentScope(NewScope: string)
+	InternalVariables["Current Scope"] = NewScope
+end
+
 --// Gets a package table by name
-function module:GetPackage(PackageType: string, PackageScope: string, PackageName: string)
+function module:GetPackage(PackageType: string, PackageName: string)
+	local CurrentScope = module:GetCurrentScope()
+
 	if not self[PackageType] then
 		warn("Invalid PackageType:", PackageType)
 		return
 	end
 
-	if not self[PackageType][PackageScope] then
-		warn("Invalid PackageScope:", PackageScope, "for PackageType", PackageType)
+	if not self[PackageType][CurrentScope] then
+		warn("Invalid PackageScope:", CurrentScope, "for PackageType", PackageType)
 		return
 	end
 
-	local Package = self[PackageType][PackageScope][PackageName]
+	local Package = self[PackageType][CurrentScope][PackageName]
 
 	if not Package then
-		warn("Invalid PackageName:", PackageName, "for PackageType", PackageType, "and PackageScope", PackageScope)
+		warn("Invalid PackageName:", PackageName, "for PackageType", PackageType, "and PackageScope", CurrentScope)
 		return
 	end
 
@@ -121,8 +133,10 @@ function module:GetPackage(PackageType: string, PackageScope: string, PackageNam
 end
 
 --// Gets a component module by name
-function module:GetComponent(PackageType: string, PackageScope: string, PackageName: string, ComponentName: string)
-	local Package = module:GetPackage(PackageType, PackageScope, PackageName)
+function module:GetComponent(PackageType: string, PackageName: string, ComponentName: string)
+	local CurrentScope = module:GetCurrentScope()
+	
+	local Package = module:GetPackage(PackageType, PackageName)
 
 	if not Package then
 		return --// Error already bundled in
@@ -131,7 +145,7 @@ function module:GetComponent(PackageType: string, PackageScope: string, PackageN
 	local Component = Package["Components"][ComponentName]
 	
 	if not Component then
-		warn("Invalid ComponentName:", ComponentName, "for PackageName", PackageName, "for PackageType", PackageType, "and PackageScope", PackageScope)
+		warn("Invalid ComponentName:", ComponentName, "for PackageName", PackageName, "for PackageType", PackageType, "and PackageScope", CurrentScope)
 		return
 	end
 
@@ -140,42 +154,46 @@ end
 
 --// Fast functions
 
-function module:GetCurrentPackage(PackageType: string, PackageScope: string)
+function module:GetCurrentPackage(PackageType: string)
 	if not self[PackageType] then
 		warn("Invalid PackageType:", PackageType)
 		return
 	end
 
-	if not self[PackageType][PackageScope] then
-		warn("Invalid PackageScope:", PackageScope, "for PackageType", PackageType)
+	local CurrentScope = module:GetCurrentScope()
+
+	if not self[PackageType][CurrentScope] then
+		warn("Invalid PackageScope:", CurrentScope, "for PackageType", PackageType)
 		return
 	end
 
-	local PackageName: string = InternalVariables["Current Package"][PackageType][PackageScope]
+	local PackageName: string = InternalVariables["Current Package"][PackageType][CurrentScope]
 
-	local Package = module:GetPackage(PackageType, PackageScope, PackageName)
+	local Package = module:GetPackage(PackageType, PackageName)
 
 	if not Package then --// Additional return in here not necessary, since it would be nil regardless
-		warn("No package found for PackageScope:", PackageScope, "for PackageType", PackageType)
+		warn("No package found for PackageScope:", CurrentScope, "for PackageType", PackageType)
 	end
 
 	return Package
 end
 
-function module:GetCurrentComponent(PackageType: string, PackageScope: string)
-	local Package = module:GetCurrentPackage(PackageType, PackageScope)
+function module:GetCurrentComponent(PackageType: string)
+	local CurrentScope = module:GetCurrentScope()
+
+	local Package = module:GetCurrentPackage(PackageType)
 
 	if not Package then --// Warning already bundled in
 		return
 	end
 
-	local PackageName: string = InternalVariables["Current Package"][PackageType][PackageScope]
-	local ComponentName: string = InternalVariables["Current Component"][PackageType][PackageScope]
+	local PackageName: string = InternalVariables["Current Package"][PackageType][CurrentScope]
+	local ComponentName: string = InternalVariables["Current Component"][PackageType][CurrentScope]
 
 	local Component = Package["Components"][ComponentName]
 	
 	if not Component then
-		warn("Invalid ComponentName:", ComponentName, "for PackageName", PackageName, "for PackageType", PackageType, "and PackageScope", PackageScope)
+		warn("Invalid ComponentName:", ComponentName, "for PackageName", PackageName, "for PackageType", PackageType, "and PackageScope", CurrentScope)
 		return
 	end
 
@@ -184,51 +202,40 @@ end
 
 --// Control functions
 
---// Sets region packages (PackageType is "Audio" or "Lighting")
-function module:SetRegionPackage(PackageType: string, PackageName: string)
+--// Sets packages, PackageType is "Lighting" or "Audio", PackageScope is "Region", "Server", or "Weather", PackageName is the name of the Package
+function module:SetPackage(PackageType: string, PackageScope: string, PackageName: string)
 	if not module[PackageType] then
 		warn("Invalid PackageType", PackageType)
 		return
 	end
 
-	if not module[PackageType]["Region"][PackageName] then
-		warn("Invalid PackageName", PackageName, "for PackageType", PackageType)
+	if not module[PackageType][PackageScope] then
+		warn("Invalid PackageScope:", PackageScope, "for PackageType", PackageType)
 		return
 	end
 
-	InternalVariables["Current Package"][PackageType]["Region"] = PackageName
+	if not module[PackageType][PackageScope][PackageName] then
+		warn("Invalid PackageName", PackageName, "for PackageScope", PackageScope, "for PackageType", PackageType)
+		return
+	end
 end
 
---// Sets server packages (PackageType is "Audio" or "Lighting")
-function module:SetServerPackage(PackageType: string, PackageName: string)
+--// Clears packages, PackageType is "Lighting" or "Audio", PackageScope is "Region", "Server", or "Weather"
+function module:ClearPackage(PackageType: string, PackageScope: string)
 	if not module[PackageType] then
 		warn("Invalid PackageType", PackageType)
 		return
 	end
 
-	if not module[PackageType]["Server"][PackageName] then
-		warn("Invalid PackageName", PackageName, "for PackageType", PackageType)
+	if not module[PackageType][PackageScope] then
+		warn("Invalid PackageScope:", PackageScope, "for PackageType", PackageType)
 		return
 	end
 
-	InternalVariables["Current Package"][PackageType]["Server"] = PackageName
+	InternalVariables["Current Package"][PackageType][PackageScope] = false
 end
 
---// Sets weather packages (PackageType is "Audio" or "Lighting")
-function module:SetWeatherPackage(PackageType: string, PackageName: string)
-	if not module[PackageType] then
-		warn("Invalid PackageType", PackageType)
-		return
-	end
-
-	if not module[PackageType]["Weather"][PackageName] then
-		warn("Invalid PackageName", PackageName, "for PackageType", PackageType)
-		return
-	end
-
-	InternalVariables["Current Package"][PackageType]["Weather"] = PackageName
-end
-
+function module:SetComponent
 
 --// Initialization functions
 

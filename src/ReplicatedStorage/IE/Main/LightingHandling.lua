@@ -13,10 +13,17 @@ local RemoteFolder = IEFolder:WaitForChild("RemoteFolder")
 
 local LightingRemote = RemoteFolder:WaitForChild("LightingRemote")
 
+--// Note: Make sure these all have connections to them on the client and server
+local ClearWeather: RemoteEvent = RemoteFolder:WaitForChild("ClearWeather")
+local LightingInitialSyncToServer: RemoteEvent = RemoteFolder:WaitForChild("LightingInitialSyncToServer")
+local LightingSyncToServer: RemoteEvent = RemoteFolder:WaitForChild("LightingSyncToServer")
+local LightingChangeComponent: RemoteEvent = RemoteFolder:WaitForChild("LightingChangeComponent")
+
 local Settings = require(IEFolder.Settings)
 
 local InternalSettings = require(Main.InternalSettings)
 local InternalVariables = require(Main.InternalVariables)
+local PackageHandling = require(Main.PackageHandling)
 local SettingsHandling = require(Main.SettingsHandling)
 local SharedFunctions = require(Main.SharedFunctions)
 
@@ -710,7 +717,8 @@ function module.RegionLeave(RegionName)
 	else
 		InternalVariables["HaltLightingCycle"] = false
 
-		LightingRemote:FireServer("ResyncToServer")
+		--LightingRemote:FireServer("ResyncToServer")
+		LightingSyncToServer:FireServer()
 	end
 end
 
@@ -730,7 +738,8 @@ function module.TweenLighting(Event: string, LightingName: string)
 		end
 
 		if not LightingName then --// If no lighting name is provided, that means it needs to sync and get that name
-			LightingRemote:FireServer("ResyncToServer") --// This gets called on the client, so we basically do the same thing that we do when the player joins the game - talk to the server, which knows the current audio period, and sync to it
+			--LightingRemote:FireServer("ResyncToServer") --// This gets called on the client, so we basically do the same thing that we do when the player joins the game - talk to the server, which knows the current lighting period, and sync to it
+			LightingSyncToServer:FireServer()
 		else --// If a lighting name is provided, that means we've already synced and can make the set now
 			NewLightingSettings = SettingsHandling:GetServerSettings(LightingName, "Lighting")
 
@@ -743,7 +752,7 @@ function module.TweenLighting(Event: string, LightingName: string)
 		module.TweenWeather(LightingName)
 		return
 	elseif Event == "ClearWeather" then
-		module.ClearWeather(LightingName)
+		module:ClearWeather(LightingName)
 		return
 	end
 
@@ -765,10 +774,13 @@ function module.SetLighting(Event: string, LightingName: string)
 
 	local NewLightingSettings
 
+	print("Here")
+
 	if Event == "ToRegion" then
-		NewLightingSettings = SettingsHandling:GetRegionSettings(LightingName, "Lighting")
+		PackageHandling:SetCurrentScope("Region")
+		NewLightingSettings = PackageHandling:GetCurrentComponent("Lighting")
 	elseif Event == "TimeChange" then
-		NewLightingSettings = SettingsHandling:GetServerSettings(LightingName, "Lighting")
+		NewLightingSettings = PackageHandling:GetCurrentComponent("Lighting")
 	elseif Event == "ToServer" then --// If there is no lighting name provided, that means that 
 		if not RunService:IsClient() then
 			warn("Improperly tried to sync from server while on the server")
@@ -777,8 +789,12 @@ function module.SetLighting(Event: string, LightingName: string)
 
 		if not LightingName then --// If no lighting name is provided, that means it needs to sync and get that name
 			LightingRemote:FireServer("ResyncToServer") --// This gets called on the client, so we basically do the same thing that we do when the player joins the game - talk to the server, which knows the current audio period, and sync to it
+			LightingInitialSyncToServer:FireServer()
 		else --// If a lighting name is provided, that means we've already synced and can make the set now
-			NewLightingSettings = SettingsHandling:GetServerSettings(LightingName, "Lighting")
+			print("before")
+			PackageHandling:SetPackage("Lighting", "Server", LightingName)
+			print("right after him")
+			NewLightingSettings = PackageHandling:GetCurrentComponent("Lighting")
 
 			Set(NewLightingSettings)
 		end
@@ -788,7 +804,7 @@ function module.SetLighting(Event: string, LightingName: string)
 		module.SetWeather(LightingName)
 		return
 	elseif Event == "ClearWeather" then
-		module.ClearWeather(LightingName)
+		module:ClearWeather(LightingName)
 		return
 	end
 
@@ -810,11 +826,13 @@ function module.SetLighting(Event: string, LightingName: string)
 	end
 end
 
-function module.ClearWeather(CurrentLightingPeriod: string) --// Don't pass this as an argument, trust me.  It will fill in the rest!
+function module:ClearWeather(CurrentLightingPeriod: string) --// Don't pass this as an argument, trust me.  It will fill in the rest!
 	InternalVariables["LightingWeather"] = false
 	InternalVariables["CurrentLightingWeather"] = ""
 
 	local TimeLightingSettings
+
+	local OldLightingPackage = InternalVariables["Non Weather Package"]["Lighting"]
 
 	if RunService:IsServer() then
 		TimeLightingSettings = SettingsHandling:GetServerSettings(InternalVariables["CurrentLightingPeriod"], "Lighting")
@@ -847,6 +865,7 @@ function module.ClearWeather(CurrentLightingPeriod: string) --// Don't pass this
 			end
 
 			LightingRemote:FireAllClients("ClearWeather", InternalVariables["CurrentLightingPeriod"], Type)
+			ClearWeather:FireAllClients()
 		end
 	end
 end
@@ -933,6 +952,34 @@ if InternalVariables["InitializedLighting"] == false then
 	InternalVariables["InitializedLighting"] = true
 
 	if RunService:IsServer() then
+		--// When the player first joins the game (this will always set the lighting, not tween)
+		LightingInitialSyncToServer.OnServerEvent:Connect(function(Player)
+			local NumberOfTries = 0
+
+			while InternalVariables["TimeInitialized"] == false do --// Sometimes (especialy in Studio) where the client is loading in really fast, it will load in before the CurrentLightingPeriod is set
+				task.wait(.2)
+
+				NumberOfTries = NumberOfTries + 1
+
+				if NumberOfTries > InternalSettings["RemoteInitializationMaxTries"] then
+					warn("Max Tries has been reached for Remote Initialization")
+					return
+				end
+			end
+
+			local WeatherActive = InternalVariables["Current Package"]["Lighting"]["Weather"]
+
+			if not WeatherActive then
+				LightingInitialSyncToServer:FireClient(Player)
+			end
+
+			if InternalVariables["LightingWeather"] then
+				LightingRemote:FireClient(Player, "ToServer", InternalVariables["CurrentLightingPeriod"], "Set", InternalVariables["CurrentLightingWeather"])
+			else
+				LightingRemote:FireClient(Player, "ToServer", InternalVariables["CurrentLightingPeriod"], "Set")
+			end
+		end)
+
 		LightingRemote.OnServerEvent:Connect(function(Player, Status)
 			--// Quick denoter to save space for determining if things are being tweened vs set
 			local ChangeType
