@@ -79,6 +79,31 @@ local module = {
 	
 	["DayNightWait"] = 1,
 
+	--[[
+		ComponentChanged = Server -> Client communication to switch the compoent
+		InitialSyncToServer = Set to what the server thinks the lighting should be (tween in the case of audio)
+		PackageChanged = Server -> Client communication to switch the current package
+		ScopeChanged = Server -> Client communication to change the current scope
+		SyncToServer = Tween or set to what the server thinks the lighting should be
+		WeatherCleared = Server -> Client communication to change the weather
+	]]
+
+	["Remote Events"] = {
+		--// RemoteName is not changed
+		["Fixed"] = {
+			"ScopeChanged",
+		},
+
+		--// RemoteName is prefaced by "Audio" or "Lighting"
+		["Type Separated"] = {
+			"ComponentChanged",
+			"InitialSyncToServer",
+			"PackageChanged",
+			"SyncToServer",
+			"WeatherCleared",
+		},
+	},
+
 	["RemoteInitializationMaxTries"] = 50, --// Remote checks every .2 seconds.  100 tries = 20 seconds.
 	
 	["NonPropertySettings"] = {

@@ -10,6 +10,7 @@ local AudioHandling = require(IEFolder.Main:WaitForChild("AudioHandling"))
 local InternalVariables = require(IEFolder.Main:WaitForChild("InternalVariables"))
 local LightingHandling = require(IEFolder.Main:WaitForChild("LightingHandling"))
 local PackageHandling = require(IEFolder.Main:WaitForChild("PackageHandling"))
+local RemoteHandling = require(IEFolder.Main:WaitForChild("RemoteHandling"))
 
 local RemoteFolder = IEFolder:WaitForChild("RemoteFolder")
 
@@ -17,7 +18,10 @@ local AudioRemote = RemoteFolder:WaitForChild("AudioRemote")
 local LightingRemote = RemoteFolder:WaitForChild("LightingRemote")
 
 --// New remotes
-local LightingInitialSyncToServer: RemoteEvent = RemoteFolder:WaitForChild("LightingInitialSyncToServer")
+local LightingComponentChanged: RemoteEvent = RemoteHandling:GetRemote("Lighting", "ComponentChanged")
+local LightingInitialSyncToServer: RemoteEvent = RemoteHandling:GetRemote("Lighting", "InitialSyncToServer")
+
+local ScopeChanged: RemoteEvent = RemoteHandling:GetRemote("", "ScopeChanged")
 
 local Initialized = false
 
@@ -35,9 +39,22 @@ function module.Initialize()
         LightingInitialSyncToServer:FireServer() --// Sets the Player's lighting to whatever the server's current lighting is
         AudioRemote:FireServer("SyncToServer")
     
-        LightingInitialSyncToServer.OnClientEvent:Conenct(function(CurrentPackage: string, CurrentComponent: string)
+        LightingInitialSyncToServer.OnClientEvent:Connect(function(CurrentScope: string, CurrentPackage: string, CurrentComponentName: string)
+            PackageHandling:SetCurrentScope(CurrentScope)
+
             PackageHandling:SetPackage("Lighting", "Server", CurrentPackage)
-            dsd
+            PackageHandling:SetComponent("Lighting", "Server", CurrentComponentName)
+
+            LightingHandling:SetLighting()
+        end)
+
+        --// This needs to be editted to ensure it works properly (arguments currently don't align)
+        LightingComponentChanged.OnClientEvent:Connect(function(Scope: string, ComponentName: string)
+            PackageHandling:SetComponent("Lighting", Scope, ComponentName)
+
+            if Scope == PackageHandling:GetCurrentScope() then
+                LightingHandling:AdjustLighting()
+            end
         end)
 
         --// The audio Remote does not feature Type, like Tween and Set, because the audio settings already allow for delineation of which settings to tween and set
@@ -57,7 +74,7 @@ function module.Initialize()
                     if WeatherName then
                         LightingHandling.SetWeather(WeatherName)
                     else
-                        LightingHandling.SetLighting(Event, SettingName)
+                        LightingHandling:SetLighting(Event, SettingName)
                     end
                 else
                     if WeatherName then

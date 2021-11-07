@@ -1,3 +1,5 @@
+local RunService = game:GetService("RunService")
+
 local Main: ModuleScript = script.Parent
 local IEFolder: Folder = Main.Parent
 local Packages: Folder = IEFolder:WaitForChild("Packages")
@@ -8,6 +10,12 @@ local LightingPackages: Folder = Packages:FindFirstChild("Lighting")
 --// IE Modules
 local Settings = require(IEFolder.Settings)
 local InternalVariables = require(Main.InternalVariables)
+local RemoteHandling = require(Main.RemoteHandling)
+
+local ClientSided = Settings["ClientSided"]
+local IsServer = RunService:IsServer()
+
+local NotifyClient = if ClientSided and IsServer then true else false --// Whether IE should notify the client when components, packages, or scope changes
 
 --[[ 'Mega table' which requires all packages in here, for fast reference.  It will look like
     local module = {
@@ -106,6 +114,12 @@ end
 --// Neater way of changing the scope.  NewScope = "Region", "Server", or "Weather"
 function module:SetCurrentScope(NewScope: string)
 	InternalVariables["Current Scope"] = NewScope
+
+	if NotifyClient then
+		local Remote: RemoteEvent = RemoteHandling:GetRemote("", "ScopeChanged")
+
+		Remote:FireAllClients(NewScope)
+	end
 end
 
 --// Gets a package table by name
@@ -152,8 +166,25 @@ function module:GetComponent(PackageType: string, PackageName: string, Component
 	return Component
 end
 
---// Fast functions
+--// Verifies component of current package, PackageType = "Audio" or "Lighting"
+function module:VerifyComponentExists(PackageType: string, ComponentName: string)
+	local Package = module:GetCurrentPackage(PackageType)
 
+	if not Package then
+		return --// Error already bundled in
+	end
+
+	local Component = Package["Components"][ComponentName]
+	
+	if not Component then
+		warn("Invalid ComponentName:", ComponentName, "for current package")
+		return
+	end
+
+	return true
+end
+
+--// Fast functions
 function module:GetCurrentPackage(PackageType: string)
 	if not self[PackageType] then
 		warn("Invalid PackageType:", PackageType)
@@ -178,6 +209,26 @@ function module:GetCurrentPackage(PackageType: string)
 	return Package
 end
 
+function module:GetCurrentPackageName(PackageType: string)
+	if not self[PackageType] then
+		warn("Invalid PackageType:", PackageType)
+		return
+	end
+
+	local CurrentScope = module:GetCurrentScope()
+
+	local CurrentScope = module:GetCurrentScope()
+
+	if not self[PackageType][CurrentScope] then
+		warn("Invalid PackageScope:", CurrentScope, "for PackageType", PackageType)
+		return
+	end
+
+	local PackageName: string = InternalVariables["Current Package"][PackageType][CurrentScope]
+
+	return PackageName
+end
+
 function module:GetCurrentComponent(PackageType: string)
 	local CurrentScope = module:GetCurrentScope()
 
@@ -200,6 +251,20 @@ function module:GetCurrentComponent(PackageType: string)
 	return Component
 end
 
+function module:GetCurrentComponentName(PackageType: string)
+	local CurrentScope = module:GetCurrentScope()
+
+	local Package = module:GetCurrentPackage(PackageType)
+
+	if not Package then --// Warning already bundled in
+		return
+	end
+
+	local ComponentName: string = InternalVariables["Current Component"][PackageType][CurrentScope]
+
+	return ComponentName
+end
+
 --// Control functions
 
 --// Sets packages, PackageType is "Lighting" or "Audio", PackageScope is "Region", "Server", or "Weather", PackageName is the name of the Package
@@ -218,6 +283,14 @@ function module:SetPackage(PackageType: string, PackageScope: string, PackageNam
 		warn("Invalid PackageName", PackageName, "for PackageScope", PackageScope, "for PackageType", PackageType)
 		return
 	end
+
+	InternalVariables["Current Package"][PackageType][PackageScope] = PackageName
+
+	if NotifyClient then
+		local Remote: RemoteEvent = RemoteHandling:GetRemote(PackageType, "PackageChanged")
+
+		Remote:FireAllClients(PackageName)
+	end
 end
 
 --// Clears packages, PackageType is "Lighting" or "Audio", PackageScope is "Region", "Server", or "Weather"
@@ -233,9 +306,30 @@ function module:ClearPackage(PackageType: string, PackageScope: string)
 	end
 
 	InternalVariables["Current Package"][PackageType][PackageScope] = false
+
+	if NotifyClient then
+		local Remote: RemoteEvent = RemoteHandling:GetRemote(PackageType, "PackageChanged")
+
+		Remote:FireAllClients(false)
+	end
 end
 
-function module:SetComponent
+--// Set the component (Type = "Audio" or "Lighting"), Scope = "Region", "Server", or "Weather"
+function module:SetComponent(Type: string, Scope: string, ComponentName: string)
+	local ComponentExists = module:VerifyComponentExists(Type, ComponentName)
+
+	if not ComponentExists then --// Error already bundled in
+		return
+	end
+
+	InternalVariables["Current Component"][Type][Scope] = ComponentName
+
+	if NotifyClient then
+		local Remote: RemoteEvent = RemoteHandling:GetRemote(Type, "ComponentChanged")
+
+		Remote:FireAllClients(Scope, ComponentName)
+	end
+end
 
 --// Initialization functions
 

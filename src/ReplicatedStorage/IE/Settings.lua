@@ -1,7 +1,6 @@
 local module = {
 	
 	--// General Settings
-	
 	["DefaultSettings"] = false, --// Set to true if you just want to run this with recommend settings
 	["AlwaysCheckInstances"] = false, --// Will run a search through workspace to check for instance changes every time if this is set to true.  Recommended to set to false if the number of instances never changes or if StreamingEnabled is not enabled (aka StreamingDisabled - hahahahahahahahhah :]).
 	["ClientSided"] = true, --// Set to true if all effects w/ regards to the physical instances (i.e. BaseParts) are run on the client (make sure to add the TDL2Client script to StarterPlayerScripts if true)
@@ -37,8 +36,8 @@ local module = {
 		20, --// Recommended to only adjust the time variable (default set to 20 seconds)
 		Enum.EasingStyle.Linear
 		),
-	["TimeForDay"] = 10, --// The amount of minutes it takes to go from 0600 to 1800
-	["TimeForNight"] = 10, --// The amount of minutes it takes to go from 1800 to 0600
+	["TimeForDay"] = 2, --// The amount of minutes it takes to go from 0600 to 1800
+	["TimeForNight"] = 2, --// The amount of minutes it takes to go from 1800 to 0600
 
 	--// Weather Settings
 	["WeatherTweenInformation"] = TweenInfo.new(
