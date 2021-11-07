@@ -35,6 +35,8 @@ local IEFolder = Main.Parent
 
 local Settings = require(IEFolder.Settings)
 
+local ClientSided = Settings["ClientSided"]
+
 --// Sanity check function (checks to make sure the package actually exists)
 local function CheckTimePeriod(PackageType: string)
 	if not PackageHandling[PackageType] then
@@ -456,7 +458,7 @@ local function Set(PackageType, PeriodName)
 	if PackageType == "Audio" then
 		AudioHandling.TweenAudio("TimeChange", PeriodName) --// We use tween, rather than set, because audio settings already delinaeate which properties can be set
 	elseif PackageType == "Lighting" then
-		LightingHandling.SetLighting("TimeChange", PeriodName)
+		LightingHandling:SetLighting("TimeChange", PeriodName)
 	else
 		warn("Unexpected input type for Set: ".. tostring(PackageType))
 	end
@@ -544,6 +546,9 @@ local function TrackCycle(PackageType: string)
 			end
 		end
 
+		local CurrentComponent = module[PackageType.. "TimePeriods"][InternalVariables["Current".. PackageType.. "Index"]]["Name"]
+		PackageHandling:SetComponent(PackageType, PackageHandling:GetCurrentScope(), CurrentComponent)
+
 		while task.wait(Settings["CheckTime"]) do
 			if PackageChanged() then
 				return
@@ -551,16 +556,25 @@ local function TrackCycle(PackageType: string)
 
 			--// Function for handling period changes
 			local function HandleChange(PackageType)
+				local NewComponent = module[PackageType.. "TimePeriods"][InternalVariables["Current".. PackageType.. "Index"]]["Name"]
+
 				InternalVariables["Current".. PackageType.. "Index"] = InternalVariables["Next".. PackageType.. "Index"]
-				InternalVariables["Current".. PackageType.. "Period"] = module[PackageType.. "TimePeriods"][InternalVariables["Current".. PackageType.. "Index"]]["Name"]
+				InternalVariables["Current".. PackageType.. "Period"] = NewComponent
 
 				SetNextIndex(PackageType, CycleScope, CycleName)
 
 				if InternalVariables["Halt".. PackageType.. "Cycle"] == false then --// Cycle is not halted, changes can occur
+					PackageHandling:SetComponent(PackageType, PackageHandling:GetCurrentScope(), NewComponent)
+
+					--// If client sided, then all we need to do is set the component and then everything else follows
+					if ClientSided then
+						return
+					end
+
 					if Settings["Tween"]  == true then
-						Tween(PackageType, InternalVariables["Current".. PackageType.. "Period"])
+						Tween(PackageType)
 					else
-						Set(PackageType, InternalVariables["Current".. PackageType.. "Period"])
+						Set(PackageType)
 					end
 				end
 			end
@@ -580,6 +594,9 @@ local function TrackCycle(PackageType: string)
 			end
 		end
 	else --// Non sorted loop
+		local CurrentComponent = GetCurrentAdjustedPeriod(PackageType)
+		PackageHandling:SetComponent(PackageType, PackageHandling:GetCurrentScope(), CurrentComponent)
+
 		while task.wait(Settings["CheckTime"]) do
 			if PackageChanged() then
 				return
@@ -589,6 +606,8 @@ local function TrackCycle(PackageType: string)
 
 			if CurrentAdjustedPeriod ~= InternalVariables["Current".. PackageType.. "Period"] then --// If this changes, that means they are entering a new period
 				InternalVariables["Current".. PackageType.. "Period"] = CurrentAdjustedPeriod
+
+				PackageHandling:SetComponent(PackageType, PackageHandling:GetCurrentScope(), CurrentAdjustedPeriod)
 
 				if Settings["Tween"]  == true then
 					Tween(PackageType, InternalVariables["Current".. PackageType.. "Period"])

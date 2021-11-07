@@ -1,5 +1,3 @@
---// Prepped for Package transition
-
 local module = {}
 
 local RunService = game:GetService("RunService")
@@ -11,6 +9,8 @@ local PackageHandling: ModuleScript
 local SettingsHandling: ModuleScript
 local TimeHandling: ModuleScript
 local WeatherHandling: ModuleScript
+
+local InternalSettings = require(script.InternalSettings)
 
 local Initialized = false
 
@@ -38,43 +38,24 @@ local function GenerateRemotes()
 		LightingRemote.Name = "LightingRemote"
 		LightingRemote.Parent = RemoteFolder
 
-		--// New Remotes below
-		--[[
-			SyncToServer = Tween or set to what the server thinks the lighting should be
-			InitialSyncToServer = Set to what the server thinks the lighting should be (tween in the case of audio)
-			ChangeComponent = Server -> Client communication to switch the compoent
-			ChangePackage = Server -> Client communication to switch the current package
+		--// New Remotes
+		--// Generates Type Separated RemoteEvents
+		for _, RemoteName: string in pairs (InternalSettings["Remote Events"]["Type Separated"]) do
+			local AudioRemoteEvent = Instance.new("RemoteEvent")
+			AudioRemoteEvent.Name = "Audio".. RemoteName
+			AudioRemoteEvent.Parent = RemoteFolder
 
-			ClearWeather = Server -> Client communication to change the weather
-		]]
+			local LightingRemoteEvent = Instance.new("RemoteEvent")
+			LightingRemoteEvent.Name = "Lighting".. RemoteName
+			LightingRemoteEvent.Parent = RemoteFolder
+		end
 
-		local AudioSyncToServer = Instance.new("RemoteEvent")
-		AudioSyncToServer.Name = "AudioSyncToServer"
-		AudioSyncToServer.Parent = RemoteFolder
-
-		local AudioChangeComponent = Instance.new("RemoteEvent")
-		AudioChangeComponent.Name = "AudioChangeComponent"
-		AudioChangeComponent.Parent = RemoteFolder
-
-		local AudioInitialSyncToServer = Instance.new("RemoteEvent")
-		AudioInitialSyncToServer.Name = "AudioInitialSyncToServer"
-		AudioInitialSyncToServer.Parent = RemoteFolder
-
-		local LightingSyncToServer = Instance.new("RemoteEvent")
-		LightingSyncToServer.Name = "LightingSyncToServer"
-		LightingSyncToServer.Parent = RemoteFolder
-
-		local LightingChangeComponent = Instance.new("RemoteEvent")
-		LightingChangeComponent.Name = "LightingChangeComponent"
-		LightingChangeComponent.Parent = RemoteFolder
-
-		local LightingInitialSyncToServer = Instance.new("RemoteEvent")
-		LightingInitialSyncToServer.Name = "LightingInitialSyncToServer"
-		LightingInitialSyncToServer.Parent = RemoteFolder
-
-		local ClearWeather = Instance.new("RemoteEvent")
-		ClearWeather.Name = "ClearWeather"
-		ClearWeather.Parent = RemoteFolder
+		--// Generates fixed RemoteEvents
+		for _, RemoteName: string in pairs (InternalSettings["Remote Events"]["Fixed"]) do
+			local RemoteEvent = Instance.new("RemoteEvent")
+			RemoteEvent.Name = RemoteName
+			RemoteEvent.Parent = RemoteFolder
+		end
 	end
 end
 
