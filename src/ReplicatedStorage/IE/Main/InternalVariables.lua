@@ -29,7 +29,11 @@ local module = {
         },
     },
 
-    ["Current Scope"] = "Server", --// This will be Region, Server, or Weather (defaults to Server until manually changed)
+    --// This will be Region, Server, or Weather (defaults to Server until manually changed)
+    ["Current Scope"] = {
+        ["Audio"] = "Server",
+        ["Lighting"] = "Server"
+    },
 
     --// Populated by strings (filled in when weather is added, so that things can quickly resync back)
     ["Non Weather Package"] = {

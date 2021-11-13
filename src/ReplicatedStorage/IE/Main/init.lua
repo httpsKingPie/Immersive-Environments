@@ -4,6 +4,7 @@ local RunService = game:GetService("RunService")
 
 local AudioHandling: ModuleScript
 local ClientHandling: ModuleScript
+local LightingHandling: ModuleScript
 local RegionHandling: ModuleScript
 local PackageHandling: ModuleScript
 local SettingsHandling: ModuleScript
@@ -17,6 +18,7 @@ local Initialized = false
 local function InitializeModules() --// Done so that the Remotes are loaded first and there aren't errors
 	AudioHandling = require(script.AudioHandling)
 	ClientHandling = require(script.ClientHandling)
+	LightingHandling = require(script.LightingHandling)
 	RegionHandling = require(script.RegionHandling)
 	PackageHandling = require(script.PackageHandling)
 	SettingsHandling = require(script.SettingsHandling)
@@ -71,6 +73,8 @@ function module:Run()
 	SettingsHandling:Run()
 
 	coroutine.wrap(AudioHandling.Initialize)() --// Sets up the client sound folders, etc.
+
+	coroutine.wrap(LightingHandling.Initialize)()
 
 	coroutine.wrap(TimeHandling.Initialize)() --// Starts day night cycle
 

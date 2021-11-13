@@ -91,7 +91,7 @@ local module = {
 	["Remote Events"] = {
 		--// RemoteName is not changed
 		["Fixed"] = {
-			"ScopeChanged",
+			
 		},
 
 		--// RemoteName is prefaced by "Audio" or "Lighting"
@@ -99,6 +99,7 @@ local module = {
 			"ComponentChanged",
 			"InitialSyncToServer",
 			"PackageChanged",
+			"ScopeChanged",
 			"SyncToServer",
 			"WeatherCleared",
 		},

@@ -21,6 +21,7 @@ local PackageHandling = require(Main.PackageHandling)
 local RemoteHandling = require(Main.RemoteHandling)
 local SettingsHandling = require(Main.SettingsHandling)
 local SharedFunctions = require(Main.SharedFunctions)
+local TimeHandling --// Filled in after
 
 --// Note: Make sure these all have connections to them on the client and server
 local ComponentChanged: RemoteEvent = RemoteHandling:GetRemote("Lighting", "ComponentChanged")
@@ -29,7 +30,7 @@ local InitialSyncToServer: RemoteEvent = RemoteHandling:GetRemote("Lighting", "I
 local SyncToServer: RemoteEvent = RemoteHandling:GetRemote("Lighting", "SyncToServer")
 local WeatherCleared: RemoteEvent = RemoteHandling:GetRemote("Lighting", "WeatherCleared")
 
-local ScopeChanged: RemoteEvent = RemoteHandling:GetRemote("", "ScopeChanged")
+local LightingScopeChanged: RemoteEvent = RemoteHandling:GetRemote("Lighting", "ScopeChanged")
 
 local InstanceTable = {}
 local ComplexInstanceTable = {}
@@ -687,6 +688,36 @@ local function HandleMultiRegions() --// Handles the transition of when a player
 end
 
 function module.RegionEnter(RegionName)
+	print("start")
+	
+	local CurrentScope: string = PackageHandling:GetCurrentScope("Lighting")
+	local CurrentPackageName: string = PackageHandling:GetCurrentPackageName("Lighting")
+
+	local RegionPackage = PackageHandling:GetPackage("Lighting", RegionName)
+	local WeatherExemption: boolean 
+	
+	--// Finds whether there is a weather exemption for the package (assumes this is the same across all packages)
+	for _, ComponentSettings in pairs (RegionPackage["Componenets"]) do
+		WeatherExemption = ComponentSettings["GeneralSettings"]["WeatherExemption"]
+		break
+	end
+
+	--// If weather is active and there is not a weather exemption
+	if CurrentScope == "Weather" and not WeatherExemption then
+		return
+	end
+
+	--// Set the package
+	if CurrentPackageName ~= RegionName or CurrentScope ~= "Region" then
+		PackageHandling:SetPackage("Lighting", "Region", RegionName)
+		PackageHandling:SetCurrentScope("Lighting", "Region")
+
+		TimeHandling:ReadPackage("Lighting", "Region", RegionName)
+	end
+
+	print("end")
+
+	--[[
 	local RegionSettings = SettingsHandling:GetRegionSettings(RegionName, "Lighting")
 
 	if not RegionSettings then --// If there are no settings
@@ -706,6 +737,7 @@ function module.RegionEnter(RegionName)
 	end
 
 	module.TweenLighting("ToRegion", RegionName)
+	]]
 end
 
 function module.RegionLeave(RegionName)
@@ -958,7 +990,7 @@ end
 
 function module:AdjustLighting()
 	local Tween = Settings["Tween"]
-	local Scope = PackageHandling:GetCurrentScope()
+	local Scope = PackageHandling:GetCurrentScope("Lighting")
 
 	if Tween then
 		module:TweenLighting()
@@ -967,49 +999,20 @@ function module:AdjustLighting()
 	end
 end
 
-if InternalVariables["InitializedLighting"] == false then
-	InternalVariables["InitializedLighting"] = true
+function module:Initialize()
+	if InternalVariables["InitializedLighting"] == false then
+		InternalVariables["InitializedLighting"] = true
 
-	if RunService:IsServer() then
-		--// When the player first joins the game (this will always set the lighting, not tween)
-		InitialSyncToServer.OnServerEvent:Connect(function(Player)
-			local NumberOfTries = 0
+		TimeHandling = require(Main.TimeHandling)
 
-			while InternalVariables["TimeInitialized"] == false do --// Sometimes (especialy in Studio) where the client is loading in really fast, it will load in before the CurrentLightingPeriod is set
-				task.wait(.2)
-
-				NumberOfTries = NumberOfTries + 1
-
-				if NumberOfTries > InternalSettings["RemoteInitializationMaxTries"] then
-					warn("Max Tries has been reached for Remote Initialization")
-					return
-				end
-			end
-
-			--// Initial sync to server
-			local CurrentScope = PackageHandling:GetCurrentScope()
-
-			local CurrentPackageName = PackageHandling:GetCurrentPackageName("Lighting")
-			local CurrentComponentName = PackageHandling:GetCurrentComponentName("Lighting")
-
-			InitialSyncToServer:FireClient(Player, CurrentScope, CurrentPackageName, CurrentComponentName)
-		end)
-
-		LightingRemote.OnServerEvent:Connect(function(Player, Status)
-			--// Quick denoter to save space for determining if things are being tweened vs set
-			local ChangeType
-
-			if Settings["Tween"] then
-				ChangeType = "Tween"
-			else
-				ChangeType = "Set"
-			end
-
-			if Status == "SyncToServer" then --// Used when someone first joins the game
+		if RunService:IsServer() then
+			--// When the player first joins the game (this will always set the lighting, not tween)
+			InitialSyncToServer.OnServerEvent:Connect(function(Player)
 				local NumberOfTries = 0
 
 				while InternalVariables["TimeInitialized"] == false do --// Sometimes (especialy in Studio) where the client is loading in really fast, it will load in before the CurrentLightingPeriod is set
-					wait(.2)
+					task.wait(.2)
+
 					NumberOfTries = NumberOfTries + 1
 
 					if NumberOfTries > InternalSettings["RemoteInitializationMaxTries"] then
@@ -1018,20 +1021,53 @@ if InternalVariables["InitializedLighting"] == false then
 					end
 				end
 
-				if InternalVariables["LightingWeather"] then
-					LightingRemote:FireClient(Player, "ToServer", InternalVariables["CurrentLightingPeriod"], "Set", InternalVariables["CurrentLightingWeather"])
+				--// Initial sync to server
+				local CurrentScope = PackageHandling:GetCurrentScope("Lighting")
+
+				local CurrentPackageName = PackageHandling:GetCurrentPackageName("Lighting")
+				local CurrentComponentName = PackageHandling:GetCurrentComponentName("Lighting")
+
+				InitialSyncToServer:FireClient(Player, CurrentScope, CurrentPackageName, CurrentComponentName)
+			end)
+
+			LightingRemote.OnServerEvent:Connect(function(Player, Status)
+				--// Quick denoter to save space for determining if things are being tweened vs set
+				local ChangeType
+
+				if Settings["Tween"] then
+					ChangeType = "Tween"
 				else
-					LightingRemote:FireClient(Player, "ToServer", InternalVariables["CurrentLightingPeriod"], "Set")
+					ChangeType = "Set"
 				end
 
-			elseif Status == "ResyncToServer" then
-				if InternalVariables["LightingWeather"] then
-					LightingRemote:FireClient(Player, "ToServer", InternalVariables["CurrentLightingPeriod"], ChangeType, InternalVariables["CurrentLightingWeather"])
-				else
-					LightingRemote:FireClient(Player, "ToServer", InternalVariables["CurrentLightingPeriod"], ChangeType)
+				if Status == "SyncToServer" then --// Used when someone first joins the game
+					local NumberOfTries = 0
+
+					while InternalVariables["TimeInitialized"] == false do --// Sometimes (especialy in Studio) where the client is loading in really fast, it will load in before the CurrentLightingPeriod is set
+						wait(.2)
+						NumberOfTries = NumberOfTries + 1
+
+						if NumberOfTries > InternalSettings["RemoteInitializationMaxTries"] then
+							warn("Max Tries has been reached for Remote Initialization")
+							return
+						end
+					end
+
+					if InternalVariables["LightingWeather"] then
+						LightingRemote:FireClient(Player, "ToServer", InternalVariables["CurrentLightingPeriod"], "Set", InternalVariables["CurrentLightingWeather"])
+					else
+						LightingRemote:FireClient(Player, "ToServer", InternalVariables["CurrentLightingPeriod"], "Set")
+					end
+
+				elseif Status == "ResyncToServer" then
+					if InternalVariables["LightingWeather"] then
+						LightingRemote:FireClient(Player, "ToServer", InternalVariables["CurrentLightingPeriod"], ChangeType, InternalVariables["CurrentLightingWeather"])
+					else
+						LightingRemote:FireClient(Player, "ToServer", InternalVariables["CurrentLightingPeriod"], ChangeType)
+					end
 				end
-			end
-		end)
+			end)
+		end
 	end
 end
 

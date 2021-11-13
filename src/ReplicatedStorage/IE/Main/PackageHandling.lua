@@ -106,17 +106,27 @@ local function HandlePackages(PackageType: string, PackageScope: string, ScopeFo
     end
 end
 
---// Neater way of getting the current scope
-function module:GetCurrentScope()
-	return InternalVariables["Current Scope"]
+--// Neater way of getting the current scope.  PackageType = "Audio" or "Lighting"
+function module:GetCurrentScope(PackageType: string)
+	if not InternalVariables["Current Scope"][PackageType] then
+		warn("Invalid PackageType:", PackageType)
+		return
+	end
+	
+	return InternalVariables["Current Scope"][PackageType]
 end
 
---// Neater way of changing the scope.  NewScope = "Region", "Server", or "Weather"
-function module:SetCurrentScope(NewScope: string)
-	InternalVariables["Current Scope"] = NewScope
+--// Neater way of changing the scope.  PackageType = "Audio" or "Lighting"; NewScope = "Region", "Server", or "Weather"
+function module:SetCurrentScope(PackageType: string, NewScope: string)
+	if not InternalVariables["Current Scope"][PackageType] then
+		warn("Invalid PackageType:", PackageType)
+		return
+	end
+
+	InternalVariables["Current Scope"][PackageType] = NewScope
 
 	if NotifyClient then
-		local Remote: RemoteEvent = RemoteHandling:GetRemote("", "ScopeChanged")
+		local Remote: RemoteEvent = RemoteHandling:GetRemote(PackageType, "ScopeChanged")
 
 		Remote:FireAllClients(NewScope)
 	end
@@ -124,7 +134,7 @@ end
 
 --// Gets a package table by name
 function module:GetPackage(PackageType: string, PackageName: string)
-	local CurrentScope = module:GetCurrentScope()
+	local CurrentScope = module:GetCurrentScope(PackageType)
 
 	if not self[PackageType] then
 		warn("Invalid PackageType:", PackageType)
@@ -148,7 +158,7 @@ end
 
 --// Gets a component module by name
 function module:GetComponent(PackageType: string, PackageName: string, ComponentName: string)
-	local CurrentScope = module:GetCurrentScope()
+	local CurrentScope = module:GetCurrentScope(PackageType)
 	
 	local Package = module:GetPackage(PackageType, PackageName)
 
@@ -191,7 +201,7 @@ function module:GetCurrentPackage(PackageType: string)
 		return
 	end
 
-	local CurrentScope = module:GetCurrentScope()
+	local CurrentScope = module:GetCurrentScope(PackageType)
 
 	if not self[PackageType][CurrentScope] then
 		warn("Invalid PackageScope:", CurrentScope, "for PackageType", PackageType)
@@ -215,9 +225,7 @@ function module:GetCurrentPackageName(PackageType: string)
 		return
 	end
 
-	local CurrentScope = module:GetCurrentScope()
-
-	local CurrentScope = module:GetCurrentScope()
+	local CurrentScope = module:GetCurrentScope(PackageType)
 
 	if not self[PackageType][CurrentScope] then
 		warn("Invalid PackageScope:", CurrentScope, "for PackageType", PackageType)
@@ -230,7 +238,7 @@ function module:GetCurrentPackageName(PackageType: string)
 end
 
 function module:GetCurrentComponent(PackageType: string)
-	local CurrentScope = module:GetCurrentScope()
+	local CurrentScope = module:GetCurrentScope(PackageType)
 
 	local Package = module:GetCurrentPackage(PackageType)
 
@@ -252,7 +260,7 @@ function module:GetCurrentComponent(PackageType: string)
 end
 
 function module:GetCurrentComponentName(PackageType: string)
-	local CurrentScope = module:GetCurrentScope()
+	local CurrentScope = module:GetCurrentScope(PackageType)
 
 	local Package = module:GetCurrentPackage(PackageType)
 

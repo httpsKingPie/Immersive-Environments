@@ -49,13 +49,14 @@ local Settings = require(IEFolder.Settings)
 
 local Initialized = false
 
-local function SetRegionPackage(PackageType: string, PackageName: string)
+function module:SetRegionPackage(PackageType: string, PackageName: string)
 	if not Initialized then
 		warn("Initialize IE before setting packages")
 		return
 	end
 
 	PackageHandling:SetPackage(PackageType, "Region", PackageName)
+	PackageHandling:SetCurrentScope(PackageType, "Region")
 	TimeHandling:ReadPackage(PackageType, "Region", PackageName)
 end
 
@@ -66,8 +67,6 @@ end
 ]]
 
 local function HandleRegionEnter(PackageType: string, RegionName: string)
-	PackageHandling:SetCurrentScope("Region")
-
 	local Package = PackageHandling:GetPackage(PackageType, RegionName)
 
 	--// Warning already bundled in
@@ -75,15 +74,13 @@ local function HandleRegionEnter(PackageType: string, RegionName: string)
 		return
 	end
 
-	SetRegionPackage(PackageType, RegionName)
-
 	if PackageType == "Audio" then
 		AudioHandling.RegionEnter(RegionName)
 	elseif PackageType == "Lighting" then
 		LightingHandling.RegionEnter(RegionName)
 	end
 
-	InternalVariables["Current"..PackageType.."Regions"] = InternalVariables["Current"..PackageType.."Regions"] + 1
+	InternalVariables["Current".. PackageType.. "Regions"] = InternalVariables["Current".. PackageType.. "Regions"] + 1
 end
 
 --[[
@@ -93,17 +90,13 @@ end
 ]]
 
 local function HandleRegionLeave(PackageType: string, RegionName: string)
-	if PackageType == "Audio" then
-		if InternalVariables["CurrentAudioRegions"] > 0 then
-			InternalVariables["CurrentAudioRegions"] = InternalVariables["CurrentAudioRegions"] - 1
-		end
+	if InternalVariables["Current".. PackageType.. "Regions"] > 0 then
+		InternalVariables["Current".. PackageType.. "Regions"] = InternalVariables["Current".. PackageType.. "Regions"]  - 1
+	end
 
+	if PackageType == "Audio" then
 		AudioHandling.RegionLeave(RegionName)
 	elseif PackageType == "Lighting" then
-		if InternalVariables["CurrentLightingRegions"] > 0 then
-			InternalVariables["CurrentLightingRegions"] = InternalVariables["CurrentLightingRegions"] - 1
-		end
-
 		LightingHandling.RegionLeave(RegionName)
 	end
 end

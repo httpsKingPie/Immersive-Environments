@@ -21,7 +21,8 @@ local LightingRemote = RemoteFolder:WaitForChild("LightingRemote")
 local LightingComponentChanged: RemoteEvent = RemoteHandling:GetRemote("Lighting", "ComponentChanged")
 local LightingInitialSyncToServer: RemoteEvent = RemoteHandling:GetRemote("Lighting", "InitialSyncToServer")
 
-local ScopeChanged: RemoteEvent = RemoteHandling:GetRemote("", "ScopeChanged")
+local AudioScopeChanged: RemoteEvent = RemoteHandling:GetRemote("Audio", "ScopeChanged")
+local LightingScopeChanged: RemoteEvent = RemoteHandling:GetRemote("Lighting", "ScopeChanged")
 
 local Initialized = false
 
@@ -40,7 +41,7 @@ function module.Initialize()
         AudioRemote:FireServer("SyncToServer")
     
         LightingInitialSyncToServer.OnClientEvent:Connect(function(CurrentScope: string, CurrentPackage: string, CurrentComponentName: string)
-            PackageHandling:SetCurrentScope(CurrentScope)
+            PackageHandling:SetCurrentScope("Lighting", CurrentScope)
 
             PackageHandling:SetPackage("Lighting", "Server", CurrentPackage)
             PackageHandling:SetComponent("Lighting", "Server", CurrentComponentName)
@@ -52,7 +53,7 @@ function module.Initialize()
         LightingComponentChanged.OnClientEvent:Connect(function(Scope: string, ComponentName: string)
             PackageHandling:SetComponent("Lighting", Scope, ComponentName)
 
-            if Scope == PackageHandling:GetCurrentScope() then
+            if Scope == PackageHandling:GetCurrentScope("Lighting") then
                 LightingHandling:AdjustLighting()
             end
         end)
