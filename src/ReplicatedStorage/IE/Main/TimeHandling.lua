@@ -631,10 +631,13 @@ function module:ReadPackage(PackageType: string, PackageScope: string, PackageNa
 	if not Settings["AutomaticTransitions"] == true then 
 		return
 	end
-		
+	
+	--// The client can run this now that regions can have time periods
+	--[[
 	if not RunService:IsServer() then
 		return
 	end
+	]]
 
 	--// Sorts periods to reduce calculation time (sorting also usually takes a few microseconds)
 	if Settings["EnableSorting"] == true then
