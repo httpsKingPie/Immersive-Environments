@@ -547,7 +547,7 @@ local function TrackCycle(PackageType: string)
 		end
 
 		local CurrentComponent = module[PackageType.. "TimePeriods"][InternalVariables["Current".. PackageType.. "Index"]]["Name"]
-		PackageHandling:SetComponent(PackageType, PackageHandling:GetCurrentScope(), CurrentComponent)
+		PackageHandling:SetComponent(PackageType, PackageHandling:GetCurrentScope(PackageType), CurrentComponent)
 
 		while task.wait(Settings["CheckTime"]) do
 			if PackageChanged() then
@@ -564,7 +564,7 @@ local function TrackCycle(PackageType: string)
 				SetNextIndex(PackageType, CycleScope, CycleName)
 
 				if InternalVariables["Halt".. PackageType.. "Cycle"] == false then --// Cycle is not halted, changes can occur
-					PackageHandling:SetComponent(PackageType, PackageHandling:GetCurrentScope(), NewComponent)
+					PackageHandling:SetComponent(PackageType, PackageHandling:GetCurrentScope(PackageType), NewComponent)
 
 					--// If client sided, then all we need to do is set the component and then everything else follows
 					if ClientSided then
@@ -595,7 +595,7 @@ local function TrackCycle(PackageType: string)
 		end
 	else --// Non sorted loop
 		local CurrentComponent = GetCurrentAdjustedPeriod(PackageType)
-		PackageHandling:SetComponent(PackageType, PackageHandling:GetCurrentScope(), CurrentComponent)
+		PackageHandling:SetComponent(PackageType, PackageHandling:GetCurrentScope(PackageType), CurrentComponent)
 
 		while task.wait(Settings["CheckTime"]) do
 			if PackageChanged() then
@@ -607,7 +607,7 @@ local function TrackCycle(PackageType: string)
 			if CurrentAdjustedPeriod ~= InternalVariables["Current".. PackageType.. "Period"] then --// If this changes, that means they are entering a new period
 				InternalVariables["Current".. PackageType.. "Period"] = CurrentAdjustedPeriod
 
-				PackageHandling:SetComponent(PackageType, PackageHandling:GetCurrentScope(), CurrentAdjustedPeriod)
+				PackageHandling:SetComponent(PackageType, PackageHandling:GetCurrentScope(PackageType), CurrentAdjustedPeriod)
 
 				if Settings["Tween"]  == true then
 					Tween(PackageType, InternalVariables["Current".. PackageType.. "Period"])
