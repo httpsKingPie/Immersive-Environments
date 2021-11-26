@@ -4,12 +4,16 @@ local RunService = game:GetService("RunService")
 
 local AudioHandling: ModuleScript
 local ClientHandling: ModuleScript
+local InternalVariables: ModuleScript
 local LightingHandling: ModuleScript
 local RegionHandling: ModuleScript
 local PackageHandling: ModuleScript
 local SettingsHandling: ModuleScript
+local SignalHandling: ModuleScript
 local TimeHandling: ModuleScript
 local WeatherHandling: ModuleScript
+
+local Signal = require(script.Signal)
 
 local InternalSettings = require(script.InternalSettings)
 
@@ -18,6 +22,7 @@ local Initialized = false
 local function InitializeModules() --// Done so that the Remotes are loaded first and there aren't errors
 	AudioHandling = require(script.AudioHandling)
 	ClientHandling = require(script.ClientHandling)
+	InternalVariables = require(script.InternalVariables)
 	LightingHandling = require(script.LightingHandling)
 	RegionHandling = require(script.RegionHandling)
 	PackageHandling = require(script.PackageHandling)
@@ -61,13 +66,37 @@ local function GenerateRemotes()
 	end
 end
 
-function module:Run()
-	GenerateRemotes()
-	
-	if not Initialized then
-		InitializeModules()
-		Initialized = true
+--// These are created on both the server and the client
+local function GenerateSignals()
+	SignalHandling = require(script.SignalHandling)
+
+	--// Generates Type Separated Signals
+	for _, SignalName: string in pairs (InternalSettings["Signals"]["Type Separated"]) do
+		local AudioSignal = Signal.new()
+		SignalHandling["Audio".. SignalName] = AudioSignal
+
+		local LightingSignal = Signal.new()
+		SignalHandling["Lighting".. SignalName] = LightingSignal
 	end
+
+	--// Generates fixed Signals
+	for _, SignalName: string in pairs (InternalSettings["Signals"]["Fixed"]) do
+		local Signal = Signal.new()
+		SignalHandling[SignalName] = Signal
+	end
+end
+
+function module:Run()
+	if Initialized then
+		return
+	end
+
+	Initialized = true
+
+	GenerateRemotes()
+	GenerateSignals()
+
+	InitializeModules()
 
 	PackageHandling:Run()
 	SettingsHandling:Run()
@@ -93,7 +122,7 @@ function module:SetServerPackage(PackageType: string, PackageName: string)
 	end
 
 	PackageHandling:SetPackage(PackageType, "Server", PackageName)
-	TimeHandling:ReadPackage(PackageType, "Server", PackageName)
+	TimeHandling:ReadPackage(PackageType, "Server", PackageName, true)
 end
 
 --// Sets weather packages (PackageType is "Audio" or "Lighting")
@@ -103,8 +132,10 @@ function module:SetWeatherPackage(PackageType: string, PackageName: string)
 		return
 	end
 
+	InternalVariables["Weather Enabled"] = true
+
 	PackageHandling:SetPackage(PackageType, "Weather", PackageName)
-	TimeHandling:ReadPackage(PackageType, "Weather", PackageName)
+	TimeHandling:ReadPackage(PackageType, "Weather", PackageName, true)
 end
 
 --// Clears weather (Type is "Audio" or "Lighting")
@@ -113,6 +144,8 @@ function module:ClearWeather(Type: string)
 		warn("Initialize IE before interacting with API")
 		return
 	end
+
+	InternalVariables["Weather Enabled"] = false
 
 	PackageHandling:ClearPackage(Type, "Weather")
 	WeatherHandling:ClearWeather(Type)

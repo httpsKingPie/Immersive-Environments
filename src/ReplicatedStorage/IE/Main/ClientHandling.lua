@@ -18,10 +18,12 @@ local AudioRemote = RemoteFolder:WaitForChild("AudioRemote")
 local LightingRemote = RemoteFolder:WaitForChild("LightingRemote")
 
 --// New remotes
+local AudioComponentChanged: RemoteEvent = RemoteHandling:GetRemote("Audio", "ComponentChanged")
+local AudioInitialSyncToServer: RemoteEvent = RemoteHandling:GetRemote("Audio", "InitialSyncToServer")
+local AudioScopeChanged: RemoteEvent = RemoteHandling:GetRemote("Audio", "ScopeChanged")
+
 local LightingComponentChanged: RemoteEvent = RemoteHandling:GetRemote("Lighting", "ComponentChanged")
 local LightingInitialSyncToServer: RemoteEvent = RemoteHandling:GetRemote("Lighting", "InitialSyncToServer")
-
-local AudioScopeChanged: RemoteEvent = RemoteHandling:GetRemote("Audio", "ScopeChanged")
 local LightingScopeChanged: RemoteEvent = RemoteHandling:GetRemote("Lighting", "ScopeChanged")
 
 local Initialized = false
@@ -37,9 +39,7 @@ function module.Initialize()
 
     if Settings["ClientSided"] == true and RunService:IsClient() then
         --LightingRemote:FireServer("SyncToServer") --// Sets the Player's lighting to whatever the server's current lighting is
-        LightingInitialSyncToServer:FireServer() --// Sets the Player's lighting to whatever the server's current lighting is
-        AudioRemote:FireServer("SyncToServer")
-    
+
         LightingInitialSyncToServer.OnClientEvent:Connect(function(CurrentScope: string, CurrentPackage: string, CurrentComponentName: string)
             PackageHandling:SetCurrentScope("Lighting", CurrentScope)
 
@@ -51,12 +51,40 @@ function module.Initialize()
 
         --// This needs to be editted to ensure it works properly (arguments currently don't align)
         LightingComponentChanged.OnClientEvent:Connect(function(Scope: string, ComponentName: string)
+            print("Lighting component changed", Scope, ComponentName)
+
             PackageHandling:SetComponent("Lighting", Scope, ComponentName)
 
             if Scope == PackageHandling:GetCurrentScope("Lighting") then
-                LightingHandling:AdjustLighting()
+                LightingHandling:AdjustLighting("Time")
             end
         end)
+
+        --AudioRemote:FireServer("SyncToServer")
+        
+        AudioInitialSyncToServer.OnClientEvent:Connect(function(CurrentScope: string, CurrentPackage: string, CurrentComponentName: string)
+            print("Initial set", CurrentScope, CurrentPackage, CurrentComponentName)
+            PackageHandling:SetCurrentScope("Audio", CurrentScope)
+
+            PackageHandling:SetPackage("Audio", "Server", CurrentPackage)
+            PackageHandling:SetComponent("Audio", "Server", CurrentComponentName)
+
+            AudioHandling:TweenAudio("Time")
+        end)
+
+        AudioComponentChanged.OnClientEvent:Connect(function(Scope: string, ComponentName: string)
+            print("Audio component changed", Scope, ComponentName)
+
+            PackageHandling:SetComponent("Audio", Scope, ComponentName)
+
+            if Scope == PackageHandling:GetCurrentScope("Audio") then
+                AudioHandling:TweenAudio("Time")
+            end
+        end)
+
+        --// Sets the player's audio and lighting to what is currently playing on the server
+        AudioInitialSyncToServer:FireServer()
+        LightingInitialSyncToServer:FireServer()
 
         --// The audio Remote does not feature Type, like Tween and Set, because the audio settings already allow for delineation of which settings to tween and set
         AudioRemote.OnClientEvent:Connect(function(Event:string, SettingName: string, WeatherName: string) --// Only possible Events are "TimeChange", "Weather", and "ToServer" because all region changes happen on the client
@@ -64,7 +92,7 @@ function module.Initialize()
                 if WeatherName then --// This one is used when the Event is "ToServer", since that indiscriminately fires back the Event == "ToServer", SettingName == CurrentAudioName, and WeatherName == CurrentWeatherName (empty string if none)
                     AudioHandling.ChangeWeather(WeatherName)
                 else
-                    AudioHandling.TweenAudio(Event, SettingName)
+                    AudioHandling:TweenAudio(Event, SettingName)
                 end
             end
         end)
@@ -81,7 +109,7 @@ function module.Initialize()
                     if WeatherName then
                         LightingHandling.TweenWeather(WeatherName)
                     else
-                        LightingHandling.TweenLighting(Event, SettingName)
+                        LightingHandling:TweenLighting(Event, SettingName)
                     end
                 end
             end
