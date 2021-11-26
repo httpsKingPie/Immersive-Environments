@@ -41,6 +41,13 @@ local module = {
         ["Lighting"] = false,
     },
 
+    ["Initialized"] = {
+        ["Audio"] = false,
+        ["Lighting"] = false,
+    },
+
+    ["Weather Enabled"] = false, --// This is set to true, although WeatherExemption settings will override this
+
     --// Old variables
 
     --// Audio Variables
@@ -84,11 +91,11 @@ local module = {
     ["TimeInitialized"] = false, --// Turns to true once TimeHandling has finished initialization
 
      --// Region Variables
-     ["CurrentRegions"] = {}, --// Stores a dictionary with numerical indexes to indicate the order in which the region was joined (high numbers = joined more recently)
-     ["CurrentRegionsQuick"] = {}, --// This is a table, not a dictionary, that just stores strings of RegionName so that table.find can be used quickly
-    
-     ["CurrentAudioRegions"] = 0, --// Number of the amount of audio regions the player is currently in
-     ["CurrentLightingRegions"] = 0, --// Number of the amount of lighting regions the player is currently in
+     ["CurrentAudioRegions"] = {}, --// Stores a dictionary with numerical indexes to indicate the order in which the region was joined (high numbers = joined more recently)
+     ["CurrentAudioRegionsQuick"] = {}, --// This is a table, not a dictionary, that just stores strings of RegionName so that table.find can be used quickly
+
+     ["CurrentLightingRegions"] = {}, --// Stores a dictionary with numerical indexes to indicate the order in which the region was joined (high numbers = joined more recently)
+     ["CurrentLightingRegionsQuick"] = {}, --// This is a table, not a dictionary, that just stores strings of RegionName so that table.find can be used quickly
      
      ["Regions"] = {}, --// Stores Audio, Lighting, etc. regions 
 }

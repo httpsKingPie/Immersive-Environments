@@ -9,8 +9,10 @@ local LightingPackages: Folder = Packages:FindFirstChild("Lighting")
 
 --// IE Modules
 local Settings = require(IEFolder.Settings)
+
 local InternalVariables = require(Main.InternalVariables)
 local RemoteHandling = require(Main.RemoteHandling)
+local SignalHandling = require(Main.SignalHandling)
 
 local ClientSided = Settings["ClientSided"]
 local IsServer = RunService:IsServer()
@@ -133,23 +135,22 @@ function module:SetCurrentScope(PackageType: string, NewScope: string)
 end
 
 --// Gets a package table by name
-function module:GetPackage(PackageType: string, PackageName: string)
-	local CurrentScope = module:GetCurrentScope(PackageType)
-
+function module:GetPackage(PackageType: string, PackageScope: string, PackageName: string)
 	if not self[PackageType] then
 		warn("Invalid PackageType:", PackageType)
 		return
 	end
 
-	if not self[PackageType][CurrentScope] then
-		warn("Invalid PackageScope:", CurrentScope, "for PackageType", PackageType)
+	if not self[PackageType][PackageScope] then
+		warn("Invalid PackageScope:", PackageScope, "for PackageType", PackageType)
 		return
 	end
 
-	local Package = self[PackageType][CurrentScope][PackageName]
+	local Package = self[PackageType][PackageScope][PackageName]
 
 	if not Package then
-		warn("Invalid PackageName:", PackageName, "for PackageType", PackageType, "and PackageScope", CurrentScope)
+		warn("Invalid PackageName:", PackageName, "for PackageType", PackageType, "and PackageScope", PackageScope)
+		print(debug.traceback())
 		return
 	end
 
@@ -160,7 +161,7 @@ end
 function module:GetComponent(PackageType: string, PackageName: string, ComponentName: string)
 	local CurrentScope = module:GetCurrentScope(PackageType)
 	
-	local Package = module:GetPackage(PackageType, PackageName)
+	local Package = module:GetPackage(PackageType, CurrentScope, PackageName)
 
 	if not Package then
 		return --// Error already bundled in
@@ -177,8 +178,8 @@ function module:GetComponent(PackageType: string, PackageName: string, Component
 end
 
 --// Verifies component of current package, PackageType = "Audio" or "Lighting"
-function module:VerifyComponentExists(PackageType: string, ComponentName: string)
-	local Package = module:GetCurrentPackage(PackageType)
+function module:VerifyComponentExists(PackageType: string, Scope: string, ComponentName: string)
+	local Package = module:GetCurrentPackage(PackageType, Scope)
 
 	if not Package then
 		return --// Error already bundled in
@@ -187,7 +188,8 @@ function module:VerifyComponentExists(PackageType: string, ComponentName: string
 	local Component = Package["Components"][ComponentName]
 	
 	if not Component then
-		warn("Invalid ComponentName:", ComponentName, "for current package")
+		warn("Invalid ComponentName:", ComponentName, "for current package", PackageType, "and scope", Scope)
+		print(debug.traceback())
 		return
 	end
 
@@ -195,44 +197,40 @@ function module:VerifyComponentExists(PackageType: string, ComponentName: string
 end
 
 --// Fast functions
-function module:GetCurrentPackage(PackageType: string)
+function module:GetCurrentPackage(PackageType: string, PackageScope: string)
 	if not self[PackageType] then
 		warn("Invalid PackageType:", PackageType)
 		return
 	end
 
-	local CurrentScope = module:GetCurrentScope(PackageType)
-
-	if not self[PackageType][CurrentScope] then
-		warn("Invalid PackageScope:", CurrentScope, "for PackageType", PackageType)
+	if not self[PackageType][PackageScope] then
+		warn("Invalid PackageScope:", PackageScope, "for PackageType", PackageType)
 		return
 	end
 
-	local PackageName: string = InternalVariables["Current Package"][PackageType][CurrentScope]
+	local PackageName: string = InternalVariables["Current Package"][PackageType][PackageScope]
 
-	local Package = module:GetPackage(PackageType, PackageName)
+	local Package = module:GetPackage(PackageType, PackageScope, PackageName)
 
 	if not Package then --// Additional return in here not necessary, since it would be nil regardless
-		warn("No package found for PackageScope:", CurrentScope, "for PackageType", PackageType)
+		warn("No package found for PackageScope:", PackageScope, "for PackageType", PackageType)
 	end
 
 	return Package
 end
 
-function module:GetCurrentPackageName(PackageType: string)
+function module:GetCurrentPackageName(PackageType: string, PackageScope: string)
 	if not self[PackageType] then
 		warn("Invalid PackageType:", PackageType)
 		return
 	end
 
-	local CurrentScope = module:GetCurrentScope(PackageType)
-
-	if not self[PackageType][CurrentScope] then
-		warn("Invalid PackageScope:", CurrentScope, "for PackageType", PackageType)
+	if not self[PackageType][PackageScope] then
+		warn("Invalid PackageScope:", PackageScope, "for PackageType", PackageType)
 		return
 	end
 
-	local PackageName: string = InternalVariables["Current Package"][PackageType][CurrentScope]
+	local PackageName: string = InternalVariables["Current Package"][PackageType][PackageScope]
 
 	return PackageName
 end
@@ -240,7 +238,7 @@ end
 function module:GetCurrentComponent(PackageType: string)
 	local CurrentScope = module:GetCurrentScope(PackageType)
 
-	local Package = module:GetCurrentPackage(PackageType)
+	local Package = module:GetCurrentPackage(PackageType, CurrentScope)
 
 	if not Package then --// Warning already bundled in
 		return
@@ -262,7 +260,7 @@ end
 function module:GetCurrentComponentName(PackageType: string)
 	local CurrentScope = module:GetCurrentScope(PackageType)
 
-	local Package = module:GetCurrentPackage(PackageType)
+	local Package = module:GetCurrentPackage(PackageType, CurrentScope)
 
 	if not Package then --// Warning already bundled in
 		return
@@ -299,6 +297,9 @@ function module:SetPackage(PackageType: string, PackageScope: string, PackageNam
 
 		Remote:FireAllClients(PackageName)
 	end
+
+	local Signal: RBXScriptSignal = SignalHandling:GetSignal(PackageType, "PackageChanged")
+	Signal:Fire()
 end
 
 --// Clears packages, PackageType is "Lighting" or "Audio", PackageScope is "Region", "Server", or "Weather"
@@ -324,7 +325,7 @@ end
 
 --// Set the component (Type = "Audio" or "Lighting"), Scope = "Region", "Server", or "Weather"
 function module:SetComponent(Type: string, Scope: string, ComponentName: string)
-	local ComponentExists = module:VerifyComponentExists(Type, ComponentName)
+	local ComponentExists = module:VerifyComponentExists(Type, Scope, ComponentName)
 
 	if not ComponentExists then --// Error already bundled in
 		return

@@ -123,6 +123,23 @@ local module = {
 		["SunRaysEffect"] = ReturnExistence(Lighting, "SunRaysEffect"),
 		["Terrain"] = ReturnExistence(Workspace, "Terrain")
 	},
+
+	["Signals"] = {
+		--// RemoteName is not changed
+		["Fixed"] = {
+			
+		},
+		
+		--// RemoteName is prefaced by "Audio" or "Lighting"
+		["Type Separated"] = {
+			"ComponentChanged",
+			"InitialSyncToServer",
+			"PackageChanged",
+			"ScopeChanged",
+			"SyncToServer",
+			"WeatherCleared",
+		},
+	},
 	
 	["Weather"] = false,
 }
