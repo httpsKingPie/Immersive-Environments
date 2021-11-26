@@ -44,8 +44,8 @@ local module = {
 	["EnableDayNightTransitions"] = true, --// Turns on day/night cycle
 	["EnableSorting"] = true, --// Setting to true reduces the work done by the script, however, this denies the ability to make changes to ClockTime or TimeOfDay via admin or other controls and have the script automatically follow.  Set to false if you would like to preserve the ability to make changes in admin.
 	
-	["TimeForDay"] = 2, --// The amount of minutes it takes to go from 0600 to 1800
-	["TimeForNight"] = 2, --// The amount of minutes it takes to go from 1800 to 0600
+	["TimeForDay"] = 5, --// The amount of minutes it takes to go from 0600 to 1800
+	["TimeForNight"] = 5, --// The amount of minutes it takes to go from 1800 to 0600
 }
 
 return module

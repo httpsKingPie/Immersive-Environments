@@ -669,9 +669,9 @@ function module:ReadPackage(PackageType: string, PackageScope: string, PackageNa
 		module["Initial Read"][PackageType] = true
 
 		if PackageType == "Audio" then
-			Tween(PackageType, InternalVariables["Current".. PackageType.. "Period"])
+			Tween(PackageType)
 		else
-			Set(PackageType, InternalVariables["Current".. PackageType.. "Period"])
+			Set(PackageType)
 		end
 
 		return
@@ -680,11 +680,70 @@ function module:ReadPackage(PackageType: string, PackageScope: string, PackageNa
 	--// Whether we do the initial change here, or whether we handle it somewhere else in the code
 	if ImplementInitialComponent then
 		if PackageType == "Audio" or Settings["Tween"] then
-			Tween(PackageType, InternalVariables["Current".. PackageType.. "Period"])
+			Tween(PackageType)
 		else
-			Set(PackageType, InternalVariables["Current".. PackageType.. "Period"])
+			Set(PackageType)
 		end
 	end
+end
+
+--[[
+	This returns the component that *theoretically* would be active for a package
+
+	This is basically only used for evaluating shared sounds, but this is essentially saying "Hey, if this package were implemented, what would component would be active *right now*"
+]]
+function module:ReturnTheoreticallyCurrentComponentForPackage(Package: table)
+	--// This is a localized variation of CheckForOnlyOneComponent, compatible with a table of Components as an article, instead of a PackageType and it returns the Component
+	local function TheoreticallyCheckForOnlyOneComponent(Components: table)
+		local LastComponent: table
+		local NumberOfComponents: number = 0
+	
+		for _, Component in pairs (Components) do
+			NumberOfComponents = NumberOfComponents + 1
+			LastComponent = Component
+		end
+	
+		if NumberOfComponents == 1 then
+			return true, LastComponent
+		else
+			return false, nil
+		end
+	end
+
+	--// Localaized variation of GetCurrentPeriod, compatible with a table of Components as an article, instead of a PackageType and it returns the Component
+	local function GetTheoreticallyCurrentComponent(Components: table)
+		local CurrentTime = Lighting.ClockTime
+
+		for _, Component in pairs (Components) do
+			local StartTime = Component["GeneralSettings"]["StartTime"]
+			local EndTime = Component["GeneralSettings"]["EndTime"]
+
+			if CheckInPeriod(CurrentTime, StartTime, EndTime) then
+				return Component
+			end
+		end
+
+		warn("Components are not continuous - theoretical component not found")
+	end
+
+	local Components: table = Package["Components"]
+
+	local OnlyOneComponent: boolean, SoleComponent: string = TheoreticallyCheckForOnlyOneComponent(Components)
+
+	--// If there is only one component, then we can just return this directly
+	if OnlyOneComponent then
+		return SoleComponent
+	end
+
+	--// Otherwise, there are multiple components and we must instead sort through each
+	local TheoreticallyCurrentComponent = GetTheoreticallyCurrentComponent(Components)
+
+	--// Warning bundled in
+	if not TheoreticallyCurrentComponent then
+		return
+	end
+
+	return TheoreticallyCurrentComponent
 end
 
 --// Basic initialization

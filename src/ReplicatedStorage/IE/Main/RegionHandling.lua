@@ -101,16 +101,12 @@ end
 --// Removes a region for internal tracking when a player leaves it
 local function RemoveRegion(RegionType: string, RegionName: string)
 	local RegionLeftIndex
-	local MaxIndex = 1
+	local MaxIndex = #InternalVariables["Current".. RegionType.. "Regions"] --// Look about replacing this with local MaxIndex = #InternalVariables["Current".. RegionType.. "Regions"]
 
 	--// Get the index of the region left so that we can sort the dictionary
 	for Index, _RegionName in ipairs (InternalVariables["Current".. RegionType.. "Regions"]) do
 		if _RegionName == RegionName then
 			RegionLeftIndex = Index
-		end
-
-		if Index > MaxIndex then
-			MaxIndex = Index
 		end
 	end
 
@@ -120,6 +116,7 @@ local function RemoveRegion(RegionType: string, RegionName: string)
 		return
 	end
 
+	--// If we are removing an index (ex: index 5) and the total number of indexes is ex: 8, then we shift all indexes above 5 down 1, and then remove the last index (effectively removing that index and sorting everything down one)
 	for Index, _RegionName in ipairs (InternalVariables["Current".. RegionType.. "Regions"]) do
 		if Index > RegionLeftIndex then --// If it's an index lower than the number that was left, then it does not need resorting.
 			InternalVariables["Current".. RegionType.. "Regions"][Index - 1] = _RegionName
@@ -127,7 +124,9 @@ local function RemoveRegion(RegionType: string, RegionName: string)
 	end
 
 	InternalVariables["Current".. RegionType.. "Regions"][MaxIndex] = nil
-	table.remove(InternalVariables["Current".. RegionType.. "Regions"], table.find(InternalVariables["Current".. RegionType.. "RegionsQuick"], RegionName))
+
+	--// Remove the index from internal references
+	table.remove(InternalVariables["Current".. RegionType.. "RegionsQuick"], table.find(InternalVariables["Current".. RegionType.. "RegionsQuick"], RegionName))
 end
 
 --// Clears the current regions

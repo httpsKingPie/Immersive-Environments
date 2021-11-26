@@ -1,5 +1,11 @@
 local module = {
-	["WeatherExemption"] = true,
+	["GeneralSettings"] = {
+		--// All times in 24 hour notation
+	   ["StartTime"] = 0,
+	   ["EndTime"] = 0,
+	   
+	   ["WeatherExemption"] = true,
+   },
 
 	["SoundService"] = {
 		["AmbientReverb"] = Enum.ReverbType.UnderWater,
