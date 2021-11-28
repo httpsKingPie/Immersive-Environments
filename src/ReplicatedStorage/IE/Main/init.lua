@@ -37,13 +37,16 @@ local function GenerateRemotes()
 		RemoteFolder.Name = "RemoteFolder"
 		RemoteFolder.Parent = script.Parent
 
+		--[[
 		local AudioRemote = Instance.new("RemoteEvent")
 		AudioRemote.Name = "AudioRemote"
 		AudioRemote.Parent = RemoteFolder
+		
 
 		local LightingRemote = Instance.new("RemoteEvent")
 		LightingRemote.Name = "LightingRemote"
 		LightingRemote.Parent = RemoteFolder
+		]]
 
 		--// New Remotes
 		--// Generates Type Separated RemoteEvents
@@ -98,7 +101,7 @@ function module:Run()
 
 	InitializeModules()
 
-	PackageHandling:Run()
+	PackageHandling:Initialize()
 	SettingsHandling:Run()
 
 	coroutine.wrap(AudioHandling.Initialize)() --// Sets up the client sound folders, etc.
@@ -132,23 +135,21 @@ function module:SetWeatherPackage(PackageType: string, PackageName: string)
 		return
 	end
 
-	InternalVariables["Weather Enabled"] = true
-
 	PackageHandling:SetPackage(PackageType, "Weather", PackageName)
+	PackageHandling:SetCurrentScope(PackageType, "Weather")
+
 	TimeHandling:ReadPackage(PackageType, "Weather", PackageName, true)
 end
 
 --// Clears weather (Type is "Audio" or "Lighting")
-function module:ClearWeather(Type: string)
+function module:ClearWeather(PackageType: string)
 	if not Initialized then
 		warn("Initialize IE before interacting with API")
 		return
 	end
 
-	InternalVariables["Weather Enabled"] = false
-
-	PackageHandling:ClearPackage(Type, "Weather")
-	WeatherHandling:ClearWeather(Type)
+	PackageHandling:ClearPackage(PackageType, "Weather")
+	PackageHandling:SetCurrentScope(PackageType, "Server")
 end
 
 return module

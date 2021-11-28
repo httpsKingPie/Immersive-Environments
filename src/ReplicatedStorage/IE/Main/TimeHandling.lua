@@ -106,8 +106,8 @@ local function DayNightCycle()
 	local MinutesToAddNight = NightRatio / ActiviationPerMinute
 	--// Note: for above, the ratio tells how many in-game minutes pass per real life minute, and divides it by the amount of activates per real life minute = conversion of in-game minutes per activation
 
-	InternalVariables["DayAdjustmentRate"] = DayRatio / (60^2) * Settings["Tween Information"]["Time"].Time
-	InternalVariables["NightAdjustmentRate"] = NightRatio / (60^2) * Settings["Tween Information"]["Time"].Time
+	InternalVariables["Adjustment Rate"]["Day"] = DayRatio / (60^2) * Settings["Tween Information"]["Time"].Time
+	InternalVariables["Adjustment Rate"]["Night"] = NightRatio / (60^2) * Settings["Tween Information"]["Time"].Time
 	--// Note: above are measured in in-game hours/real life second
 
 	while true do
@@ -262,7 +262,7 @@ local function AdjustStartTimes(PackageType: string)
 
 	if Settings["DetectIndependentTimeChange"] == false then
 		if Settings["TimeForDay"] == Settings["TimeForNight"] then
-			Adjustment = InternalVariables["DayAdjustmentRate"]
+			Adjustment = InternalVariables["Adjustment Rate"]["Day"]
 		else
 			DifferentTimes = true
 		end
@@ -298,60 +298,60 @@ local function AdjustStartTimes(PackageType: string)
 		if Settings["EnableSorting"] == true then
 			for _, PeriodSettings in ipairs (module[PackageType.."AdjustedTimePeriods"]) do
 				if PeriodSettings["StartTime"] < 18 or PeriodSettings["StartTime"] >= 6 then --// If it starts during the day then
-					if PeriodSettings["StartTime"] - InternalVariables["DayAdjustmentRate"] >= 0 then
-						PeriodSettings["StartTime"] = PeriodSettings["StartTime"] - InternalVariables["DayAdjustmentRate"]
+					if PeriodSettings["StartTime"] - InternalVariables["Adjustment Rate"]["Day"] >= 0 then
+						PeriodSettings["StartTime"] = PeriodSettings["StartTime"] - InternalVariables["Adjustment Rate"]["Day"]
 					else
-						PeriodSettings["StartTime"] = 24 + PeriodSettings["StartTime"] - InternalVariables["DayAdjustmentRate"]
+						PeriodSettings["StartTime"] = 24 + PeriodSettings["StartTime"] - InternalVariables["Adjustment Rate"]["Day"]
 					end
 				else --// If it starts during night
-					if PeriodSettings["StartTime"] - InternalVariables["NightAdjustmentRate"] >= 0 then
-						PeriodSettings["StartTime"] = PeriodSettings["StartTime"] - InternalVariables["NightAdjustmentRate"]
+					if PeriodSettings["StartTime"] - InternalVariables["Adjustment Rate"]["Night"] >= 0 then
+						PeriodSettings["StartTime"] = PeriodSettings["StartTime"] - InternalVariables["Adjustment Rate"]["Night"]
 					else
-						PeriodSettings["StartTime"] = 24 + PeriodSettings["StartTime"] - InternalVariables["NightAdjustmentRate"]
+						PeriodSettings["StartTime"] = 24 + PeriodSettings["StartTime"] - InternalVariables["Adjustment Rate"]["Night"]
 					end
 				end
 
 				if PeriodSettings["EndTime"] < 18 or PeriodSettings["EndTime"] >= 6 then --// If it ends during the day then
-					if PeriodSettings["EndTime"] - InternalVariables["DayAdjustmentRate"] >= 0 then
-						PeriodSettings["EndTime"] = PeriodSettings["EndTime"] - InternalVariables["DayAdjustmentRate"]
+					if PeriodSettings["EndTime"] - InternalVariables["Adjustment Rate"]["Day"] >= 0 then
+						PeriodSettings["EndTime"] = PeriodSettings["EndTime"] - InternalVariables["Adjustment Rate"]["Day"]
 					else
-						PeriodSettings["EndTime"] = 24 + PeriodSettings["EndTime"] - InternalVariables["DayAdjustmentRate"]
+						PeriodSettings["EndTime"] = 24 + PeriodSettings["EndTime"] - InternalVariables["Adjustment Rate"]["Day"]
 					end
 				else
-					if PeriodSettings["EndTime"] - InternalVariables["NightAdjustmentRate"] >= 0 then
-						PeriodSettings["EndTime"] = PeriodSettings["EndTime"] - InternalVariables["NightAdjustmentRate"]
+					if PeriodSettings["EndTime"] - InternalVariables["Adjustment Rate"]["Night"] >= 0 then
+						PeriodSettings["EndTime"] = PeriodSettings["EndTime"] - InternalVariables["Adjustment Rate"]["Night"]
 					else
-						PeriodSettings["EndTime"] = 24 + PeriodSettings["EndTime"] - InternalVariables["NightAdjustmentRate"]
+						PeriodSettings["EndTime"] = 24 + PeriodSettings["EndTime"] - InternalVariables["Adjustment Rate"]["Night"]
 					end
 				end
 			end
 		else
 			for _, PeriodSettings in pairs (module[PackageType.."AdjustedTimePeriods"]) do
 				if PeriodSettings["StartTime"] < 18 or PeriodSettings["StartTime"] >= 6 then --// If it starts during the day then
-					if PeriodSettings["StartTime"] - InternalVariables["DayAdjustmentRate"] >= 0 then
-						PeriodSettings["StartTime"] = PeriodSettings["StartTime"] - InternalVariables["DayAdjustmentRate"]
+					if PeriodSettings["StartTime"] - InternalVariables["Adjustment Rate"]["Day"] >= 0 then
+						PeriodSettings["StartTime"] = PeriodSettings["StartTime"] - InternalVariables["Adjustment Rate"]["Day"]
 					else
-						PeriodSettings["StartTime"] = 24 + PeriodSettings["StartTime"] - InternalVariables["DayAdjustmentRate"]
+						PeriodSettings["StartTime"] = 24 + PeriodSettings["StartTime"] - InternalVariables["Adjustment Rate"]["Day"]
 					end
 				else --// If it starts during night
-					if PeriodSettings["StartTime"] - InternalVariables["NightAdjustmentRate"] >= 0 then
-						PeriodSettings["StartTime"] = PeriodSettings["StartTime"] - InternalVariables["NightAdjustmentRate"]
+					if PeriodSettings["StartTime"] - InternalVariables["Adjustment Rate"]["Night"] >= 0 then
+						PeriodSettings["StartTime"] = PeriodSettings["StartTime"] - InternalVariables["Adjustment Rate"]["Night"]
 					else
-						PeriodSettings["StartTime"] = 24 + PeriodSettings["StartTime"] - InternalVariables["NightAdjustmentRate"]
+						PeriodSettings["StartTime"] = 24 + PeriodSettings["StartTime"] - InternalVariables["Adjustment Rate"]["Night"]
 					end
 				end
 
 				if PeriodSettings["EndTime"] < 18 or PeriodSettings["EndTime"] >= 6 then --// If it ends during the day then
-					if PeriodSettings["EndTime"] - InternalVariables["DayAdjustmentRate"] >= 0 then
-						PeriodSettings["EndTime"] = PeriodSettings["EndTime"] - InternalVariables["DayAdjustmentRate"]
+					if PeriodSettings["EndTime"] - InternalVariables["Adjustment Rate"]["Day"] >= 0 then
+						PeriodSettings["EndTime"] = PeriodSettings["EndTime"] - InternalVariables["Adjustment Rate"]["Day"]
 					else
-						PeriodSettings["EndTime"] = 24 + PeriodSettings["EndTime"] - InternalVariables["DayAdjustmentRate"]
+						PeriodSettings["EndTime"] = 24 + PeriodSettings["EndTime"] - InternalVariables["Adjustment Rate"]["Day"]
 					end
 				else
-					if PeriodSettings["EndTime"] - InternalVariables["NightAdjustmentRate"] >= 0 then
-						PeriodSettings["EndTime"] = PeriodSettings["EndTime"] - InternalVariables["NightAdjustmentRate"]
+					if PeriodSettings["EndTime"] - InternalVariables["Adjustment Rate"]["Night"] >= 0 then
+						PeriodSettings["EndTime"] = PeriodSettings["EndTime"] - InternalVariables["Adjustment Rate"]["Night"]
 					else
-						PeriodSettings["EndTime"] = 24 + PeriodSettings["EndTime"] - InternalVariables["NightAdjustmentRate"]
+						PeriodSettings["EndTime"] = 24 + PeriodSettings["EndTime"] - InternalVariables["Adjustment Rate"]["Night"]
 					end
 				end
 			end
@@ -423,7 +423,7 @@ local function GetCurrentAdjustedPeriod(PackageType: string)
 		local EndTime = PeriodSettings["EndTime"]
 
 		if CheckInPeriod(CurrentTime, StartTime, EndTime) then
-			InternalVariables["Current".. PackageType.. "AdjustedPeriod"] = PeriodName
+			InternalVariables["Current Adjusted Period"][PackageType] = PeriodName
 			return PeriodName
 		end
 	end
@@ -443,12 +443,12 @@ local function GetCurrentPeriod(PackageType: string)
 			local EndTime = PeriodSettings["EndTime"]
 			local PeriodName = PeriodSettings["Name"]
 
-			if not InternalVariables["Current".. PackageType.. "Period"] == "" then
+			if not InternalVariables["Current Period"][PackageType] == "" then
 				return
 			end
 
 			if CheckInPeriod(CurrentTime, StartTime, EndTime) then
-				InternalVariables["Current".. PackageType.. "Period"] = PeriodName
+				InternalVariables["Current Period"][PackageType] = PeriodName
 			end
 		end
 	else
@@ -456,17 +456,17 @@ local function GetCurrentPeriod(PackageType: string)
 			local StartTime = PeriodSettings["StartTime"]
 			local EndTime = PeriodSettings["EndTime"]
 
-			if not InternalVariables["Current".. PackageType.. "Period"] == "" then
+			if not InternalVariables["Current Period"][PackageType] == "" then
 				return
 			end
 
 			if CheckInPeriod(CurrentTime, StartTime, EndTime) then
-				InternalVariables["Current".. PackageType.. "Period"] = PeriodName
+				InternalVariables["Current Period"][PackageType] = PeriodName
 			end
 		end
 	end
 
-	if InternalVariables["Current".. PackageType.. "Period"] == "" then
+	if InternalVariables["Current Period"][PackageType] == "" then
 		warn(PackageType.. " periods are not continuous - period not found")
 	end
 end
@@ -508,10 +508,10 @@ local function SetNextIndex(PackageType: string, PackageScope: string, PackageNa
 
 	local TotalIndexes = Package["Count"]
 
-	if InternalVariables["Current".. PackageType.. "Index"] + 1 <= TotalIndexes then --// Not maxed
-		InternalVariables["Next".. PackageType.. "Index"] = InternalVariables["Current".. PackageType.. "Index"] + 1
+	if InternalVariables["Current Index"][PackageType] + 1 <= TotalIndexes then --// Not maxed
+		InternalVariables["Next Index"][PackageType] = InternalVariables["Current Index"][PackageType] + 1
 	else
-		InternalVariables["Next".. PackageType.. "Index"] = 1 --// Resets to first index in the sort
+		InternalVariables["Next Index"][PackageType] = 1 --// Resets to first index in the sort
 	end
 end
 
@@ -529,26 +529,15 @@ local function TrackCycle(PackageType: string)
 	local CycleName = module["Current ".. PackageType.. " Package"]["Name"]
 	local CycleScope = module["Current ".. PackageType.. " Package"]["Scope"]
 
-	if InternalVariables["Current".. PackageType.. "AdjustedPeriod"] == "" then
+	if InternalVariables["Current Adjusted Period"][PackageType] == "" then
 		GetCurrentAdjustedPeriod(PackageType)
 	end
 
-	if InternalVariables["Current".. PackageType.. "Period"] == "" then
+	if InternalVariables["Current Period"][PackageType] == "" then
 		GetCurrentPeriod(PackageType) --// This returns a value, but we don't need it
 	end
 
-	local PackageChanged: RBXScriptSignal = SignalHandling:GetSignal(PackageType, "PackageChanged")
 	local OnlyOneComponent: boolean, SoleComponentName: string = CheckForOnlyOneComponent(PackageType)
-
-	local Connection: RBXScriptConnection
-	local EndLoop: boolean = false
-
-	--// Ends the loop when the package changes
-	Connection = PackageChanged:Connect(function()
-		EndLoop = true
-
-		Connection:Disconnect()
-	end)
 
 	--// Handles when there is only one component
 	if OnlyOneComponent then
@@ -560,45 +549,44 @@ local function TrackCycle(PackageType: string)
 	if Settings["EnableSorting"] == true then --// Sorted loop
 		--// Get initial index
 		for Index, PeriodSettings in ipairs (module[PackageType.. "TimePeriods"]) do
-			if PeriodSettings["Name"] == InternalVariables["Current".. PackageType.. "Period"] then
-				InternalVariables["Current".. PackageType.. "Index"] = Index
+			if PeriodSettings["Name"] == InternalVariables["Current Period"][PackageType] then
+				InternalVariables["Current Index"][PackageType] = Index
 				SetNextIndex(PackageType, CycleScope, CycleName)
 				break
 			end
 		end
 
-		local CurrentComponent = module[PackageType.. "TimePeriods"][InternalVariables["Current".. PackageType.. "Index"]]["Name"]
+		local CurrentComponent = module[PackageType.. "TimePeriods"][InternalVariables["Current Index"][PackageType]]["Name"]
 		PackageHandling:SetComponent(PackageType, PackageHandling:GetCurrentScope(PackageType), CurrentComponent)
 
-		while task.wait(Settings["CheckTime"]) and not EndLoop do
+		while task.wait(Settings["CheckTime"]) do
 			--// Function for handling period changes
 			local function HandleChange(PackageType)
-				InternalVariables["Current".. PackageType.. "Index"] = InternalVariables["Next".. PackageType.. "Index"]
+				InternalVariables["Current Index"][PackageType] = InternalVariables["Next Index"][PackageType]
 
-				local NewComponentName: string = module[PackageType.. "TimePeriods"][InternalVariables["Current".. PackageType.. "Index"]]["Name"]
+				local NewComponentName: string = module[PackageType.. "TimePeriods"][InternalVariables["Current Index"][PackageType]]["Name"]
 
-				InternalVariables["Current".. PackageType.. "Period"] = NewComponentName
+				InternalVariables["Current Period"][PackageType] = NewComponentName
 
 				SetNextIndex(PackageType, CycleScope, CycleName)
 
-				if InternalVariables["Halt".. PackageType.. "Cycle"] == false then --// Cycle is not halted, changes can occur
-					PackageHandling:SetComponent(PackageType, PackageHandling:GetCurrentScope(PackageType), NewComponentName)
+				PackageHandling:SetComponent(PackageType, PackageHandling:GetCurrentScope(PackageType), NewComponentName)
 
-					--// If client sided, then all we need to do is set the component and then everything else follows
-					if ClientSided then
-						return
-					end
+				--// If client sided, then all we need to do is set the component and then everything else follows
+				if ClientSided then
+					return
+				end
 
-					if Settings["Tween"]  == true then
-						Tween(PackageType)
-					else
-						Set(PackageType)
-					end
+				--// This handles the server-sided change
+				if Settings["Tween"]  == true then
+					Tween(PackageType)
+				else
+					Set(PackageType)
 				end
 			end
 
 			local CurrentTime = Lighting.ClockTime
-			local NextIndex = InternalVariables["Next".. PackageType.. "Index"]
+			local NextIndex = InternalVariables["Next Index"][PackageType]
 			
 			if NextIndex == 0 then --// Means there are no times (ex: no audio or lighting settings were created)
 				return
@@ -616,12 +604,12 @@ local function TrackCycle(PackageType: string)
 		local CurrentComponent = GetCurrentAdjustedPeriod(PackageType)
 		PackageHandling:SetComponent(PackageType, PackageHandling:GetCurrentScope(PackageType), CurrentComponent)
 
-		while task.wait(Settings["CheckTime"]) and not EndLoop do
+		while task.wait(Settings["CheckTime"]) do
 			--// Current adjusted period is the period we are actually in and is compared to the period that we think are in
 			local CurrentAdjustedPeriod: string = GetCurrentAdjustedPeriod(PackageType)
 
-			if CurrentAdjustedPeriod ~= InternalVariables["Current".. PackageType.. "Period"] then --// If this changes, that means they are entering a new period
-				InternalVariables["Current".. PackageType.. "Period"] = CurrentAdjustedPeriod
+			if CurrentAdjustedPeriod ~= InternalVariables["Current Period"][PackageType] then --// If this changes, that means they are entering a new period
+				InternalVariables["Current Period"][PackageType] = CurrentAdjustedPeriod
 
 				PackageHandling:SetComponent(PackageType, PackageHandling:GetCurrentScope(PackageType), CurrentAdjustedPeriod)
 
@@ -753,7 +741,7 @@ function module.Initialize()
 		coroutine.wrap(DayNightCycle)()
 	end
 
-	InternalVariables["TimeInitialized"] = true
+	InternalVariables["Initialized"]["Time"] = true
 
 	--// Rechecks day and night if the time does not pass at the same rate
 	if Settings["TimeForDay"] ~= Settings["TimeForNight"] then

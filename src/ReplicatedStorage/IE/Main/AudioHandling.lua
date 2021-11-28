@@ -7,9 +7,9 @@ local TweenService = game:GetService("TweenService")
 local Main = script.Parent
 local IEFolder = Main.Parent
 
-local RemoteFolder = IEFolder:WaitForChild("RemoteFolder")
+--local RemoteFolder = IEFolder:WaitForChild("RemoteFolder")
 
-local AudioRemote = RemoteFolder:WaitForChild("AudioRemote")
+--local AudioRemote = RemoteFolder:WaitForChild("AudioRemote")
 
 local Settings = require(IEFolder.Settings)
 
@@ -19,7 +19,10 @@ local PackageHandling = require(Main.PackageHandling)
 local RemoteHandling = require(Main.RemoteHandling)
 local SettingsHandling = require(Main.SettingsHandling)
 local SharedFunctions = require(Main.SharedFunctions)
-local TimeHandling --// Filled in after
+
+--// Filled in after
+local TimeHandling
+local WeatherHandling
 
 local InitialSyncToServer: RemoteEvent = RemoteHandling:GetRemote("Audio", "InitialSyncToServer")
 
@@ -35,6 +38,7 @@ function module:Initialize() --// Initial run, basically just creating folders
 		InternalVariables["Initialized"]["Audio"] = true
 
 		TimeHandling = require(Main.TimeHandling)
+		WeatherHandling = require(Main.WeatherHandling)
 
 		if RunService:IsServer() then
 			if not SoundService:FindFirstChild("ActiveServerSounds") then --// We only want/need this created on the server
@@ -46,7 +50,7 @@ function module:Initialize() --// Initial run, basically just creating folders
 			InitialSyncToServer.OnServerEvent:Connect(function(Player)
 				local NumberOfTries = 0
 
-				while InternalVariables["TimeInitialized"] == false do --// Sometimes (especialy in Studio) where the client is loading in really fast, it will load in before the CurrentLightingPeriod is set
+				while not InternalVariables["Initialized"]["Time"] do --// Sometimes (especialy in Studio) where the client is loading in really fast, it will load in before the CurrentLightingPeriod is set
 					task.wait(.2)
 
 					NumberOfTries = NumberOfTries + 1
@@ -216,7 +220,7 @@ local function AdjustSharedSounds()
 	--// This is a table of the CurrentSharedSounds, but this is eventually transformed into a table of sounds that need to be removed.  Sounds that are still active (i.e. within a region that uses that SharedSound) are removed from this table
 	local CurrentSharedSounds = SharedSounds:GetChildren()
 
-	for Index, RegionName in ipairs (InternalVariables["CurrentAudioRegions"]) do --// Looks at all the CurrentAudioRegions (in order of join)
+	for Index, RegionName in ipairs (InternalVariables["Current Regions"]["Audio"]) do --// Looks at all the CurrentAudioRegions (in order of join)
 		local PackageForRegion = PackageHandling:GetPackage("Audio", "Region", RegionName)
 		local TheoreticallyCurrentComponentSettings = TimeHandling:ReturnTheoreticallyCurrentComponentForPackage(PackageForRegion)
 
@@ -239,7 +243,7 @@ local function AdjustSharedSounds()
 
 	--// This parses through the SoundMaxIndexTable
 	for Sound, Index in pairs (SoundMaxIndexTable) do --// Parses through the SoundMaxIndexTable
-		local RegionName = InternalVariables["CurrentAudioRegions"][Index]
+		local RegionName = InternalVariables["Current Regions"]["Audio"][Index]
 
 		local RegionPackage = PackageHandling:GetPackage("Audio", "Region", RegionName)
 		local ComponentSettings = TimeHandling:ReturnTheoreticallyCurrentComponentForPackage(RegionPackage)
@@ -345,7 +349,7 @@ local function HandleRandomSound(SoundName: string, SoundSettings: table, SoundF
 		task.wait(SoundSettings["Frequency"])
 
 		if SharedFunctions.DoesChange(SoundSettings["ChanceOfPlay"]) then
-			if table.find(InternalVariables["CurrentAudioRegionsQuick"], RegionName) and Sound then --// Validates that the player is still in the region and that the Sound instance still exists
+			if table.find(InternalVariables["Current Regions Quick"]["Audio"], RegionName) and Sound then --// Validates that the player is still in the region and that the Sound instance still exists
 				if Settings["GenerateNewRandomSounds"] == true then
 					local SoundClone = Sound:Clone()
 					SoundClone.Parent = SoundFolder
@@ -414,17 +418,13 @@ function module.RegionEnter(RegionName: string) --// Client sided function only 
 	local CurrentScope: string = PackageHandling:GetCurrentScope("Audio")
 	local CurrentPackageName: string = PackageHandling:GetCurrentPackageName("Audio", "Region")
 
-	local RegionPackage = PackageHandling:GetPackage("Audio", "Region", RegionName)
-	local WeatherExemption: boolean
-	
-	--// Finds whether there is a weather exemption for the package (assumes this is the same across all packages)
-	for _, ComponentSettings in pairs (RegionPackage["Components"]) do
-		WeatherExemption = ComponentSettings["GeneralSettings"]["WeatherExemption"]
-		break
-	end
+	local WeatherExemption: boolean = WeatherHandling:CheckForWeatherExemption("Audio", "Region", RegionName)
+
+	--// Applies weather exemption (based on the most recently joined region)
+	InternalVariables["Weather Exemption"]["Audio"] = WeatherExemption
 
 	--// If weather is active and there is not a weather exemption
-	if CurrentScope == "Weather" and not WeatherExemption then
+	if WeatherHandling:CheckForActiveWeather("Audio") and not WeatherExemption then
 		return
 	end
 
@@ -446,7 +446,7 @@ function module.RegionLeave(RegionName: string) --// Client sided function only 
 	AdjustSharedSounds() --// Shared sounds are the equivalent of multi-regions for audio
 
 	--// If there is active weather
-	if InternalVariables["Weather Enabled"] and PackageHandling:GetCurrentScope("Audio") ~= "Weather" then
+	if WeatherHandling:CheckForActiveWeather("Audio") and PackageHandling:GetCurrentScope("Audio") ~= "Weather" then
 		local WeatherPackageName: string = PackageHandling:GetCurrentPackage("Audio", "Weather")
 
 		PackageHandling:SetCurrentScope("Audio", "Weather")
@@ -455,7 +455,7 @@ function module.RegionLeave(RegionName: string) --// Client sided function only 
 	end
 
 	--// Check whether we are in an audio region still
-	if #InternalVariables["CurrentAudioRegions"]  >= 1 then
+	if #InternalVariables["Current Regions"]["Audio"]  >= 1 then
 		return
 	end
 
@@ -490,7 +490,7 @@ function module.ClearWeather(CurrentAudioPeriod: string) --// Don't pass this as
 		GenerateSoundsFromComponent(TimeAudioSettings, "ClearWeather") --// Components have not been set up in this function
 	else
 		if RunService:IsServer() then
-			AudioRemote:FireAllClients("ClearWeather", InternalVariables["CurrentAudioPeriod"])
+			--AudioRemote:FireAllClients("ClearWeather", InternalVariables["CurrentAudioPeriod"])
 		end
 	end
 end
@@ -512,7 +512,7 @@ function module.ChangeWeather(WeatherName: string)
 		GenerateSoundsFromComponent(NewWeatherSettings, "Weather") --// Components have not been set up in this function
 	else
 		if RunService:IsServer() then
-			AudioRemote:FireAllClients("Weather", WeatherName)
+			--AudioRemote:FireAllClients("Weather", WeatherName)
 		end
 	end
 end
@@ -528,6 +528,7 @@ function module:TweenAudio(Context: string)
 	GenerateSoundsFromComponent(ComponentSettings, Context)
 end
 
+--[[
 if InternalVariables["InitializedAudio"] == false then
 	InternalVariables["InitializedAudio"] = true
 
@@ -561,5 +562,6 @@ if InternalVariables["InitializedAudio"] == false then
 		end)
 	end
 end
+]]
 
 return module

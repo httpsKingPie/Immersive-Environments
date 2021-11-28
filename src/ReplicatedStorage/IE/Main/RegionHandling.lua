@@ -85,26 +85,26 @@ local function HandleRegionLeave(PackageType: string, RegionName: string)
 end
 
 --// Adds a region for internal tracking when a player enters it
-local function AddRegion(RegionType: string, RegionName: string)
+local function AddRegion(PackageType: string, RegionName: string)
 	local NewIndex = 0
 
-	for Index, _ in ipairs (InternalVariables["Current".. RegionType.. "Regions"]) do
+	for Index, _ in ipairs (InternalVariables["Current Regions"][PackageType]) do
 		NewIndex = Index
 	end
 
 	NewIndex = NewIndex + 1
 
-	InternalVariables["Current".. RegionType.. "Regions"][NewIndex] = RegionName
-	table.insert(InternalVariables["Current".. RegionType.. "RegionsQuick"], RegionName)
+	InternalVariables["Current Regions"][PackageType][NewIndex] = RegionName
+	table.insert(InternalVariables["Current Regions Quick"][PackageType], RegionName)
 end
 
 --// Removes a region for internal tracking when a player leaves it
-local function RemoveRegion(RegionType: string, RegionName: string)
+local function RemoveRegion(PackageType: string, RegionName: string)
 	local RegionLeftIndex
-	local MaxIndex = #InternalVariables["Current".. RegionType.. "Regions"] --// Look about replacing this with local MaxIndex = #InternalVariables["Current".. RegionType.. "Regions"]
+	local MaxIndex = #InternalVariables["Current Regions"][PackageType] --// Look about replacing this with local MaxIndex = #InternalVariables["Current Regions"][PackageType]
 
 	--// Get the index of the region left so that we can sort the dictionary
-	for Index, _RegionName in ipairs (InternalVariables["Current".. RegionType.. "Regions"]) do
+	for Index, _RegionName in ipairs (InternalVariables["Current Regions"][PackageType]) do
 		if _RegionName == RegionName then
 			RegionLeftIndex = Index
 		end
@@ -117,38 +117,38 @@ local function RemoveRegion(RegionType: string, RegionName: string)
 	end
 
 	--// If we are removing an index (ex: index 5) and the total number of indexes is ex: 8, then we shift all indexes above 5 down 1, and then remove the last index (effectively removing that index and sorting everything down one)
-	for Index, _RegionName in ipairs (InternalVariables["Current".. RegionType.. "Regions"]) do
+	for Index, _RegionName in ipairs (InternalVariables["Current Regions"][PackageType]) do
 		if Index > RegionLeftIndex then --// If it's an index lower than the number that was left, then it does not need resorting.
-			InternalVariables["Current".. RegionType.. "Regions"][Index - 1] = _RegionName
+			InternalVariables["Current Regions"][PackageType][Index - 1] = _RegionName
 		end
 	end
 
-	InternalVariables["Current".. RegionType.. "Regions"][MaxIndex] = nil
+	InternalVariables["Current Regions"][PackageType][MaxIndex] = nil
 
 	--// Remove the index from internal references
-	table.remove(InternalVariables["Current".. RegionType.. "RegionsQuick"], table.find(InternalVariables["Current".. RegionType.. "RegionsQuick"], RegionName))
+	table.remove(InternalVariables["Current Regions Quick"][PackageType], table.find(InternalVariables["Current Regions Quick"][PackageType], RegionName))
 end
 
 --// Clears the current regions
 local function ClearRegions()
-	InternalVariables["CurrentAudioRegions"] = {}
-	InternalVariables["CurrentAudioRegionsQuick"] = {}
+	InternalVariables["Current Regions"]["Audio"] = {}
+	InternalVariables["Current Regions Quick"]["Audio"] = {}
 
-	InternalVariables["CurrentLightingRegions"] = {}
-	InternalVariables["CurrentLightingRegionsQuick"] = {}
+	InternalVariables["Current Regions"]["Lighting"] = {}
+	InternalVariables["Current Regions Quick"]["Lighting"] = {}
 end
 
 --// Validates regions to make sure that players are actually in them
-local function ValidateRegions(RegionType: string)
+local function ValidateRegions(PackageType: string)
 	while true do
 		local ReversedCurrentRegions = {}
 
-		for Index, _RegionName in ipairs (InternalVariables["Current".. RegionType.. "Regions"]) do
+		for Index, _RegionName in ipairs (InternalVariables["Current Regions"][PackageType]) do
 			ReversedCurrentRegions[_RegionName] = Index
 		end
 
-		for SpecificRegionType, AllRegions in pairs (InternalVariables["Regions"]) do --// (RegionType = "Audio" or "Lighting")
-			if RegionType == SpecificRegionType then
+		for SpecificPackageType, AllRegions in pairs (InternalVariables["Regions"]) do --// (PackageType = "Audio" or "Lighting")
+			if PackageType == SpecificPackageType then
 				for RegionName, TrackedRegion in pairs (AllRegions) do
 					local Objects = TrackedRegion:getObjects()
 
@@ -168,11 +168,11 @@ local function ValidateRegions(RegionType: string)
 					local RecordedInRegion = ReversedCurrentRegions[RegionName] --// will be nil if no, and something if true
 					
 					if ActuallyInRegion and not RecordedInRegion then --// Means the LocalPlayer is actually in the zone, but RegionHandling doesn't think they are
-						AddRegion(RegionType, RegionName)
-						HandleRegionEnter(RegionType, RegionName)
+						AddRegion(PackageType, RegionName)
+						HandleRegionEnter(PackageType, RegionName)
 					elseif not ActuallyInRegion and RecordedInRegion then --// Means the LocalPlayer is not actually in the zone, but RegionHandling thinks they are
-						RemoveRegion(RegionType, RegionName)
-						HandleRegionLeave(RegionType, RegionName)
+						RemoveRegion(PackageType, RegionName)
+						HandleRegionLeave(PackageType, RegionName)
 					end
 				end
 			end

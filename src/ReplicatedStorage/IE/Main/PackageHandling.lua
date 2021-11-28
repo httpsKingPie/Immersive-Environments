@@ -151,6 +151,7 @@ function module:GetPackage(PackageType: string, PackageScope: string, PackageNam
 	if not Package then
 		warn("Invalid PackageName:", PackageName, "for PackageType", PackageType, "and PackageScope", PackageScope)
 		print(debug.traceback())
+		print(self[PackageType][PackageScope])
 		return
 	end
 
@@ -295,7 +296,7 @@ function module:SetPackage(PackageType: string, PackageScope: string, PackageNam
 	if NotifyClient then
 		local Remote: RemoteEvent = RemoteHandling:GetRemote(PackageType, "PackageChanged")
 
-		Remote:FireAllClients(PackageName)
+		Remote:FireAllClients(PackageScope, PackageName)
 	end
 
 	local Signal: RBXScriptSignal = SignalHandling:GetSignal(PackageType, "PackageChanged")
@@ -317,9 +318,9 @@ function module:ClearPackage(PackageType: string, PackageScope: string)
 	InternalVariables["Current Package"][PackageType][PackageScope] = false
 
 	if NotifyClient then
-		local Remote: RemoteEvent = RemoteHandling:GetRemote(PackageType, "PackageChanged")
+		local Remote: RemoteEvent = RemoteHandling:GetRemote(PackageType, "PackageCleared")
 
-		Remote:FireAllClients(false)
+		Remote:FireAllClients(PackageScope)
 	end
 end
 
@@ -356,8 +357,6 @@ function module:GenerateAudioPackages()
 	HandlePackages("Audio", "Region", AudioRegion)
 	HandlePackages("Audio", "Server", AudioServer)
 	HandlePackages("Audio", "Weather", AudioWeather)
-
-	InternalVariables["AudioSettingTablesBuilt"] = true
 end
 
 --// Default setup of lighting packages
@@ -374,12 +373,16 @@ function module:GenerateLightingPackages()
 	HandlePackages("Lighting", "Region", LightingRegion)
 	HandlePackages("Lighting", "Server", LightingServer)
 	HandlePackages("Lighting", "Weather", LightingWeather)
-
-	InternalVariables["LightingSettingTablesBuilt"] = true
 end
 
 --// Basic run function
-function module:Run()
+function module:Initialize()
+	if InternalVariables["Initialized"]["Packages"] then
+		return
+	end
+
+	InternalVariables["Initialized"]["Packages"] = true
+
     module:GenerateAudioPackages()
 	module:GenerateLightingPackages()
 end
