@@ -1,4 +1,4 @@
---// Note: This is completely client sided!
+--// Note: This is completely client sided and requires the 'Client Sided' setting to be enabled!
 
 --[[
 	Covert current region into some sort of table (since you could be in multiple regions at once (ex: in a forest and then you get in the region near a river and low river sounds are playing)
@@ -17,6 +17,7 @@
 
 	Regions with a higher number (ex: 8) mean that this is the most recent region that the player entered.  Regions with a lower number (ex: 1) mean that was the least recent region the player entered.
 ]]
+
 local module = {}
 
 local RunService = game:GetService("RunService")
@@ -36,6 +37,7 @@ local AudioHandling = require(Main.AudioHandling)
 local InternalSettings = require(Main.InternalSettings)
 local InternalVariables = require(Main.InternalVariables)
 local LightingHandling = require(Main.LightingHandling)
+local PackageHandling = require(Main.PackageHandling)
 local SharedFunctions = require(Main.SharedFunctions)
 
 local IEFolder = Main.Parent
@@ -43,59 +45,66 @@ local IEFolder = Main.Parent
 local ObjectTracker = require(IEFolder["OT&AM"])
 local Settings = require(IEFolder.Settings)
 
-local function HandleRegionEnter(RegionType, RegionName)
-	if RegionType == "Audio" then
+local Initialized = false
+
+--[[
+	Handles the region being entered
+
+	Arguments: PackageType ("Audio" or "Lighting"), RegionName (name of the region)
+]]
+
+local function HandleRegionEnter(PackageType: string, RegionName: string)
+	local Package = PackageHandling:GetPackage(PackageType, "Region", RegionName)
+
+	--// Warning already bundled in
+	if not Package then
+		return
+	end
+
+	if PackageType == "Audio" then
 		AudioHandling.RegionEnter(RegionName)
-
-		InternalVariables["CurrentAudioRegions"] = InternalVariables["CurrentAudioRegions"] + 1
-	elseif RegionType == "Lighting" then
+	elseif PackageType == "Lighting" then
 		LightingHandling.RegionEnter(RegionName)
-
-		InternalVariables["CurrentLightingRegions"] = InternalVariables["CurrentLightingRegions"] + 1
 	end
 end
 
-local function HandleRegionLeave(RegionType, RegionName)
-	if RegionType == "Audio" then
-		if InternalVariables["CurrentAudioRegions"] > 0 then
-			InternalVariables["CurrentAudioRegions"] = InternalVariables["CurrentAudioRegions"] - 1
-		end
+--[[
+	Handles the region being left
 
+	Arguments: PackageType ("Audio" or "Lighting"), RegionName (name of the region)
+]]
+
+local function HandleRegionLeave(PackageType: string, RegionName: string)
+	if PackageType == "Audio" then
 		AudioHandling.RegionLeave(RegionName)
-	elseif RegionType == "Lighting" then
-		if InternalVariables["CurrentLightingRegions"] > 0 then
-			InternalVariables["CurrentLightingRegions"] = InternalVariables["CurrentLightingRegions"] - 1
-		end
-
-		LightingHandling.RegionLeave(RegionName)
+	elseif PackageType == "Lighting" then
+		LightingHandling.RegionLeave()
 	end
 end
 
-local function AddRegion(RegionName: string)
+--// Adds a region for internal tracking when a player enters it
+local function AddRegion(PackageType: string, RegionName: string)
 	local NewIndex = 0
 
-	for Index, _ in ipairs (InternalVariables["CurrentRegions"]) do
+	for Index, _ in ipairs (InternalVariables["Current Regions"][PackageType]) do
 		NewIndex = Index
 	end
 
 	NewIndex = NewIndex + 1
 
-	InternalVariables["CurrentRegions"][NewIndex] = RegionName
-	table.insert(InternalVariables["CurrentRegionsQuick"], RegionName)
+	InternalVariables["Current Regions"][PackageType][NewIndex] = RegionName
+	table.insert(InternalVariables["Current Regions Quick"][PackageType], RegionName)
 end
 
-local function RemoveRegion(RegionName: string)
+--// Removes a region for internal tracking when a player leaves it
+local function RemoveRegion(PackageType: string, RegionName: string)
 	local RegionLeftIndex
-	local MaxIndex = 1
+	local MaxIndex = #InternalVariables["Current Regions"][PackageType] --// Look about replacing this with local MaxIndex = #InternalVariables["Current Regions"][PackageType]
 
 	--// Get the index of the region left so that we can sort the dictionary
-	for Index, _RegionName in ipairs (InternalVariables["CurrentRegions"]) do
+	for Index, _RegionName in ipairs (InternalVariables["Current Regions"][PackageType]) do
 		if _RegionName == RegionName then
 			RegionLeftIndex = Index
-		end
-
-		if Index > MaxIndex then
-			MaxIndex = Index
 		end
 	end
 
@@ -105,59 +114,69 @@ local function RemoveRegion(RegionName: string)
 		return
 	end
 
-	for Index, _RegionName in ipairs (InternalVariables["CurrentRegions"]) do
+	--// If we are removing an index (ex: index 5) and the total number of indexes is ex: 8, then we shift all indexes above 5 down 1, and then remove the last index (effectively removing that index and sorting everything down one)
+	for Index, _RegionName in ipairs (InternalVariables["Current Regions"][PackageType]) do
 		if Index > RegionLeftIndex then --// If it's an index lower than the number that was left, then it does not need resorting.
-			InternalVariables["CurrentRegions"][Index - 1] = _RegionName
+			InternalVariables["Current Regions"][PackageType][Index - 1] = _RegionName
 		end
 	end
 
-	InternalVariables["CurrentRegions"][MaxIndex] = nil
-	table.remove(InternalVariables["CurrentRegionsQuick"], table.find(InternalVariables["CurrentRegionsQuick"], RegionName))
+	InternalVariables["Current Regions"][PackageType][MaxIndex] = nil
+
+	--// Remove the index from internal references
+	table.remove(InternalVariables["Current Regions Quick"][PackageType], table.find(InternalVariables["Current Regions Quick"][PackageType], RegionName))
 end
 
+--// Clears the current regions
 local function ClearRegions()
-	InternalVariables["CurrentRegions"] = {}
-	InternalVariables["CurrentRegionsQuick"] = {}
+	InternalVariables["Current Regions"]["Audio"] = {}
+	InternalVariables["Current Regions Quick"]["Audio"] = {}
+
+	InternalVariables["Current Regions"]["Lighting"] = {}
+	InternalVariables["Current Regions Quick"]["Lighting"] = {}
 end
 
-local function ValidateRegions() --// Validates regions to make sure that players are actually in them
+--// Validates regions to make sure that players are actually in them
+local function ValidateRegions(PackageType: string)
 	while true do
 		local ReversedCurrentRegions = {}
 
-		for Index, _RegionName in ipairs (InternalVariables["CurrentRegions"]) do
+		for Index, _RegionName in ipairs (InternalVariables["Current Regions"][PackageType]) do
 			ReversedCurrentRegions[_RegionName] = Index
 		end
 
-		for RegionType, AllRegions in pairs (InternalVariables["Regions"]) do --// (RegionType = "Audio" or "Lighting")
-			for RegionName, TrackedRegion in pairs (AllRegions) do
-				local Objects = TrackedRegion:getObjects()
+		for SpecificPackageType, AllRegions in pairs (InternalVariables["Regions"]) do --// (PackageType = "Audio" or "Lighting")
+			if PackageType == SpecificPackageType then
+				for RegionName, TrackedRegion in pairs (AllRegions) do
+					local Objects = TrackedRegion:getObjects()
 
-				local ActuallyInRegion
+					local ActuallyInRegion
 
-				for Index, ObjectDetails in ipairs (Objects) do
-					local ObjectInRegion = ObjectDetails["Object"]
+					for _, ObjectDetails in ipairs (Objects) do
+						local ObjectInRegion = ObjectDetails["Object"]
 
-					if ObjectInRegion then
-						if ObjectInRegion.Parent and ObjectInRegion.Parent:FindFirstChildWhichIsA("Humanoid") and Players:GetPlayerFromCharacter(ObjectInRegion.Parent) then
-							ActuallyInRegion = true
-							break
+						if ObjectInRegion then
+							if ObjectInRegion.Parent and ObjectInRegion.Parent:FindFirstChildWhichIsA("Humanoid") and Players:GetPlayerFromCharacter(ObjectInRegion.Parent) then
+								ActuallyInRegion = true
+								break
+							end
 						end
 					end
-				end
 
-				local RecordedInRegion = ReversedCurrentRegions[RegionName] --// will be nil if no, and something if true
-				
-				if ActuallyInRegion and not RecordedInRegion then --// Means the LocalPlayer is actually in the zone, but RegionHandling doesn't think they are
-					AddRegion(RegionName)
-					HandleRegionEnter(RegionType, RegionName)
-				elseif not ActuallyInRegion and RecordedInRegion then --// Means the LocalPlayer is not actually in the zone, but RegionHandling thinks they are
-					RemoveRegion(RegionName)
-					HandleRegionLeave(RegionType, RegionName)
+					local RecordedInRegion = ReversedCurrentRegions[RegionName] --// will be nil if no, and something if true
+					
+					if ActuallyInRegion and not RecordedInRegion then --// Means the LocalPlayer is actually in the zone, but RegionHandling doesn't think they are
+						AddRegion(PackageType, RegionName)
+						HandleRegionEnter(PackageType, RegionName)
+					elseif not ActuallyInRegion and RecordedInRegion then --// Means the LocalPlayer is not actually in the zone, but RegionHandling thinks they are
+						RemoveRegion(PackageType, RegionName)
+						HandleRegionLeave(PackageType, RegionName)
+					end
 				end
 			end
 		end
 		
-		wait(Settings["BackupValidation"])
+		task.wait(InternalSettings["Region Backup Validation"])
 	end
 end
 
@@ -165,20 +184,27 @@ local function CheckRegions(Looping)
 	local function BuildTableOfIndexes(TableToModify: table)
 		local NewTable = {}
 		
-		for Index, Value in pairs (TableToModify) do
+		for Index, _ in pairs (TableToModify) do
 			table.insert(NewTable, Index)
 		end
 		
 		return NewTable
 	end
 	
-	local function HandleRegion(Descendants, RegionType) --// RegionName is either Audio or Lighting (used for organization)
-		if not InternalVariables["Regions"][RegionType] then
-			InternalVariables["Regions"][RegionType] = {}
+	--[[
+		Handles region generated and tracking
+
+		Arguments: Descendants (descendants or AudioRegions or LightingRegions), PackageType is either "Audio" or "Lighting" (used for organization)
+	]]
+
+	local function HandleRegion(Descendants: table, PackageType: string)
+		if not InternalVariables["Regions"][PackageType] then
+			InternalVariables["Regions"][PackageType] = {}
 		else
-			ObjectTracker.RemoveAreas(BuildTableOfIndexes(InternalVariables["Regions"][RegionType]))
-			InternalVariables["Regions"][RegionType] = {}
+			ObjectTracker.RemoveAreas(BuildTableOfIndexes(InternalVariables["Regions"][PackageType]))
+			InternalVariables["Regions"][PackageType] = {}
 		end
+
 		local CreatedRegions = {}
 
 		for i = 1, #Descendants do
@@ -190,15 +216,15 @@ local function CheckRegions(Looping)
 				
 				local TrackedRegion = ObjectTracker.addArea(RegionName, Descendants[i])
 				
-				InternalVariables["Regions"][RegionType][RegionName] = TrackedRegion
+				InternalVariables["Regions"][PackageType][RegionName] = TrackedRegion
 				
 				TrackedRegion.onEnter:Connect(function(Player)
 					if Player ~= LocalPlayer then
 						return
 					end
 					
-					AddRegion(RegionName)
-					HandleRegionEnter(RegionType, RegionName)
+					AddRegion(PackageType, RegionName)
+					HandleRegionEnter(PackageType, RegionName)
 				end)
 				
 				TrackedRegion.onLeave:Connect(function(Player)
@@ -206,18 +232,16 @@ local function CheckRegions(Looping)
 						return
 					end
 					
-					RemoveRegion(RegionName)
-					HandleRegionLeave(RegionType, RegionName)
+					RemoveRegion(PackageType, RegionName)
+					HandleRegionLeave(PackageType, RegionName)
 				end)
 			else
-				warn("Cannot have the regions with the same name and type.  Name: ".. RegionName.. "; Type: ".. RegionType)
+				warn("Cannot have the regions with the same name and type.  Name: ".. RegionName.. "; PackageType: ".. PackageType)
 			end
 		end
 	end
 	
 	while true do
-		--InternalVariables["Regions"] = {} --// Clears the previous table
-
 		local AudioDescendants = AudioRegions:GetDescendants()
 		local LightingDescendants = LightingRegions:GetDescendants()
 		
@@ -225,26 +249,40 @@ local function CheckRegions(Looping)
 		HandleRegion(LightingDescendants, "Lighting")
 
 		if Looping ~= nil and Looping == true then
-			wait(Settings["RegionCheckTime"])
+			task.wait(InternalSettings["Region Check Time"])
 		else
 			return
 		end
 	end
 end
 
-function module.Run() --// Region handling is always client sided (possible to have client sided regions with server sided other stuff - to support StreamingEnabled, custom loading systems, etc.)
-	if RunService:IsClient() == true then
-		LocalPlayer = Players.LocalPlayer
-		
-		CheckRegions()
-		coroutine.wrap(ValidateRegions)()
-		
-		if Settings["AlwaysCheckInstances"] == true then
-			coroutine.wrap(CheckRegions)(true)
-		end
-
-		SharedFunctions.CharacterAdded(LocalPlayer, ClearRegions)
+--// Region handling is always client sided (possible to have client sided regions with server sided other stuff - to support StreamingEnabled, custom loading systems, etc.)
+function module.Initialize()
+	if not RunService:IsClient() then
+		return
 	end
+
+	if Initialized then
+		return
+	end
+
+	Initialized = true
+
+	if not Settings["Client Sided"] then
+		return
+	end
+
+	LocalPlayer = Players.LocalPlayer
+	
+	CheckRegions()
+	coroutine.wrap(ValidateRegions)("Audio")
+	coroutine.wrap(ValidateRegions)("Lighting")
+	
+	if Settings["Always Check Instances"] then
+		coroutine.wrap(CheckRegions)(true)
+	end
+
+	SharedFunctions.CharacterAdded(LocalPlayer, ClearRegions)
 end
 
 return module

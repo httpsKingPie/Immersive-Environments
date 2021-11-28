@@ -79,7 +79,41 @@ local module = {
 	
 	["DayNightWait"] = 1,
 
-	["RemoteInitializationMaxTries"] = 50, --// Remote checks every .2 seconds.  100 tries = 20 seconds.
+	--[[
+		ComponentChanged = Server -> Client communication to switch the compoent
+		InitialSyncToServer = Set to what the server thinks the lighting should be (tween in the case of audio)
+		PackageChanged = Server -> Client communication to switch the current package
+		ScopeChanged = Server -> Client communication to change the current scope
+		SyncToServer = Tween or set to what the server thinks the lighting should be
+		WeatherCleared = Server -> Client communication to change the weather
+	]]
+
+	["Remote Events"] = {
+		--// RemoteName is not changed
+		["Fixed"] = {
+			
+		},
+
+		--// RemoteName is prefaced by "Audio" or "Lighting"
+		["Type Separated"] = {
+			"ComponentChanged",
+			"InitialSyncToServer",
+			"PackageChanged",
+			"PackageCleared",
+			"ScopeChanged",
+			"SyncToServer",
+			"WeatherCleared",
+		},
+	},
+
+	--// This is the amount of time between when the server does backup validation for regions
+	["Region Backup Validation"] = 5,
+
+	--// The time it checks for the creation of new regions (probably doesn't have to be that low of a number)
+	["Region Check Time"] = 5,
+
+	--// Remote checks every .2 seconds.  100 tries = 20 seconds.
+	["InitializationMaxTries"] = 50,
 	
 	["NonPropertySettings"] = {
 		"ChanceOfChange",
@@ -97,8 +131,6 @@ local module = {
 		["SunRaysEffect"] = ReturnExistence(Lighting, "SunRaysEffect"),
 		["Terrain"] = ReturnExistence(Workspace, "Terrain")
 	},
-	
-	["Weather"] = false,
 }
 
 return module

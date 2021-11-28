@@ -1,7 +1,3 @@
-local Players = game:GetService("Players")
-
-local RemoteCooldown = {}
-
 local module = {}
 
 function module.CheckProperty(InstanceToCheck, PropertyName)
@@ -17,24 +13,6 @@ function module.CheckProperty(InstanceToCheck, PropertyName)
 	return (pcall(function()
 		return Clone[PropertyName]
 	end))
-end
-
-function module:RemoteCooldownTimer(RemoteName, PlayerName, Time)
-	if RemoteCooldown[RemoteName] == nil then
-		RemoteCooldown[RemoteName] = {}
-	end
-	
-	if RemoteCooldown[RemoteName][PlayerName] == nil then
-		RemoteCooldown[RemoteName][PlayerName] = tick()
-		return true
-	else
-		if (tick() - RemoteCooldown[RemoteName][PlayerName]) > Time then
-			RemoteCooldown[RemoteName][PlayerName] = tick()
-			return true
-		else
-			return false
-		end
-	end
 end
 
 --// Just use regular PlayerRemoving - there's no way to really improve that one (that I know of atm)

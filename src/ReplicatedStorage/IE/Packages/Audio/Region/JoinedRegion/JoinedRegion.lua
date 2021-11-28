@@ -1,8 +1,14 @@
 local module = {
-	["WeatherExemption"] = true,
+	["GeneralSettings"] = {
+		--// All times in 24 hour notation
+	   ["StartTime"] = 0,
+	   ["EndTime"] = 0,
+	   
+	   ["WeatherExemption"] = true,
+   },
 	
 	["SoundService"] = {
-		["AmbientReverb"] = Enum.ReverbType.NoReverb,
+		["AmbientReverb"] = Enum.ReverbType.UnderWater,
 		["DistanceFactor"] = 40,
 		["DopplerScale"] = 20,
 		["RolloffScale"] = 20,
@@ -17,7 +23,7 @@ local module = {
 			},
 			
 			["Tween"] = {
-				["Volume"] = .2,
+				["Volume"] = .5,
 			},
 		},
 	},

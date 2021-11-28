@@ -1,50 +1,168 @@
+--[[
+	Settings overview
+	All settings have recommended configurations and a note as to why it is recommended
+
+	--//////////////////////////////////////////////////////////////
+
+	All Lighting Instances Are Children Of Workspace
+		Allows you to improve the performance of the script if all affected instances are direct children of Workspace
+
+		RECOMMENDED: Developer-choice
+			This depends on your specific project
+
+	Always Check Instances
+		Will run a search through workspace to check for instance changes every time if this is set to true.  IE will internally store all the instances otherwise
+
+		RECOMMENDED: false
+			(if the number of instances never changes or if StreamingEnabled is disabled)
+
+	Check Time
+		The time, in seconds, that IE checks for period changes.  The lower the number, the more accurate.  
+
+		A few notes: 
+			If 'Automatic Transitions' is set to false, you do NOT need to worry about this setting (it won't be used)
+			If you're wondering 'Why are you running a loop every 'X' seconds, instead of using an event?' here's an answer
+				First of all, good question
+				Most time periods are large enough that binding a listener to an event (and do IE related logic) would result in a significant performance hit
+				If a period lasts several in-game hours, then it makes no sense to perform calculations when a small fraction of an hour passes per few seconds
+				You get a performance buff by instead checking every 'X' second versus every single time a change to ClockTime/TimeOfDay occurs - and it makes more sense logically too
+
+		RECOMMENDED: 1
+	
+	Client Sided
+		Whether IE effects should happen on the client versus the server
+		IE is still able to be controlled from the server
+
+		RECOMMENDED: true
+			More latitude to mess around with lighting settings on the client
+
+	CullingService
+		Whether CullingService (https://devforum.roblox.com/t/cullingservice-custom-client-sided-cullingstreaming-module/1343667) is active in your place
+
+		If it is, this makes IE compatible
+
+		RECOMMENDED: Developer-choice
+			Only enable if CullingService is being used in your project and has actively been set-up
+
+	Detect External Day Night Cycle
+		Enable if you are not using the built-in day/night cycle and are using another one
+
+		If you enable, please read below:
+			It is highly recommended to use the day/night cycle include in IE
+			Using an external day/night cycle will make IE take longer to initialize
+				IE will wait the length of time in 'Detection Time' to attempt to accurately gauge how fast time passes in-game
+
+		RECOMMENDED: Developer-choice
+			This depends on the set-up of your project; however, as mentioned it is recommended to use IE's day/night cycle
+
+	Detection Time
+		This is the amount of time alloated to the script to detect how fast time passes in your day/night script.  
+		5 seconds is the recommended default.
+		
+		*Note* If Detect External Day Night Cycle is false and IE's built-in day/night cycle is used, the adjustment will be automatically calculated — i.e. no wait and detect
+
+		RECOMMENDED: Developer-choice
+			This depends on the set-up of your project; however, as mentioned it is recommended to use IE's day/night cycle
+
+	Enable Day Night Cycle
+		Enables the built-in day/night cycle.  Configure the lengths of day and night in the 'Time' setting category
+
+		RECOMMENDED: false
+			Using IE's built-in day/night cycle yields a more performant and coherent system.  IE's day/night cycle also allows for differently paced day and night time rates
+
+	Generate Unique Random Sounds Each Iteration
+		Specifies whether multiple random sound instances can exist, or if it's just one
+
+		RECOMMENDED: true
+			If frequency and sound length are not aligned (or if 'Wait For Random Sounds To End' is set to false) there can be sound overlap
+			Overall, it just makes it less complicated to freely generate multiple random sound instances
+
+	Sort Time Cycles
+		Internal change with how different lighting and audio cycles are tracked
+
+		Pros: 
+			Better performance (have not run specific performance tests, so the scale is unknown)
+		Cons: 
+			Cannot make changes to ClockTime or TimeOfDay via admin or other controls
+			*Note* Day/night cycles scripts (including the one built into IE) are fine
+
+		RECOMMENDED: Developer-choice
+			This depends on the set-up and aims of your project
+
+	Time
+		The amount of real minutes it takes to go from 0600 to 1800 (day) and 1800 to 0600 (night)
+
+		RECOMMENDED: Developer-choice
+			This depends on the vibe you are going for in your project
+
+	Tween
+		Turn this off if you do not want tween changes and want hard changes
+
+		RECOMMENDED: true
+			More visually pleasing
+
+	Tween Information
+		The tween information for audio and lighting changes
+
+		RECOMMENDED: Developer-choice
+			This depends on the effects you're going for, the settings of your day/night cycles, where you decide to apply regions, etc.
+			It is recommended to only adjust the first number (which is the time of the tween)
+
+	Wait For Random Sounds To End
+		Waits for randomly generated sounds to finish before new ones can be generated (frequency is adjusted in relevant component settings for an audio package)
+
+		RECOMMENDED: false
+			True randomization doesn't care if the sound is still playing!
+		
+]]
+
 local module = {
-	
-	--// General Settings
-	
-	["DefaultSettings"] = false, --// Set to true if you just want to run this with recommend settings
-	["AlwaysCheckInstances"] = false, --// Will run a search through workspace to check for instance changes every time if this is set to true.  Recommended to set to false if the number of instances never changes or if StreamingEnabled is not enabled (aka StreamingDisabled - hahahahahahahahhah :]).
-	["ClientSided"] = true, --// Set to true if all effects w/ regards to the physical instances (i.e. BaseParts) are run on the client (make sure to add the TDL2Client script to StarterPlayerScripts if true)
-	["RegionCheckTime"] = 5, --// The time it checks for the creation of new regions (probably doesn't have to be that low of a number)
-	["Tween"] = true, --// Turn this off if you do not want tween changes and want hard changes
-	
-	--// Audio Settings
-	["GenerateNewRandomSounds"] = false, --// Generates new random sounds each time (each Sound is destroyed once it is finished if set to true)
-	["WaitForRandomSoundToEnd"] = false, --// Waits for a random sound that is set to play to finish before looping
+	["All Lighting Instances Are Children Of Workspace"] = false,
 
-	--// Lighting Settings
-	["ChangingInstanceChildrenOfWorkspace"] = false, --// Allows you to improve the performance of the script if all affected instances are direct children of Workspace
+	["Always Check Instances"] = true,
 
-	--// Region Settings
-	["AudioRegionTweenInformation"] = TweenInfo.new( --// Tween information for when a player enters an audio region
-		3, --// Recommended to only adjust the time variable (default set to 3 seconds)
-		Enum.EasingStyle.Linear
-	),
-	["BackupValidation"] = 5, --// This is the amount of time between when the server does backup validation
-	["LightingRegionTweenInformation"] = TweenInfo.new( --// Tween information for when a player enters a lighting region
-		3, --// Recommended to only adjust the time variable (default set to 3 seconds)
-		Enum.EasingStyle.Linear
-	),
-	--// Time Settings
+	["Check Time"] = 1,
+	
+	["Client Sided"] = true,
 
-	["AutomaticTransitions"] = true, --// Turn this off if you want to manually transition and remove the time based auto transitions
-	["AdjustmentTime"] = 5, --// This is the amount of time alloated to the script to detect how fast time passes in your day/night script.  5 seconds is the recommended default.  Note: if DetectIndependentTimeChange is false and IE's native day/night integration is used, the adjustment will be automatically calculated - i.e. no wait and detect
-	["CheckTime"] = 1, --// The time in seconds that the script checks for Period changes, if AutomaticTransitions is set to false, you don't need to worry about this
-	["DetectIndependentTimeChange"] = false, --// Set to true if you are not using the built-in day/night cycle.  Key notes, please read: this will make the system take longer to initialize, because it will wait for the amount of seconds specified in AdjustmentTime to try to accurately gauage how fast time passes in-game.  If you are using the day/night cycle for IE, set this to true.  If you want the speed enhancement but are using a different day/night cycle, consider switch to the built in one for IE to get the speed boost and more accurate adjusted time periods.
-	["EnableDayNightTransitions"] = true, --// Turns on day/night cycle
-	["EnableSorting"] = true, --// Setting to true reduces the work done by the script, however, this denies the ability to make changes to ClockTime or TimeOfDay via admin or other controls and have the script automatically follow.  Set to false if you would like to preserve the ability to make changes in admin.
-	["TimeEffectTweenInformation"] = TweenInfo.new(
-		20, --// Recommended to only adjust the time variable (default set to 20 seconds)
-		Enum.EasingStyle.Linear
+	["CullingService"] = false,
+
+	["Detect External Day Night Cycle"] = false,
+
+	["Detection Time"] = 5,
+
+	["Enable Day Night Cycle"] = true,
+
+	["Generate Unique Random Sounds Each Iteration"] = true,
+
+	["Sort Time Cycles"] = true,
+
+	["Time"] = {
+		["Day"] = 5,
+		["Night"] = 5,
+	},
+	
+	["Tween"] = true,
+
+	["Tween Information"] = {
+		--// Entering a region or 
+		["Region"] = TweenInfo.new(
+			3,
+			Enum.EasingStyle.Linear
 		),
-	["TimeForDay"] = 10, --// The amount of minutes it takes to go from 0600 to 1800
-	["TimeForNight"] = 10, --// The amount of minutes it takes to go from 1800 to 0600
 
-	--// Weather Settings
-	["WeatherTweenInformation"] = TweenInfo.new(
-		10, --// Recommended to only adjust the time variable (default set to 10 seconds)
-		Enum.EasingStyle.Linear
-	)
+		["Time"] = TweenInfo.new(
+			20, --// Recommended to only adjust the time variable (default set to 20 seconds)
+			Enum.EasingStyle.Linear
+		),
+		
+		["Weather"] = TweenInfo.new(
+			10, --// Recommended to only adjust the time variable (default set to 10 seconds)
+			Enum.EasingStyle.Linear
+		),
+	},
+
+	["Wait For Random Sounds To End"] = false,
 }
 
 return module

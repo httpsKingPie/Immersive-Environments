@@ -1,8 +1,8 @@
 local module = {
 	["GeneralSettings"] = {
 		 --// All times in 24 hour notation
-		["StartTime"] = 12,
-		["EndTime"] = 16,
+		["StartTime"] = 0,
+		["EndTime"] = 0,
 		
 		["AdjustOnlyLightsOn"] = true,
 		["WeatherExemption"] = true,
@@ -29,7 +29,7 @@ local module = {
 	
 	["ColorCorrectionEffect"] = {
 		["Brightness"] = 0,
-		["TintColor"] = Color3.fromRGB(150, 90, 2),
+		["TintColor"] = Color3.fromRGB(150, 99, 203),
 	},
 	
 	["LightingService"] = {

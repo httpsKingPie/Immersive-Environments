@@ -3,23 +3,25 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local IEFolder = ReplicatedStorage.IE
 local IEMain = require(IEFolder.Main)
 
-IEMain.Run()
+IEMain:Run()
+IEMain:SetServerPackage("Audio", "Default")
+IEMain:SetServerPackage("Lighting", "Default")
 
---[[
+local TestWeather: boolean = true
 
-Example for weather settings
+if not TestWeather then
+    return
+end
 
-wait(5)
+task.wait(5)
 
-local AudioHandling = require(IEFolder.Main.AudioHandling)
-local LightingHandling = require(IEFolder.Main.LightingHandling)
+print("Setting weather")
+IEMain:SetWeatherPackage("Audio", "TestAudioWeather")
+IEMain:SetWeatherPackage("Lighting", "TestLightingWeather")
 
-AudioHandling.ChangeWeather("TestWeather")
-LightingHandling.ChangeWeather("TestWeather")
 
-wait(12)
+task.wait(60)
 
-AudioHandling.ClearWeather()
-LightingHandling.ClearWeather()
-
-]]
+print("Ending weather")
+IEMain:ClearWeather("Audio")
+IEMain:ClearWeather("Lighting")
