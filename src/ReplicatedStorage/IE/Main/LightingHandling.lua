@@ -9,9 +9,9 @@ local Workspace = game:GetService("Workspace")
 local Main = script.Parent
 local IEFolder = Main.Parent
 
-local RemoteFolder = IEFolder:WaitForChild("RemoteFolder")
+--local RemoteFolder = IEFolder:WaitForChild("RemoteFolder")
 
-local LightingRemote = RemoteFolder:WaitForChild("LightingRemote")
+--local LightingRemote = RemoteFolder:WaitForChild("LightingRemote")
 
 local Settings = require(IEFolder.Settings)
 
@@ -21,7 +21,10 @@ local PackageHandling = require(Main.PackageHandling)
 local RemoteHandling = require(Main.RemoteHandling)
 local SettingsHandling = require(Main.SettingsHandling)
 local SharedFunctions = require(Main.SharedFunctions)
-local TimeHandling --// Filled in after
+
+--// Filled in after
+local TimeHandling
+local WeatherHandling
 
 --// Note: Make sure these all have connections to them on the client and server
 local ComponentChanged: RemoteEvent = RemoteHandling:GetRemote("Lighting", "ComponentChanged")
@@ -671,37 +674,31 @@ local function Tween(ComponentSettings, Context: string)
 end
 
 local function HandleMultiRegions() --// Handles the transition of when a player is in multiple lighting regions by setting their lighting to the most recently joined lighting region
-	local TotalRegions = #InternalVariables["CurrentLightingRegions"]
+	local TotalRegions = #InternalVariables["Current Regions"]["Lighting"]
 	local CurrentRegion = PackageHandling:GetCurrentPackageName("Lighting", "Region")
 
-	local MostRecentlyJoinedLightingRegion = InternalVariables["CurrentLightingRegions"][TotalRegions]
-	
+	local MostRecentlyJoinedLightingRegion = InternalVariables["Current Regions"]["Lighting"][TotalRegions]
+
 	--// Check to ensure we aren't setting the same package twice (ex: someone walks into three regions, but they exit the one they entered first while still remaining in the one they most recently joined)
 	if MostRecentlyJoinedLightingRegion == CurrentRegion then
 		return
 	end
 
-	PackageHandling:SetPackage("Lighting", "Region", MostRecentlyJoinedLightingRegion)
-	TimeHandling:ReadPackage("Lighting", "Region", MostRecentlyJoinedLightingRegion, false)
-
-	module:AdjustLighting("RegionChange")
+	--// Basically just treat it as entering a new region!
+	module.RegionEnter(MostRecentlyJoinedLightingRegion)
 end
 
 function module.RegionEnter(RegionName)
 	local CurrentScope: string = PackageHandling:GetCurrentScope("Lighting")
 	local CurrentPackageName: string = PackageHandling:GetCurrentPackageName("Lighting", "Region")
 
-	local RegionPackage = PackageHandling:GetPackage("Lighting", "Region", RegionName)
-	local WeatherExemption: boolean
-	
-	--// Finds whether there is a weather exemption for the package (assumes this is the same across all packages)
-	for _, ComponentSettings in pairs (RegionPackage["Components"]) do
-		WeatherExemption = ComponentSettings["GeneralSettings"]["WeatherExemption"]
-		break
-	end
+	local WeatherExemption: boolean = WeatherHandling:CheckForWeatherExemption("Lighting", "Region", RegionName)
+
+	--// Applies weather exemption (based on the most recently joined region)
+	InternalVariables["Weather Exemption"]["Lighting"] = WeatherExemption
 
 	--// If weather is active and there is not a weather exemption
-	if CurrentScope == "Weather" and not WeatherExemption then
+	if WeatherHandling:CheckForActiveWeather("Lighting") and not WeatherExemption then
 		return
 	end
 
@@ -719,13 +716,13 @@ end
 
 function module.RegionLeave()
 	--// If we are in a multiple regions
-	if #InternalVariables["CurrentLightingRegions"] >= 1 then
+	if #InternalVariables["Current Regions"]["Lighting"] >= 1 then
 		HandleMultiRegions()
 		return
 	end
 
 	--// If there is active weather
-	if InternalVariables["Weather Enabled"] and PackageHandling:GetCurrentScope("Lighting") ~= "Weather" then
+	if WeatherHandling:CheckForActiveWeather("Lighting") and PackageHandling:GetCurrentScope("Lighting") ~= "Weather" then
 		local WeatherPackageName: string = PackageHandling:GetCurrentPackage("Lighting", "Weather")
 
 		PackageHandling:SetCurrentScope("Lighting", "Weather")
@@ -800,7 +797,7 @@ function module:ClearWeather(CurrentLightingPeriod: string) --// Don't pass this
 				Type = "Set"
 			end
 
-			LightingRemote:FireAllClients("ClearWeather", InternalVariables["CurrentLightingPeriod"], Type)
+			--LightingRemote:FireAllClients("ClearWeather", InternalVariables["CurrentLightingPeriod"], Type)
 			WeatherCleared:FireAllClients()
 		end
 	end
@@ -835,7 +832,7 @@ function module.ChangeWeather(WeatherName)
 				Type = "Set"
 			end
 
-			LightingRemote:FireAllClients("Weather", WeatherName, Type)
+			--LightingRemote:FireAllClients("Weather", WeatherName, Type)
 		end
 	end
 end
@@ -857,7 +854,7 @@ function module.TweenWeather(WeatherName)
 		Tween(NewWeatherSettings, "Weather")
 	else
 		if RunService:IsServer() then
-			LightingRemote:FireAllClients("Weather", WeatherName, "Tween")
+			--LightingRemote:FireAllClients("Weather", WeatherName, "Tween")
 		end
 	end
 end
@@ -879,7 +876,7 @@ function module.SetWeather(WeatherName)
 		Set(NewWeatherSettings)
 	else
 		if RunService:IsServer() then
-			LightingRemote:FireAllClients("Weather", WeatherName, "Set")
+			--LightingRemote:FireAllClients("Weather", WeatherName, "Set")
 		end
 	end
 end
@@ -900,13 +897,14 @@ function module:Initialize()
 		InternalVariables["Initialized"]["Lighting"] = true
 
 		TimeHandling = require(Main.TimeHandling)
+		WeatherHandling = require(Main.WeatherHandling)
 
 		if RunService:IsServer() then
 			--// When the player first joins the game (this will always set the lighting, not tween)
 			InitialSyncToServer.OnServerEvent:Connect(function(Player)
 				local NumberOfTries = 0
 
-				while InternalVariables["TimeInitialized"] == false do --// Sometimes (especialy in Studio) where the client is loading in really fast, it will load in before the CurrentLightingPeriod is set
+				while InternalVariables["Initialized"]["Time"] == false do --// Sometimes (especialy in Studio) where the client is loading in really fast, it will load in before the CurrentLightingPeriod is set
 					task.wait(.2)
 
 					NumberOfTries = NumberOfTries + 1
@@ -926,6 +924,7 @@ function module:Initialize()
 				InitialSyncToServer:FireClient(Player, CurrentScope, CurrentPackageName, CurrentComponentName)
 			end)
 
+			--[[
 			LightingRemote.OnServerEvent:Connect(function(Player, Status)
 				--// Quick denoter to save space for determining if things are being tweened vs set
 				local ChangeType
@@ -963,6 +962,7 @@ function module:Initialize()
 					end
 				end
 			end)
+			]]
 		end
 	end
 end

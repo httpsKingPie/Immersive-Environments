@@ -7,21 +7,16 @@ IEMain:Run()
 IEMain:SetServerPackage("Audio", "Default")
 IEMain:SetServerPackage("Lighting", "Default")
 
---[[
 
-Example for weather settings
+task.wait(5)
 
-wait(5)
+print("Setting weather")
+IEMain:SetWeatherPackage("Audio", "TestAudioWeather")
+IEMain:SetWeatherPackage("Lighting", "TestLightingWeather")
 
-local AudioHandling = require(IEFolder.Main.AudioHandling)
-local LightingHandling = require(IEFolder.Main.LightingHandling)
 
-AudioHandling.ChangeWeather("TestWeather")
-LightingHandling.ChangeWeather("TestWeather")
+task.wait(30)
 
-wait(12)
-
-AudioHandling.ClearWeather()
-LightingHandling.ClearWeather()
-
-]]
+print("Ending weather")
+IEMain:ClearWeather("Audio")
+IEMain:ClearWeather("Lighting")

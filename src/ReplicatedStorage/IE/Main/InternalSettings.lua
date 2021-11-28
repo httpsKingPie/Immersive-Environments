@@ -99,6 +99,7 @@ local module = {
 			"ComponentChanged",
 			"InitialSyncToServer",
 			"PackageChanged",
+			"PackageCleared",
 			"ScopeChanged",
 			"SyncToServer",
 			"WeatherCleared",
