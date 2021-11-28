@@ -7,17 +7,12 @@ local TweenService = game:GetService("TweenService")
 local Main = script.Parent
 local IEFolder = Main.Parent
 
---local RemoteFolder = IEFolder:WaitForChild("RemoteFolder")
-
---local AudioRemote = RemoteFolder:WaitForChild("AudioRemote")
-
 local Settings = require(IEFolder.Settings)
 
 local InternalSettings = require(Main.InternalSettings)
 local InternalVariables = require(Main.InternalVariables)
 local PackageHandling = require(Main.PackageHandling)
 local RemoteHandling = require(Main.RemoteHandling)
-local SettingsHandling = require(Main.SettingsHandling)
 local SharedFunctions = require(Main.SharedFunctions)
 
 --// Filled in after
@@ -27,67 +22,9 @@ local WeatherHandling
 local InitialSyncToServer: RemoteEvent = RemoteHandling:GetRemote("Audio", "InitialSyncToServer")
 
 --// SoundService
-
 local ActiveRegionSounds --// Created on the client (ony visible to client)
 local ActiveServerSounds --// Created on the server.  However, when client sided - individually clients just put their server sounds in there for easy organization
 local SharedSounds --// Created on the client (ony visible to client)
-
---// Initialize
-function module:Initialize() --// Initial run, basically just creating folders
-	if InternalVariables["Initialized"]["Audio"] == false then
-		InternalVariables["Initialized"]["Audio"] = true
-
-		TimeHandling = require(Main.TimeHandling)
-		WeatherHandling = require(Main.WeatherHandling)
-
-		if RunService:IsServer() then
-			if not SoundService:FindFirstChild("ActiveServerSounds") then --// We only want/need this created on the server
-				ActiveServerSounds = Instance.new("Folder")
-				ActiveServerSounds.Name = "ActiveServerSounds"
-				ActiveServerSounds.Parent = SoundService
-			end
-
-			InitialSyncToServer.OnServerEvent:Connect(function(Player)
-				local NumberOfTries = 0
-
-				while not InternalVariables["Initialized"]["Time"] do --// Sometimes (especialy in Studio) where the client is loading in really fast, it will load in before the CurrentLightingPeriod is set
-					task.wait(.2)
-
-					NumberOfTries = NumberOfTries + 1
-
-					if NumberOfTries > InternalSettings["RemoteInitializationMaxTries"] then
-						warn("Max Tries has been reached for Remote Initialization")
-						return
-					end
-				end
-
-				--// Initial sync to server
-				local CurrentScope = PackageHandling:GetCurrentScope("Audio")
-
-				local CurrentPackageName = PackageHandling:GetCurrentPackageName("Audio", "Server")
-				local CurrentComponentName = PackageHandling:GetCurrentComponentName("Audio")
-
-				InitialSyncToServer:FireClient(Player, CurrentScope, CurrentPackageName, CurrentComponentName)
-			end)
-		end
-
-		if RunService:IsClient() then
-			if not SoundService:FindFirstChild("ActiveRegionSounds") then
-				ActiveRegionSounds = Instance.new("Folder")
-				ActiveRegionSounds.Name = "ActiveRegionSounds"
-				ActiveRegionSounds.Parent = SoundService
-			end
-			
-			if not SoundService:FindFirstChild("SharedSounds") then
-				SharedSounds = Instance.new("Folder")
-				SharedSounds.Name = "SharedSounds"
-				SharedSounds.Parent = SoundService
-			end
-
-			ActiveServerSounds = SoundService:WaitForChild("ActiveServerSounds")
-		end
-	end
-end
 
 local function GetTweenInformation(Context: string)
 	local TweenInformation
@@ -338,7 +275,7 @@ local function HandleRandomSound(SoundName: string, SoundSettings: table, SoundF
 		Sound.Name = SoundName
 		Sound.SoundId = InternalSettings["AssetPrefix"] ..tostring(SoundSettings.SoundId)
 
-		if Settings["GenerateNewRandomSounds"] == false then
+		if not Settings["Generate Unique Random Sounds Each Iteration"] then
 			Sound.Parent = SoundFolder
 		end
 	end
@@ -350,12 +287,12 @@ local function HandleRandomSound(SoundName: string, SoundSettings: table, SoundF
 
 		if SharedFunctions.DoesChange(SoundSettings["ChanceOfPlay"]) then
 			if table.find(InternalVariables["Current Regions Quick"]["Audio"], RegionName) and Sound then --// Validates that the player is still in the region and that the Sound instance still exists
-				if Settings["GenerateNewRandomSounds"] == true then
+				if Settings["Generate Unique Random Sounds Each Iteration"] then
 					local SoundClone = Sound:Clone()
 					SoundClone.Parent = SoundFolder
 					SoundClone:Play()
 
-					if Settings["WaitForRandomSoundToEnd"] == true then --// Generating new sounds + must wait for each sound to finish
+					if Settings["Wait For Random Sounds To End"] then --// Generating new sounds + must wait for each sound to finish
 						SoundClone.Ended:Wait()
 						SoundClone:Destroy()
 					else --// Generating new sounds + do not have to wait for each sound to finish
@@ -366,12 +303,12 @@ local function HandleRandomSound(SoundName: string, SoundSettings: table, SoundF
 				else 
 					Sound:Play() --// Just using one sound instance
 
-					if Settings["WaitForRandomSoundToEnd"] == true then --// Just using one sound instance + must wait for the sound to finish
+					if Settings["Wait For Random Sounds To End"] then --// Just using one sound instance + must wait for the sound to finish
 						Sound.Ended:Wait()
 					end
 				end
 			else
-				if Settings["GenerateNewRandomSounds"] == true then
+				if Settings["Generate Unique Random Sounds Each Iteration"] then
 					Sound:Destroy() --// Otherwise this instance will just be floating in memory
 				end
 
@@ -447,10 +384,9 @@ function module.RegionLeave(RegionName: string) --// Client sided function only 
 
 	--// If there is active weather
 	if WeatherHandling:CheckForActiveWeather("Audio") and PackageHandling:GetCurrentScope("Audio") ~= "Weather" then
-		local WeatherPackageName: string = PackageHandling:GetCurrentPackage("Audio", "Weather")
-
 		PackageHandling:SetCurrentScope("Audio", "Weather")
-		TimeHandling:ReadPackage("Audio", "Weather", WeatherPackageName, true)
+		
+		module:TweenAudio("RegionChange")
 		return
 	end
 
@@ -465,58 +401,6 @@ function module.RegionLeave(RegionName: string) --// Client sided function only 
 	module:TweenAudio("RegionChange")
 end
 
---// Server controls
-
-function module.ClearWeather(CurrentAudioPeriod: string) --// Don't pass this as an argument, trust me.  It will fill in the rest!
-	SettingsHandling.WaitForSettings("Audio")
-
-	local TimeAudioSettings
-
-	if RunService:IsServer() then
-		TimeAudioSettings = SettingsHandling:GetServerSettings(InternalVariables["CurrentAudioPeriod"], "Audio")
-	else
-		TimeAudioSettings = SettingsHandling:GetServerSettings(CurrentAudioPeriod, "Audio")
-	end
-
-	if not TimeAudioSettings then
-		warn("Unable to clear weather - no audio period found")
-		return
-	end
-
-	InternalVariables["AudioWeather"] = false
-	InternalVariables["CurrentAudioWeather"] = ""
-
-	if Settings["ClientSided"] == false or RunService:IsClient() then
-		GenerateSoundsFromComponent(TimeAudioSettings, "ClearWeather") --// Components have not been set up in this function
-	else
-		if RunService:IsServer() then
-			--AudioRemote:FireAllClients("ClearWeather", InternalVariables["CurrentAudioPeriod"])
-		end
-	end
-end
-
-function module.ChangeWeather(WeatherName: string)
-	SettingsHandling.WaitForSettings("Audio")
-
-	local NewWeatherSettings = SettingsHandling:GetWeatherSettings(WeatherName, "Audio")
-
-	if not NewWeatherSettings then
-		warn("Unable to tween weather - no weather settings found")
-		return
-	end
-
-	InternalVariables["AudioWeather"] = true
-	InternalVariables["CurrentAudioWeather"] = WeatherName
-
-	if Settings["ClientSided"] == false or RunService:IsClient() then
-		GenerateSoundsFromComponent(NewWeatherSettings, "Weather") --// Components have not been set up in this function
-	else
-		if RunService:IsServer() then
-			--AudioRemote:FireAllClients("Weather", WeatherName)
-		end
-	end
-end
-
 function module:TweenAudio(Context: string)
 	local ComponentSettings = PackageHandling:GetCurrentComponent("Audio")
 
@@ -528,40 +412,72 @@ function module:TweenAudio(Context: string)
 	GenerateSoundsFromComponent(ComponentSettings, Context)
 end
 
---[[
-if InternalVariables["InitializedAudio"] == false then
-	InternalVariables["InitializedAudio"] = true
+--// Initialize
+function module:Initialize() --// Initial run, basically just creating folders
+	if InternalVariables["Initialized"]["Audio"] == false then
+		InternalVariables["Initialized"]["Audio"] = true
 
-	if RunService:IsServer() then
-		AudioRemote.OnServerEvent:Connect(function(Player, Status)
-			if Status == "SyncToServer" then
+		TimeHandling = require(Main.TimeHandling)
+		WeatherHandling = require(Main.WeatherHandling)
+
+		if RunService:IsServer() then
+			if not SoundService:FindFirstChild("ActiveServerSounds") then --// We only want/need this created on the server
+				ActiveServerSounds = Instance.new("Folder")
+				ActiveServerSounds.Name = "ActiveServerSounds"
+				ActiveServerSounds.Parent = SoundService
+			end
+
+			InitialSyncToServer.OnServerEvent:Connect(function(Player)
 				local NumberOfTries = 0
 
-				while InternalVariables["TimeInitialized"] == false do --// Sometimes (especialy in Studio) where the client is loading in really fast, it will load in before the CurrentAudioPeriod is set
+				while not InternalVariables["Initialized"]["Time"] do --// Sometimes (especialy in Studio) where the client is loading in really fast, it will load in before the CurrentLightingPeriod is set
 					task.wait(.2)
+
 					NumberOfTries = NumberOfTries + 1
 
-					if NumberOfTries > InternalSettings["RemoteInitializationMaxTries"] then
+					if NumberOfTries > InternalSettings["InitializationMaxTries"] then
 						warn("Max Tries has been reached for Remote Initialization")
 						return
 					end
 				end
 
-				if InternalVariables["AudioWeather"] then
-					AudioRemote:FireClient(Player, "TimeChange", InternalVariables["CurrentAudioPeriod"], InternalVariables["CurrentAudioWeather"])
-				else
-					AudioRemote:FireClient(Player, "TimeChange", InternalVariables["CurrentAudioPeriod"])
+				while not TimeHandling["Initial Read"]["Audio"] do
+					task.wait(.2)
+
+					NumberOfTries = NumberOfTries + 1
+
+					if NumberOfTries > InternalSettings["InitializationMaxTries"] then
+						warn("Max Tries has been reached for waiting for initial read")
+						return
+					end
 				end
-			elseif Status == "ResyncToServer" then
-				if InternalVariables["AudioWeather"] then
-					AudioRemote:FireClient(Player, "ToServer", InternalVariables["CurrentAudioPeriod"], InternalVariables["CurrentAudioWeather"])
-				else
-					AudioRemote:FireClient(Player, "ToServer", InternalVariables["CurrentAudioPeriod"])
-				end
+
+				--// Initial sync to server
+				local CurrentScope = PackageHandling:GetCurrentScope("Audio")
+
+				local CurrentPackageName = PackageHandling:GetCurrentPackageName("Audio", "Server")
+				local CurrentComponentName = PackageHandling:GetCurrentComponentName("Audio")
+
+				InitialSyncToServer:FireClient(Player, CurrentScope, CurrentPackageName, CurrentComponentName)
+			end)
+		end
+
+		if RunService:IsClient() then
+			if not SoundService:FindFirstChild("ActiveRegionSounds") then
+				ActiveRegionSounds = Instance.new("Folder")
+				ActiveRegionSounds.Name = "ActiveRegionSounds"
+				ActiveRegionSounds.Parent = SoundService
 			end
-		end)
+			
+			if not SoundService:FindFirstChild("SharedSounds") then
+				SharedSounds = Instance.new("Folder")
+				SharedSounds.Name = "SharedSounds"
+				SharedSounds.Parent = SoundService
+			end
+
+			ActiveServerSounds = SoundService:WaitForChild("ActiveServerSounds")
+		end
 	end
 end
-]]
 
 return module

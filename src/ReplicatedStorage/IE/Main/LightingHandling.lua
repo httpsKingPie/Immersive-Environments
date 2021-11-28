@@ -1,7 +1,5 @@
 local module = {}
 
-local Lighting = game:GetService("Lighting")
-local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
@@ -19,21 +17,13 @@ local InternalSettings = require(Main.InternalSettings)
 local InternalVariables = require(Main.InternalVariables)
 local PackageHandling = require(Main.PackageHandling)
 local RemoteHandling = require(Main.RemoteHandling)
-local SettingsHandling = require(Main.SettingsHandling)
 local SharedFunctions = require(Main.SharedFunctions)
 
 --// Filled in after
 local TimeHandling
 local WeatherHandling
 
---// Note: Make sure these all have connections to them on the client and server
-local ComponentChanged: RemoteEvent = RemoteHandling:GetRemote("Lighting", "ComponentChanged")
-local PackageChanged: RemoteEvent = RemoteHandling:GetRemote("Lighting", "PackageChanged")
 local InitialSyncToServer: RemoteEvent = RemoteHandling:GetRemote("Lighting", "InitialSyncToServer")
-local SyncToServer: RemoteEvent = RemoteHandling:GetRemote("Lighting", "SyncToServer")
-local WeatherCleared: RemoteEvent = RemoteHandling:GetRemote("Lighting", "WeatherCleared")
-
-local LightingScopeChanged: RemoteEvent = RemoteHandling:GetRemote("Lighting", "ScopeChanged")
 
 local InstanceTable = {}
 local ComplexInstanceTable = {}
@@ -41,7 +31,7 @@ local ComplexInstanceTable = {}
 local LitLightTable = {} --// Reference table, only used when Settings["AlwaysCheckInstances"] is true
 
 local function GetSearchCategory()
-	if Settings["ChangingInstanceChildrenOfWorkspace"] == true then
+	if Settings["All Lighting Instances Are Children Of Workspace"] then
 		return Workspace:GetChildren()
 	else
 		return Workspace:GetDescendants()
@@ -124,7 +114,7 @@ local function CheckInstanceTableExistence(InstanceName, ClassName) --// Note fo
 
 	if InstanceTable[ClassName] then --// The ClassName does exist (used for parts that may have the same name of different classes
 		if InstanceTable[ClassName][InstanceName] then --// There is a table of reference parts, or at least one has been checked for
-			if Settings["AlwaysCheckInstances"] == false then --// Permission is allowed to skip if it's already there/cached
+			if not Settings["Always Check Instances"] then --// Permission is allowed to skip if it's already there/cached
 				return
 			end
 		end
@@ -143,7 +133,7 @@ local function CheckInstanceTableExistence(InstanceName, ClassName) --// Note fo
 			if SearchCategory[i].Name == InstanceName and SearchCategory[i]:IsA(ClassName) then
 				InstanceTable[ClassName][InstanceName][SearchCategory[i]] = {}
 
-				if Settings["AlwaysCheckInstances"] == false then
+				if not Settings["Always Check Instances"] then
 					InstanceTable[ClassName][InstanceName][SearchCategory[i]]["LightsOn"] = false
 				else
 					if CheckLitLightTable(SearchCategory[i], "Normal", ClassName, InstanceName) == true then
@@ -182,7 +172,7 @@ local function CheckComplexInstanceTableExistence(ReferencePartName, Relationshi
 					if ClassNameInRefPart == ClassName then --// The class does exist
 						for _InstanceName, SimpleTableOfInstances in pairs (InstanceNames) do --// Sorry for using such an ugly placeholder value D:
 							if _InstanceName == InstanceName then --// The instance does exist, or it's at least been checked for before
-								if Settings["AlwaysCheckInstances"] == false then --// Permission is allowed to skip if it's already there/cached
+								if not Settings["Always Check Instances"] then --// Permission is allowed to skip if it's already there/cached
 									return
 								end
 							end
@@ -321,7 +311,6 @@ local function Set(ComponentSettings)
 				for _Instance, UniqueProperties in pairs (InstanceTable[ClassName][InstanceName]) do --// Switch to the InstanceTable
 					if (AdjustOnlyLightsOn == true and ComponentSettings["Instances"][ClassName][InstanceName]["IsLight"] == true and UniqueProperties["LightsOn"] == true) or AdjustOnlyLightsOn == false then
 						--// Above conditional simplified just means, if the settings says to only adjust the lights on, and the instance is one that does have the LightsOn status, and the instance is "on" then proceed, or if the Setting does not abide to only lights on the proceed
-
 
 						if ChangeTable == nil then
 							ChangeTable = {}
@@ -723,10 +712,11 @@ function module.RegionLeave()
 
 	--// If there is active weather
 	if WeatherHandling:CheckForActiveWeather("Lighting") and PackageHandling:GetCurrentScope("Lighting") ~= "Weather" then
-		local WeatherPackageName: string = PackageHandling:GetCurrentPackage("Lighting", "Weather")
+		local WeatherPackageName: string = PackageHandling:GetCurrentPackageName("Lighting", "Weather")
 
 		PackageHandling:SetCurrentScope("Lighting", "Weather")
-		TimeHandling:ReadPackage("Lighting", "Weather", WeatherPackageName, true)
+		
+		module:AdjustLighting("RegionChange")
 		return
 	end
 
@@ -759,128 +749,6 @@ function module:SetLighting()
 	Set(ComponentSettings)
 end
 
-function module:ClearWeather(CurrentLightingPeriod: string) --// Don't pass this as an argument, trust me.  It will fill in the rest!
-	InternalVariables["LightingWeather"] = false
-	InternalVariables["CurrentLightingWeather"] = ""
-
-	local TimeLightingSettings
-
-	local OldLightingPackage = InternalVariables["Non Weather Package"]["Lighting"]
-
-	if RunService:IsServer() then
-		TimeLightingSettings = SettingsHandling:GetServerSettings(InternalVariables["CurrentLightingPeriod"], "Lighting")
-	else
-		TimeLightingSettings = SettingsHandling:GetServerSettings(CurrentLightingPeriod, "Lighting")
-	end
-
-	if not TimeLightingSettings then
-		warn("Unable to clear weather - no lighting period found")
-		return
-	end
-
-	InternalVariables["LightingWeather"] = false
-	InternalVariables["CurrentLightingWeather"] = ""
-
-	if Settings["ClientSided"] == false or RunService:IsClient() then
-		if Settings["Tween"] then
-			Tween(TimeLightingSettings, "ClearWeather")
-		else
-			Set(TimeLightingSettings)
-		end
-	else
-		if RunService:IsServer() then
-			local Type
-
-			if Settings["Tween"] then
-				Type = "Tween"
-			else
-				Type = "Set"
-			end
-
-			--LightingRemote:FireAllClients("ClearWeather", InternalVariables["CurrentLightingPeriod"], Type)
-			WeatherCleared:FireAllClients()
-		end
-	end
-end
-
-function module.ChangeWeather(WeatherName)
-	SettingsHandling.WaitForSettings("Lighting")
-
-	local NewWeatherSettings = SettingsHandling:GetWeatherSettings(WeatherName, "Lighting")
-
-	if not NewWeatherSettings then
-		warn("Unable to tween weather - no lighting period found")
-		return
-	end
-
-	InternalVariables["LightingWeather"] = true
-	InternalVariables["CurrentLightingWeather"] = WeatherName
-
-	if Settings["ClientSided"] == false or RunService:IsClient() then
-		if Settings["Tween"] then
-			Tween(NewWeatherSettings, "Weather")
-		else
-			Set(NewWeatherSettings)
-		end
-	else
-		if RunService:IsServer() then
-			local Type
-			
-			if Settings["Tween"] then
-				Type = "Tween"
-			else
-				Type = "Set"
-			end
-
-			--LightingRemote:FireAllClients("Weather", WeatherName, Type)
-		end
-	end
-end
-
-function module.TweenWeather(WeatherName)
-	SettingsHandling.WaitForSettings("Lighting")
-
-	local NewWeatherSettings = SettingsHandling:GetWeatherSettings(WeatherName, "Lighting")
-
-	if not NewWeatherSettings then
-		warn("Unable to tween weather - no lighting period found")
-		return
-	end
-
-	InternalVariables["LightingWeather"] = true
-	InternalVariables["CurrentLightingWeather"] = WeatherName
-
-	if Settings["ClientSided"] == false or RunService:IsClient() then
-		Tween(NewWeatherSettings, "Weather")
-	else
-		if RunService:IsServer() then
-			--LightingRemote:FireAllClients("Weather", WeatherName, "Tween")
-		end
-	end
-end
-
-function module.SetWeather(WeatherName)
-	SettingsHandling.WaitForSettings("Lighting")
-
-	local NewWeatherSettings = SettingsHandling:GetWeatherSettings(WeatherName, "Lighting")
-
-	if not NewWeatherSettings then
-		warn("Unable to set weather - no lighting period found")
-		return
-	end
-
-	InternalVariables["LightingWeather"] = true
-	InternalVariables["CurrentLightingWeather"] = WeatherName
-
-	if Settings["ClientSided"] == false or RunService:IsClient() then
-		Set(NewWeatherSettings)
-	else
-		if RunService:IsServer() then
-			--LightingRemote:FireAllClients("Weather", WeatherName, "Set")
-		end
-	end
-end
-
 --// Handles the actually setting and tweening of the lighting.  Declare the component before this.  Context is optional
 function module:AdjustLighting(Context: string)
 	local Tween = Settings["Tween"]
@@ -904,13 +772,24 @@ function module:Initialize()
 			InitialSyncToServer.OnServerEvent:Connect(function(Player)
 				local NumberOfTries = 0
 
-				while InternalVariables["Initialized"]["Time"] == false do --// Sometimes (especialy in Studio) where the client is loading in really fast, it will load in before the CurrentLightingPeriod is set
+				while not InternalVariables["Initialized"]["Time"] do --// Sometimes (especialy in Studio) where the client is loading in really fast, it will load in before the CurrentLightingPeriod is set
 					task.wait(.2)
 
 					NumberOfTries = NumberOfTries + 1
 
-					if NumberOfTries > InternalSettings["RemoteInitializationMaxTries"] then
+					if NumberOfTries > InternalSettings["InitializationMaxTries"] then
 						warn("Max Tries has been reached for Remote Initialization")
+						return
+					end
+				end
+
+				while not TimeHandling["Initial Read"]["Lighting"] do
+					task.wait(.2)
+
+					NumberOfTries = NumberOfTries + 1
+
+					if NumberOfTries > InternalSettings["InitializationMaxTries"] then
+						warn("Max Tries has been reached for waiting for initial read")
 						return
 					end
 				end
@@ -923,46 +802,6 @@ function module:Initialize()
 
 				InitialSyncToServer:FireClient(Player, CurrentScope, CurrentPackageName, CurrentComponentName)
 			end)
-
-			--[[
-			LightingRemote.OnServerEvent:Connect(function(Player, Status)
-				--// Quick denoter to save space for determining if things are being tweened vs set
-				local ChangeType
-
-				if Settings["Tween"] then
-					ChangeType = "Tween"
-				else
-					ChangeType = "Set"
-				end
-
-				if Status == "SyncToServer" then --// Used when someone first joins the game
-					local NumberOfTries = 0
-
-					while InternalVariables["TimeInitialized"] == false do --// Sometimes (especialy in Studio) where the client is loading in really fast, it will load in before the CurrentLightingPeriod is set
-						wait(.2)
-						NumberOfTries = NumberOfTries + 1
-
-						if NumberOfTries > InternalSettings["RemoteInitializationMaxTries"] then
-							warn("Max Tries has been reached for Remote Initialization")
-							return
-						end
-					end
-
-					if InternalVariables["LightingWeather"] then
-						LightingRemote:FireClient(Player, "ToServer", InternalVariables["CurrentLightingPeriod"], "Set", InternalVariables["CurrentLightingWeather"])
-					else
-						LightingRemote:FireClient(Player, "ToServer", InternalVariables["CurrentLightingPeriod"], "Set")
-					end
-
-				elseif Status == "ResyncToServer" then
-					if InternalVariables["LightingWeather"] then
-						LightingRemote:FireClient(Player, "ToServer", InternalVariables["CurrentLightingPeriod"], ChangeType, InternalVariables["CurrentLightingWeather"])
-					else
-						LightingRemote:FireClient(Player, "ToServer", InternalVariables["CurrentLightingPeriod"], ChangeType)
-					end
-				end
-			end)
-			]]
 		end
 	end
 end

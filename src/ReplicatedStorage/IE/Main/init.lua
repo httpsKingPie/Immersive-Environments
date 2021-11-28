@@ -4,16 +4,10 @@ local RunService = game:GetService("RunService")
 
 local AudioHandling: ModuleScript
 local ClientHandling: ModuleScript
-local InternalVariables: ModuleScript
 local LightingHandling: ModuleScript
 local RegionHandling: ModuleScript
 local PackageHandling: ModuleScript
-local SettingsHandling: ModuleScript
-local SignalHandling: ModuleScript
 local TimeHandling: ModuleScript
-local WeatherHandling: ModuleScript
-
-local Signal = require(script.Signal)
 
 local InternalSettings = require(script.InternalSettings)
 
@@ -22,13 +16,10 @@ local Initialized = false
 local function InitializeModules() --// Done so that the Remotes are loaded first and there aren't errors
 	AudioHandling = require(script.AudioHandling)
 	ClientHandling = require(script.ClientHandling)
-	InternalVariables = require(script.InternalVariables)
 	LightingHandling = require(script.LightingHandling)
 	RegionHandling = require(script.RegionHandling)
 	PackageHandling = require(script.PackageHandling)
-	SettingsHandling = require(script.SettingsHandling)
 	TimeHandling = require(script.TimeHandling)
-	WeatherHandling = require(script.WeatherHandling)
 end
 
 local function GenerateRemotes()
@@ -37,18 +28,6 @@ local function GenerateRemotes()
 		RemoteFolder.Name = "RemoteFolder"
 		RemoteFolder.Parent = script.Parent
 
-		--[[
-		local AudioRemote = Instance.new("RemoteEvent")
-		AudioRemote.Name = "AudioRemote"
-		AudioRemote.Parent = RemoteFolder
-		
-
-		local LightingRemote = Instance.new("RemoteEvent")
-		LightingRemote.Name = "LightingRemote"
-		LightingRemote.Parent = RemoteFolder
-		]]
-
-		--// New Remotes
 		--// Generates Type Separated RemoteEvents
 		for _, RemoteName: string in pairs (InternalSettings["Remote Events"]["Type Separated"]) do
 			local AudioRemoteEvent = Instance.new("RemoteEvent")
@@ -69,53 +48,11 @@ local function GenerateRemotes()
 	end
 end
 
---// These are created on both the server and the client
-local function GenerateSignals()
-	SignalHandling = require(script.SignalHandling)
+--// IMPORTANT
 
-	--// Generates Type Separated Signals
-	for _, SignalName: string in pairs (InternalSettings["Signals"]["Type Separated"]) do
-		local AudioSignal = Signal.new()
-		SignalHandling["Audio".. SignalName] = AudioSignal
+--// Below are the only API functions you should have to use directly
 
-		local LightingSignal = Signal.new()
-		SignalHandling["Lighting".. SignalName] = LightingSignal
-	end
-
-	--// Generates fixed Signals
-	for _, SignalName: string in pairs (InternalSettings["Signals"]["Fixed"]) do
-		local Signal = Signal.new()
-		SignalHandling[SignalName] = Signal
-	end
-end
-
-function module:Run()
-	if Initialized then
-		return
-	end
-
-	Initialized = true
-
-	GenerateRemotes()
-	GenerateSignals()
-
-	InitializeModules()
-
-	PackageHandling:Initialize()
-	SettingsHandling:Run()
-
-	coroutine.wrap(AudioHandling.Initialize)() --// Sets up the client sound folders, etc.
-
-	coroutine.wrap(LightingHandling.Initialize)()
-
-	coroutine.wrap(TimeHandling.Initialize)() --// Starts day night cycle
-
-	coroutine.wrap(RegionHandling.Initialize)() --// Initializes regions
-
-	coroutine.wrap(ClientHandling.Initialize)() --// Initialize the client if client-sided
-end
-
---// Below functions just forward it to PackageHandling for easy API use
+--// !!!!!!!!!
 
 --// Sets server packages (PackageType is "Audio" or "Lighting")
 function module:SetServerPackage(PackageType: string, PackageName: string)
@@ -150,6 +87,30 @@ function module:ClearWeather(PackageType: string)
 
 	PackageHandling:ClearPackage(PackageType, "Weather")
 	PackageHandling:SetCurrentScope(PackageType, "Server")
+end
+
+function module:Run()
+	if Initialized then
+		return
+	end
+
+	Initialized = true
+
+	GenerateRemotes()
+
+	InitializeModules()
+
+	PackageHandling:Initialize()
+
+	coroutine.wrap(AudioHandling.Initialize)() --// Sets up the client sound folders, etc.
+
+	coroutine.wrap(LightingHandling.Initialize)()
+
+	coroutine.wrap(TimeHandling.Initialize)() --// Starts day night cycle
+
+	coroutine.wrap(RegionHandling.Initialize)() --// Initializes regions
+
+	coroutine.wrap(ClientHandling.Initialize)() --// Initialize the client if client-sided
 end
 
 return module

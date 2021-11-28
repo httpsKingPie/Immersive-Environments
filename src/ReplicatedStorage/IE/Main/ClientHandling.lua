@@ -7,6 +7,7 @@ local Main = IEFolder:WaitForChild("Main")
 local Settings = require(IEFolder:WaitForChild("Settings"))
 
 local AudioHandling = require(Main:WaitForChild("AudioHandling"))
+local InternalSettings = require(Main:WaitForChild("InternalSettings"))
 local InternalVariables = require(Main:WaitForChild("InternalVariables"))
 local LightingHandling = require(Main:WaitForChild("LightingHandling"))
 local PackageHandling = require(Main:WaitForChild("PackageHandling"))
@@ -33,40 +34,68 @@ local LightingScopeChanged: RemoteEvent = RemoteHandling:GetRemote("Lighting", "
 
 local Initialized = false
 
-local module = {}
+local module = {
+    ["Initial Set"] = {
+        ["Audio"] = false,
+        ["Lighting"] = false,
+    }
+}
+
+--// Waits for the initial set in case of weird server -> client lag
+local function WaitForInitialSet(PackageType: string)
+    if module["Initial Set"][PackageType] then
+        return
+    end
+
+    local NumberOfTries: number = 0
+
+    while not module["Initial Set"][PackageType] do
+        task.wait(.2)
+
+        NumberOfTries = NumberOfTries + 1
+
+        if NumberOfTries > InternalSettings["InitializationMaxTries"] then
+            warn("Max Tries has been reached for waiting for initial set")
+            return
+        end
+    end
+end
 
 --// Clears the package on the client
 local function ClearClientPackage(PackageType: string, PackageScope: string)
-    print(PackageType, PackageScope, "cleared")
+    WaitForInitialSet(PackageType)
 
     PackageHandling:ClearPackage(PackageType, PackageScope)
 end
 
 --// Handles the initial sync to server (when a player first joins)
 local function HandleInitialSyncToServer(PackageType: string, CurrentScope: string, CurrentPackage: string, CurrentComponentName: string)
-    print("Initial", PackageType, "Set", CurrentScope, CurrentPackage, CurrentComponentName)
     PackageHandling:SetCurrentScope(PackageType, CurrentScope)
 
     PackageHandling:SetPackage(PackageType, "Server", CurrentPackage)
     PackageHandling:SetComponent(PackageType, "Server", CurrentComponentName)
+
+    module["Initial Set"][PackageType] = true
 end
 
 --// Update the component on the client
 local function UpdateComponent(PackageType: string, PackageScope: string, ComponentName: string)
-    print(PackageType, "component changed", PackageScope, ComponentName)
+    WaitForInitialSet(PackageType)
 
     PackageHandling:SetComponent(PackageType, PackageScope, ComponentName)
 end
 
 --// Update the package on the client
 local function UpdatePackage(PackageType: string, PackageScope: string, PackageName: string)
-    print(PackageType, "package changed", PackageScope, PackageName)
+    WaitForInitialSet(PackageType)
 
     PackageHandling:SetPackage(PackageType, PackageScope, PackageName)
 end
 
 --// Update the scope (with checks)
 local function UpdateScope(PackageType: string, PackageScope: string)
+    WaitForInitialSet(PackageType)
+    
     local WeatherExemption: boolean = InternalVariables["Weather Exemption"][PackageType]
     local CurrentScope = PackageHandling:GetCurrentScope(PackageType)
 
@@ -80,9 +109,20 @@ local function UpdateScope(PackageType: string, PackageScope: string)
         return
     end
 
-    print(PackageType, "scope changed", PackageScope)
-
     PackageHandling:SetCurrentScope(PackageType, PackageScope)
+end
+
+local function SetComponentPropertiesForInstance()
+
+end
+
+--// Handles CullingService if it is implemented (only used for things in lighting settings)
+local function HandleCullingService()
+    local CulledObjects: Folder = workspace:WaitForChild("CulledObjects")
+
+    CulledObjects.DescendantAdded:Connect(function(Descendant: Instance)
+        local CurrentComponent = PackageHandling:GetCurrentComponent("Lighting")
+    end)
 end
 
 function module.Initialize()
@@ -92,7 +132,7 @@ function module.Initialize()
 
     Initialized = true
 
-    if Settings["ClientSided"] == true and RunService:IsClient() then
+    if Settings["Client Sided"] and RunService:IsClient() then
         --// Lighting Remotes
 
         LightingComponentChanged.OnClientEvent:Connect(function(PackageScope: string, ComponentName: string)
@@ -164,6 +204,10 @@ function module.Initialize()
                 AudioHandling:TweenAudio("Weather")
             end
         end)
+
+        if Settings["CullingService"] then
+            HandleCullingService()
+        end
 
         --// Sets the player's audio and lighting to what is currently playing on the server
         AudioInitialSyncToServer:FireServer()
