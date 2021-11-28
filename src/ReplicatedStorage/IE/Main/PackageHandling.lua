@@ -12,9 +12,8 @@ local Settings = require(IEFolder.Settings)
 
 local InternalVariables = require(Main.InternalVariables)
 local RemoteHandling = require(Main.RemoteHandling)
-local SignalHandling = require(Main.SignalHandling)
 
-local ClientSided = Settings["ClientSided"]
+local ClientSided: boolean = Settings["Client Sided"]
 local IsServer = RunService:IsServer()
 
 local NotifyClient = if ClientSided and IsServer then true else false --// Whether IE should notify the client when components, packages, or scope changes
@@ -37,6 +36,7 @@ local NotifyClient = if ClientSided and IsServer then true else false --// Wheth
         ...
     }
 ]]
+
 local module = {
     ["Audio"] = {
         ["Region"] = {},
@@ -150,8 +150,6 @@ function module:GetPackage(PackageType: string, PackageScope: string, PackageNam
 
 	if not Package then
 		warn("Invalid PackageName:", PackageName, "for PackageType", PackageType, "and PackageScope", PackageScope)
-		print(debug.traceback())
-		print(self[PackageType][PackageScope])
 		return
 	end
 
@@ -190,7 +188,6 @@ function module:VerifyComponentExists(PackageType: string, Scope: string, Compon
 	
 	if not Component then
 		warn("Invalid ComponentName:", ComponentName, "for current package", PackageType, "and scope", Scope)
-		print(debug.traceback())
 		return
 	end
 
@@ -298,9 +295,6 @@ function module:SetPackage(PackageType: string, PackageScope: string, PackageNam
 
 		Remote:FireAllClients(PackageScope, PackageName)
 	end
-
-	local Signal: RBXScriptSignal = SignalHandling:GetSignal(PackageType, "PackageChanged")
-	Signal:Fire()
 end
 
 --// Clears packages, PackageType is "Lighting" or "Audio", PackageScope is "Region", "Server", or "Weather"

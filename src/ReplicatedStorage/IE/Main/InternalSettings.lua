@@ -106,7 +106,14 @@ local module = {
 		},
 	},
 
-	["RemoteInitializationMaxTries"] = 50, --// Remote checks every .2 seconds.  100 tries = 20 seconds.
+	--// This is the amount of time between when the server does backup validation for regions
+	["Region Backup Validation"] = 5,
+
+	--// The time it checks for the creation of new regions (probably doesn't have to be that low of a number)
+	["Region Check Time"] = 5,
+
+	--// Remote checks every .2 seconds.  100 tries = 20 seconds.
+	["InitializationMaxTries"] = 50,
 	
 	["NonPropertySettings"] = {
 		"ChanceOfChange",
@@ -124,25 +131,6 @@ local module = {
 		["SunRaysEffect"] = ReturnExistence(Lighting, "SunRaysEffect"),
 		["Terrain"] = ReturnExistence(Workspace, "Terrain")
 	},
-
-	["Signals"] = {
-		--// RemoteName is not changed
-		["Fixed"] = {
-			
-		},
-		
-		--// RemoteName is prefaced by "Audio" or "Lighting"
-		["Type Separated"] = {
-			"ComponentChanged",
-			"InitialSyncToServer",
-			"PackageChanged",
-			"ScopeChanged",
-			"SyncToServer",
-			"WeatherCleared",
-		},
-	},
-	
-	["Weather"] = false,
 }
 
 return module

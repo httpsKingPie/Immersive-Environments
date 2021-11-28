@@ -1,4 +1,4 @@
---// Note: This is completely client sided!
+--// Note: This is completely client sided and requires the 'Client Sided' setting to be enabled!
 
 --[[
 	Covert current region into some sort of table (since you could be in multiple regions at once (ex: in a forest and then you get in the region near a river and low river sounds are playing)
@@ -34,13 +34,11 @@ local LightingRegions = IERegions:WaitForChild("LightingRegions")
 local Main = script.Parent
 
 local AudioHandling = require(Main.AudioHandling)
-local IEMain = require(Main)
 local InternalSettings = require(Main.InternalSettings)
 local InternalVariables = require(Main.InternalVariables)
 local LightingHandling = require(Main.LightingHandling)
 local PackageHandling = require(Main.PackageHandling)
 local SharedFunctions = require(Main.SharedFunctions)
-local TimeHandling = require(Main.TimeHandling)
 
 local IEFolder = Main.Parent
 
@@ -178,7 +176,7 @@ local function ValidateRegions(PackageType: string)
 			end
 		end
 		
-		task.wait(Settings["BackupValidation"])
+		task.wait(InternalSettings["Region Backup Validation"])
 	end
 end
 
@@ -251,7 +249,7 @@ local function CheckRegions(Looping)
 		HandleRegion(LightingDescendants, "Lighting")
 
 		if Looping ~= nil and Looping == true then
-			task.wait(Settings["RegionCheckTime"])
+			task.wait(InternalSettings["Region Check Time"])
 		else
 			return
 		end
@@ -270,13 +268,17 @@ function module.Initialize()
 
 	Initialized = true
 
+	if not Settings["Client Sided"] then
+		return
+	end
+
 	LocalPlayer = Players.LocalPlayer
 	
 	CheckRegions()
 	coroutine.wrap(ValidateRegions)("Audio")
 	coroutine.wrap(ValidateRegions)("Lighting")
 	
-	if Settings["AlwaysCheckInstances"] == true then
+	if Settings["Always Check Instances"] then
 		coroutine.wrap(CheckRegions)(true)
 	end
 

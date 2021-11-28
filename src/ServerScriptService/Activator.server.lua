@@ -7,6 +7,11 @@ IEMain:Run()
 IEMain:SetServerPackage("Audio", "Default")
 IEMain:SetServerPackage("Lighting", "Default")
 
+local TestWeather: boolean = true
+
+if not TestWeather then
+    return
+end
 
 task.wait(5)
 
@@ -15,7 +20,7 @@ IEMain:SetWeatherPackage("Audio", "TestAudioWeather")
 IEMain:SetWeatherPackage("Lighting", "TestLightingWeather")
 
 
-task.wait(30)
+task.wait(60)
 
 print("Ending weather")
 IEMain:ClearWeather("Audio")

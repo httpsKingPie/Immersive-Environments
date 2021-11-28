@@ -1,20 +1,9 @@
 local Main: ModuleScript = script.Parent
 
-local AudioHandling = require(Main.AudioHandling)
 local InternalVariables = require(Main.InternalVariables)
-local LightingHandling = require(Main.LightingHandling)
 local PackageHandling = require(Main.PackageHandling)
 
 local module = {}
-
---// Clears the weather, Type is either "Audio" or "Lighting" (this function should not be manually called)
-function module:ClearWeather(PackageType: string)
-    if PackageType == "Audio" then
-        AudioHandling:ClearWeather()
-    elseif PackageType == "Lighting" then
-        LightingHandling:ClearWeather()
-    end
-end
 
 --// Finds whether there is a weather exemption for the package (assumes this is the same across all components)
 function module:CheckForWeatherExemption(PackageType: string, PackageScope: string, PackageName: string)
