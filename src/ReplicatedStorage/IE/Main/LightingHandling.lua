@@ -405,8 +405,99 @@ local function CheckInstanceTableExistenceForCullingSystem(Instance: Instance)
 	end)
 end
 
-local function CheckComplexInstanceTableExistenceForCullingSystem(Instance: Instance)
+local function CheckComplexInstanceTableExistenceForCullingSystem(Instance: Instance, CurrentComponentSettings: table)
+	--[[ Table structure goes like
+	
+	ComplexInstanceTable = {
+		[ReferencePartName] = {
+			[ReferencePart (this is an actual instance)] = {
+				["LightsOn"] = a bool value to determine whether it this specific complex instance is "on"
+				[Relationship Name ex: Child, Sibling, Parent, Descendant] = {
+					[ClassName] = {
+						[InstanceName] = {Simple table of instances}
+					}
+				}
+				etc. more relationships may follow
+			}
+		}
+	}
+	]]
 
+	--[[
+		So basically, this function consolidates all of the information
+
+		We take the child/descendant/whatever and say
+			Alright, based on the component settings, we know that you (as whatever the relationship) should be this class and be named this thing
+			We check those arguments/conditions below, and if it's good, it adds it to the complex instance table
+	]]
+
+	local function CheckAndAddToComplexInstanceTable(ClassSettings: table, ReferencePart: Instance, Relationship: string, InstanceToEvaluate: string)
+		local ReferencePartName: string = ReferencePart.Name
+
+		for ClassName: string, Instances: table in pairs (ClassSettings) do --// Verify that the child fits a designated class
+			for InstanceName, _ in pairs(Instances) do --// Verify that the child is named the same thing
+				if InstanceToEvaluate.Name == InstanceName and InstanceToEvaluate:IsA(ClassName) then
+					table.insert(ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][InstanceName], InstanceToEvaluate)
+				end
+			end
+		end 
+	end
+
+	local ReferencePart: Instance = Instance
+	local ReferencePartName: string = Instance.Name
+
+	if not ComplexInstanceTable[ReferencePartName] then
+		ComplexInstanceTable[ReferencePartName] = {}
+	end
+
+	--// Instance Check
+
+	if not ComplexInstanceTable[ReferencePartName][ReferencePart] then
+		ComplexInstanceTable[ReferencePartName][ReferencePart] = {}
+		ComplexInstanceTable[ReferencePartName][ReferencePart]["LightsOn"] = false
+		--// We aren't evaluating relationships, so we can't check specifically which ones (yet)
+	end
+
+	local Relationships = CurrentComponentSettings["ComplexInstances"][ReferencePartName]
+
+	for Relationship: string, ClassSettings: table in pairs (Relationships) do
+		if Relationship == "Child" then
+			local Children: table = ReferencePart:GetChildren()
+
+			for _, ChildInstance: Instance in pairs (Children) do --// Parse through all the children of the reference part
+				CheckAndAddToComplexInstanceTable(ClassSettings, ReferencePart, Relationship, ChildInstance)
+			end
+
+		elseif Relationship == "Descendant" then
+			local Descendants: table = ReferencePart:GetDescendants()
+
+			for _, DescendantInstance: Instance in pairs (Descendants) do --// Parse through all the children of the reference part
+				CheckAndAddToComplexInstanceTable(ClassSettings, ReferencePart, Relationship, DescendantInstance)
+			end
+
+		elseif Relationship == "Parent" then
+			local ParentInstance: Instance = ReferencePart.Parent
+
+			CheckAndAddToComplexInstanceTable(ClassSettings, ReferencePart, Relationship, ParentInstance)
+
+		elseif Relationship == "Sibling" then
+			local Siblings = ReferencePart.Parent:GetChildren()
+
+			for _, SiblingInstance: Instance in pairs (Siblings) do --// Parse through all the children of the reference part
+				CheckAndAddToComplexInstanceTable(ClassSettings, ReferencePart, Relationship, SiblingInstance)
+			end
+		elseif Relationship == "Self" then		
+			CheckAndAddToComplexInstanceTable(ClassSettings, ReferencePart, Relationship, ReferencePart)
+		end
+	end
+
+	local Connection: RBXScriptConnection
+
+	--// When the instance gets destroyed, clear it from memory
+	Connection = Instance.AncestryChanged:Connect(function()
+		ComplexInstanceTable[ReferencePartName][ReferencePart] = nil
+		Connection:Disconnect()
+	end)
 end
 
 local function SetForCullingSystem(Instance: Instance)
@@ -440,7 +531,7 @@ function module:SetCullingDescendant(Instance: Instance)
 	if InstanceType == "Simple" then --// Simple instance
 		CheckInstanceTableExistenceForCullingSystem(Instance)
 	else --// Complex instance reference part
-		CheckComplexInstanceTableExistenceForCullingSystem(Instance)
+		CheckComplexInstanceTableExistenceForCullingSystem(Instance, CurrentComponentSettings)
 	end
 end
 
@@ -522,7 +613,6 @@ local function Set(ComponentSettings)
 		local ListOfLights = {} --// Looks like: index = ReferencePartName; value = true/false, basically just tells whether this is treated as an instance affected by LightsOn or not
 
 		for ReferencePartName, Relationships in pairs (ComponentSettings["ComplexInstances"]) do --// This is NOT parsing through the ComplexInstanceTable, this is parsing through the ComplexInstances table in the respective settings
-
 			for Relationship, ClassSettings in pairs (Relationships) do
 				if Relationship == "GeneralSettings" then
 					if ClassSettings["IsLight"] then
