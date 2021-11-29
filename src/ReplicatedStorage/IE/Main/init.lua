@@ -63,9 +63,6 @@ function module:SetServerPackage(PackageType: string, PackageName: string)
 		return
 	end
 
-		return
-	end
-
 	PackageHandling:SetPackage(PackageType, "Weather", PackageName)
 	PackageHandling:SetCurrentScope(PackageType, "Weather")
 
