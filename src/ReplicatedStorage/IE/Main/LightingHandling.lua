@@ -98,6 +98,10 @@ local function CheckLitLightTable(InstanceToCheck, InstanceType, ClassName, Inst
 	end
 end
 
+--[[
+	InstanceTables are just a simplfied way of retrieving whether something's lights are on or not
+]]
+
 local function CheckInstanceTableExistence(InstanceName, ClassName) --// Note for future, make this compatible with complex instances
 	--[[ Table structure goes like
 	
@@ -114,7 +118,7 @@ local function CheckInstanceTableExistence(InstanceName, ClassName) --// Note fo
 
 	if InstanceTable[ClassName] then --// The ClassName does exist (used for parts that may have the same name of different classes
 		if InstanceTable[ClassName][InstanceName] then --// There is a table of reference parts, or at least one has been checked for
-			if not Settings["Always Check Instances"] then --// Permission is allowed to skip if it's already there/cached
+			if not Settings["Always Check Instances"] then --// Permission is allowed to skip if it's already there/cached (basically the process has already occurred)
 				return
 			end
 		end
@@ -128,24 +132,45 @@ local function CheckInstanceTableExistence(InstanceName, ClassName) --// Note fo
 
 	local SearchCategory = GetSearchCategory()
 
-	if #SearchCategory ~= 0 then
-		for i = 1, #SearchCategory do
-			if SearchCategory[i].Name == InstanceName and SearchCategory[i]:IsA(ClassName) then
-				InstanceTable[ClassName][InstanceName][SearchCategory[i]] = {}
+	--// Cleaner rewrite of the below
+	for _, SearchedInstance: Instance in pairs (SearchCategory) do
+		if SearchedInstance.Name == InstanceName and SearchedInstance:IsA(ClassName) then
+			InstanceTable[ClassName][InstanceName][SearchedInstance] = {}
 
-				if not Settings["Always Check Instances"] then
-					InstanceTable[ClassName][InstanceName][SearchCategory[i]]["LightsOn"] = false
+			if not Settings["Always Check Instances"] then
+				InstanceTable[ClassName][InstanceName][SearchedInstance]["LightsOn"] = false
+			else
+				if CheckLitLightTable(SearchedInstance, "Normal", ClassName, InstanceName) then
+					InstanceTable[ClassName][InstanceName][SearchedInstance]["LightsOn"] = true
 				else
-					if CheckLitLightTable(SearchCategory[i], "Normal", ClassName, InstanceName) == true then
-						InstanceTable[ClassName][InstanceName][SearchCategory[i]]["LightsOn"] = true
-					else
-						InstanceTable[ClassName][InstanceName][SearchCategory[i]]["LightsOn"] = false
-					end
+					InstanceTable[ClassName][InstanceName][SearchedInstance]["LightsOn"] = false
 				end
 			end
 		end
 	end
+
+	--if #SearchCategory ~= 0 then
+		--for i = 1, #SearchCategory do
+			--if SearchCategory[i].Name == InstanceName and SearchCategory[i]:IsA(ClassName) then
+				--InstanceTable[ClassName][InstanceName][SearchCategory[i]] = {}
+
+				--if not Settings["Always Check Instances"] then
+					--InstanceTable[ClassName][InstanceName][SearchCategory[i]]["LightsOn"] = false
+				--else
+					--if CheckLitLightTable(SearchCategory[i], "Normal", ClassName, InstanceName) == true then
+						--InstanceTable[ClassName][InstanceName][SearchCategory[i]]["LightsOn"] = true
+					--else
+						--InstanceTable[ClassName][InstanceName][SearchCategory[i]]["LightsOn"] = false
+					--end
+				--end
+			--end
+		--end
+	--end
 end
+
+--[[
+	InstanceTables are just a simplfied way of retrieving whether something's lights are on or not
+]]
 
 local function CheckComplexInstanceTableExistence(ReferencePartName, Relationship, ClassName, InstanceName)
 	--[[ Table structure goes like
@@ -183,93 +208,239 @@ local function CheckComplexInstanceTableExistence(ReferencePartName, Relationshi
 		end
 	end
 
-	if ComplexInstanceTable[ReferencePartName] == nil then
+	if not ComplexInstanceTable[ReferencePartName] then
 		ComplexInstanceTable[ReferencePartName] = {}
 	end
 
 	local SearchCategory = GetSearchCategory()
-	local NumberOfSearches = #SearchCategory
 
 	--// Instance Check
 
-	if NumberOfSearches ~= 0 then
-		for i = 1, NumberOfSearches do
-			if SearchCategory[i].Name == ReferencePartName then --// Note: SearchCategory[i] is the reference part
+	for _, SearchedInstance: Instance in pairs (SearchCategory) do
+		if SearchedInstance == ReferencePartName then
+			--// Table checks
+			local ReferencePart = SearchedInstance
+
+			if not ComplexInstanceTable[ReferencePartName][ReferencePart] then --// Cases where the reference part is not yet indexed
+				ComplexInstanceTable[ReferencePartName][ReferencePart] = {}
+				ComplexInstanceTable[ReferencePartName][ReferencePart]["LightsOn"] = false
+				ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship] = {}
+				ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName] = {}
+				ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][InstanceName] = {}
+
+			elseif not ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship] then --// Cases where the reference part is already indexed, but a new relationship is being added
+				ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship] = {}
+				ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName] = {}
+				ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][InstanceName] = {}
+
+			elseif not ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName] then --// Cases where the relationship is already indexed, but a new class name is being added
+				ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName] = {}
+				ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][InstanceName] = {}
+
+			elseif not ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][InstanceName] then --// Cases where a new instance is being added to an existing class
+				ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][InstanceName] = {}
+			end
+
+			--// Evaluates whether the complex instance matches the arguments
+			local function CheckAndAddToComplexInstanceTable(InstanceToEvaluate)
+				if InstanceToEvaluate.Name == InstanceName and InstanceToEvaluate:IsA(ClassName) then
+					table.insert(ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][InstanceName], InstanceToEvaluate)
+				end
+			end
+
+			--// Evaluates the instance and processes it accordingly into the complex instance table
+			if Relationship == "Child" then
+				local Children: table = ReferencePart:GetChildren()
+
+				for _, ChildInstance: Instance in pairs (Children) do
+					CheckAndAddToComplexInstanceTable(ChildInstance)
+				end
+
+			elseif Relationship == "Descendant" then
+				local Descendants: table = ReferencePart:GetDescendants()
+
+				for _, DescendantInstance: Instance in pairs (Descendants) do
+					CheckAndAddToComplexInstanceTable(DescendantInstance)
+				end
+
+			elseif Relationship == "Parent" then
+				local ParentInstance: Instance = SearchedInstance.Parent
+
+				CheckAndAddToComplexInstanceTable(ParentInstance)
+
+			elseif Relationship == "Sibling" then
+				local Siblings = ReferencePart.Parent:GetChildren()
+
+				for _, SiblingInstance: Instance in pairs (Siblings) do
+					CheckAndAddToComplexInstanceTable(SiblingInstance)
+				end
+
+			elseif Relationship == "Self" then
+				CheckAndAddToComplexInstanceTable(ReferencePart)
+			end
+		end
+	end
+
+	--if NumberOfSearches ~= 0 then
+		--for i = 1, NumberOfSearches do
+			--if SearchCategory[i].Name == ReferencePartName then --// Note: SearchCategory[i] is the reference part
 
 				--// Table checks
 
-				local ReferencePart = SearchCategory[i]
+				--local ReferencePart = SearchCategory[i]
 
-				if ComplexInstanceTable[ReferencePartName][ReferencePart] == nil then --// Cases where the reference part is not yet indexed
-					ComplexInstanceTable[ReferencePartName][ReferencePart] = {}
-					ComplexInstanceTable[ReferencePartName][ReferencePart]["LightsOn"] = false
-					ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship] = {}
-					ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName] = {}
-					ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][InstanceName] = {}
+				--if ComplexInstanceTable[ReferencePartName][ReferencePart] == nil then --// Cases where the reference part is not yet indexed
+					--ComplexInstanceTable[ReferencePartName][ReferencePart] = {}
+					--ComplexInstanceTable[ReferencePartName][ReferencePart]["LightsOn"] = false
+					--ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship] = {}
+					--ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName] = {}
+					--ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][InstanceName] = {}
 
-				elseif ComplexInstanceTable[ReferencePartName][SearchCategory[i]][Relationship] == nil then --// Cases where the reference part is already indexed, but a new relationship is being added
-					ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship] = {}
-					ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName] = {}
-					ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][InstanceName] = {}
+				--elseif ComplexInstanceTable[ReferencePartName][SearchCategory[i]][Relationship] == nil then --// Cases where the reference part is already indexed, but a new relationship is being added
+					--ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship] = {}
+					--ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName] = {}
+					--ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][InstanceName] = {}
 
-				elseif ComplexInstanceTable[ReferencePartName][SearchCategory[i]][Relationship][ClassName] == nil then --// Cases where the relationship is already indexed, but a new class name is being added
-					ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName] = {}
-					ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][InstanceName] = {}
+				--elseif ComplexInstanceTable[ReferencePartName][SearchCategory[i]][Relationship][ClassName] == nil then --// Cases where the relationship is already indexed, but a new class name is being added
+					--ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName] = {}
+					--ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][InstanceName] = {}
 
-				elseif ComplexInstanceTable[ReferencePartName][SearchCategory[i]][Relationship][ClassName][InstanceName] == nil then --// Cases where a new instance is being added to an existing class
-					ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][InstanceName] = {}
-				end
+				--elseif ComplexInstanceTable[ReferencePartName][SearchCategory[i]][Relationship][ClassName][InstanceName] == nil then --// Cases where a new instance is being added to an existing class
+					--ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][InstanceName] = {}
+				--end
 
-				if Relationship == "Child" then
-					local Children = ReferencePart:GetChildren()
-					local NumberOfChildren = #Children
+				--if Relationship == "Child" then
+					--local Children = ReferencePart:GetChildren()
+					--local NumberOfChildren = #Children
 
-					if NumberOfChildren ~= 0 then
-						for n = 1, NumberOfChildren do
-							if Children[n].Name == InstanceName and Children[n]:IsA(ClassName) then
-								table.insert(ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][InstanceName], Children[n])
-							end
-						end
-					end
+					--if NumberOfChildren ~= 0 then
+						--for n = 1, NumberOfChildren do
+							--if Children[n].Name == InstanceName and Children[n]:IsA(ClassName) then
+								--table.insert(ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][InstanceName], Children[n])
+							--end
+						--end
+					--end
 
-				elseif Relationship == "Descendant" then
-					local Descendants = ReferencePart:GetDescendants()
-					local NumberOfDescendants = #Descendants
+				--elseif Relationship == "Descendant" then
+					--local Descendants = ReferencePart:GetDescendants()
+					--local NumberOfDescendants = #Descendants
 
-					if NumberOfDescendants ~= 0 then
-						for n = 1, NumberOfDescendants do
-							if Descendants[n].Name == InstanceName and Descendants[n]:IsA(ClassName) then
-								table.insert(ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][InstanceName], Descendants[n])
-							end
-						end
-					end
+					--if NumberOfDescendants ~= 0 then
+						--for n = 1, NumberOfDescendants do
+							--if Descendants[n].Name == InstanceName and Descendants[n]:IsA(ClassName) then
+								--table.insert(ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][InstanceName], Descendants[n])
+							--end
+						--end
+					--end
 
-				elseif Relationship == "Parent" then
-					if SearchCategory[i].Parent.Name == InstanceName and SearchCategory[i]:IsA(ClassName) then
-						table.insert(ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][InstanceName], SearchCategory[i].Parent)
-					end
+				--elseif Relationship == "Parent" then
+					--if SearchCategory[i].Parent.Name == InstanceName and SearchCategory[i]:IsA(ClassName) then
+						--table.insert(ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][InstanceName], SearchCategory[i].Parent)
+					--end
 
-				elseif Relationship == "Sibling" then
-					local Siblings = SearchCategory[i].Parent:GetChildren()
-					local NumberOfSiblings = #Siblings
+				--elseif Relationship == "Sibling" then
+					--local Siblings = SearchCategory[i].Parent:GetChildren()
+					--local NumberOfSiblings = #Siblings
 
-					if NumberOfSiblings ~= 0 then
-						for n = 1, NumberOfSiblings do
-							if Siblings[n].Name == InstanceName and Siblings[n]:IsA(ClassName) then
-								table.insert(ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][InstanceName], Siblings[n])
-							end
-						end
-					end
+					--if NumberOfSiblings ~= 0 then
+						--for n = 1, NumberOfSiblings do
+							--if Siblings[n].Name == InstanceName and Siblings[n]:IsA(ClassName) then
+								--table.insert(ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][InstanceName], Siblings[n])
+							--end
+						--end
+					--end
 
-				elseif Relationship == "Self" then
-					if ReferencePart:IsA(ClassName) and ReferencePart.Name == InstanceName then
-						table.insert(ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][ReferencePartName], ReferencePart)
-					else
+				--elseif Relationship == "Self" then
+					--if ReferencePart:IsA(ClassName) and ReferencePart.Name == InstanceName then
+						--table.insert(ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][ReferencePartName], ReferencePart)
+					--else
 						--warn("Self property set for ".. ReferencePartName.. " but the instance is not a ".. ClassName)
-					end
-				end
-			end
-		end
+					--end
+				--end
+			--end
+		--end
+	--end
+end
+
+--[[
+	The following functions are modified to integrate with CullingSystem
+	
+	They are variations of the normal functions (CheckInstanceTableExistence, CheckComplexInstanceTableExistence, and Set)
+]]
+
+local function CheckInstanceTableExistenceForCullingSystem(Instance: Instance)
+	--[[ Table structure goes like
+	
+	InstanceTable = {
+		[ClassName] = {
+			[InstanceName] = {
+				[Instance (this is an actual instance)] = {
+					["LightsOn"] = a bool value to determine whether it this specific complex instance is "on"
+				}
+			}
+		}
+	}
+	]]
+
+	local ClassName: string = Instance.ClassName
+	local InstanceName: string = Instance.Name
+
+	if not InstanceName[ClassName] then
+		InstanceTable[ClassName] = {}
+	end
+
+	if not InstanceTable[ClassName][InstanceName] then
+		InstanceTable[ClassName][InstanceName] = {}
+	end
+
+	InstanceTable[ClassName][InstanceName][Instance] = {}
+	InstanceTable[ClassName][InstanceName][Instance]["LightsOn"] = false
+
+	local Connection: RBXScriptConnection
+
+	--// When the instance gets destroyed, clear it from memory
+	Connection = Instance.AncestryChanged:Connect(function()
+		InstanceTable[ClassName][InstanceName][Instance] = nil
+		Connection:Disconnect()
+	end)
+end
+
+local function CheckComplexInstanceTableExistenceForCullingSystem(Instance: Instance)
+
+end
+
+local function SetForCullingSystem(Instance: Instance)
+
+end
+
+--// This is used specifically to interface with CullingSystem
+function module:SetCullingDescendant(Instance: Instance)
+	local CurrentComponentSettings = PackageHandling:GetCurrentComponent("Lighting")
+	local ClassName: string = Instance.ClassName
+	
+	local InstanceType: string --// This will either be "Simple" or "Complex", depending if it is a normal instance or a simple one - if it remains nil, that means it is not in the component settings
+
+	--// This is a simple instance
+	if CurrentComponentSettings["Instances"][ClassName][Instance.Name] then
+		InstanceType = "Simple"
+	end
+
+	--// This is a complex instances (as in, it is a reference part for a complex instance)
+	if CurrentComponentSettings["Complex Instances"][Instance.Name] then
+		InstanceType = "Complex"
+	end
+
+	--// If it is neither, then do nothing
+	if not InstanceType then
+		return
+	end
+
+	--// Note to self, InstanceTables are just a way of seeing whether the lights are on - these need to be added to the instance tables, for sure, (since something might be culled in for a while) but they also need to be removed once they are culled out, so just be mindful of that (otherwise memory leak)
+
+	if InstanceType == "Simple" then --// Simple instance
+		CheckInstanceTableExistenceForCullingSystem(Instance)
+	else --// Complex instance reference part
+		CheckComplexInstanceTableExistenceForCullingSystem(Instance)
 	end
 end
 

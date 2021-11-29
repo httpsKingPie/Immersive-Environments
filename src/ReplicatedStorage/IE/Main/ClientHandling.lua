@@ -112,16 +112,12 @@ local function UpdateScope(PackageType: string, PackageScope: string)
     PackageHandling:SetCurrentScope(PackageType, PackageScope)
 end
 
-local function SetComponentPropertiesForInstance()
-
-end
-
 --// Handles CullingService if it is implemented (only used for things in lighting settings)
 local function HandleCullingService()
     local CulledObjects: Folder = workspace:WaitForChild("CulledObjects")
 
     CulledObjects.DescendantAdded:Connect(function(Descendant: Instance)
-        local CurrentComponent = PackageHandling:GetCurrentComponent("Lighting")
+        LightingHandling:SetCullingDescendant(Descendant)
     end)
 end
 
