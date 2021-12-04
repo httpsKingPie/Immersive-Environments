@@ -7,7 +7,7 @@ IEMain:Run()
 IEMain:SetServerPackage("Audio", "Default")
 IEMain:SetServerPackage("Lighting", "Default")
 
-local TestWeather: boolean = true
+local TestWeather: boolean = false
 
 if not TestWeather then
     return

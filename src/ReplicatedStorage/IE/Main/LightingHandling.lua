@@ -518,8 +518,15 @@ local function SetForCullingSystem(InstanceToSet: Instance, InstanceType: string
 		local ChangeTable = {}
 		local ChanceOfChange = 100 --// Default always changes
 
-		if (AdjustOnlyLightsOn == true and ComponentSettings["Instances"][ClassName][InstanceName]["IsLight"] == true and UniqueProperties["LightsOn"] == true) or AdjustOnlyLightsOn == false then
-			--// Above conditional simplified just means, if the settings says to only adjust the lights on, and the instance is one that does have the LightsOn status, and the instance is "on" then proceed, or if the Setting does not abide to only lights on the proceed
+		--// Conditional checks checks
+		local InstanceIsLight: boolean = ComponentSettings["Instances"][ClassName][InstanceName]["IsLight"]
+		local InstanceLightIsOn: boolean = UniqueProperties["LightsOn"]
+
+		if (AdjustOnlyLightsOn == true and InstanceIsLight and InstanceLightIsOn) or AdjustOnlyLightsOn == false then
+			--// If it does not change, don't proceed
+			if not SharedFunctions.DoesChange(ChanceOfChange) then
+				return
+			end
 
 			--// This builds the ChangeTable (which determines which properties are changed)
 			for SettingName, SettingValue in pairs (SpecificSettings) do --// Determines if settings are able to be used, etc.
@@ -541,34 +548,26 @@ local function SetForCullingSystem(InstanceToSet: Instance, InstanceType: string
 			BuildLitLightTable("Normal", ClassName, InstanceName, ChangeTable)
 		end
 
-		--// Does the actual setting
-		if SharedFunctions.DoesChange(ChanceOfChange) then
-			for ApprovedSettingName, ApprovedSettingValue in pairs (ChangeTable) do
-				InstanceToSet[ApprovedSettingName] = ApprovedSettingValue
-			end
-
-			InstanceTable[ClassName][InstanceName][InstanceToSet]["LightsOn"] = ComponentSettings["Instances"][ClassName][InstanceName]["IsLightOn"]
+		--// Set the properties
+		for ApprovedSettingName, ApprovedSettingValue in pairs (ChangeTable) do
+			InstanceToSet[ApprovedSettingName] = ApprovedSettingValue
 		end
+
+		--// Denotes whether the light is 'on' or 'off'
+		InstanceTable[ClassName][InstanceName][InstanceToSet]["LightsOn"] = ComponentSettings["Instances"][ClassName][InstanceName]["IsLightOn"]
 	elseif InstanceType == "Complex" then
+		local ReferencePart: Instance = InstanceToSet
+		local ReferencePartName: string = ReferencePart.Name
 
-		local ListOfLights = {} --// Looks like: index = ReferencePartName; value = true/false, basically just tells whether this is treated as an instance affected by LightsOn or not
-
-		for ReferencePartName, Relationships in pairs (ComponentSettings["ComplexInstances"]) do --// This is NOT parsing through the ComplexInstanceTable, this is parsing through the ComplexInstances table in the respective settings
-			for Relationship, ClassSettings in pairs (Relationships) do
-				if Relationship == "GeneralSettings" then
-					if ClassSettings["IsLight"] then
-						ListOfLights[ReferencePartName] = ClassSettings["IsLight"]
-					else
-						ListOfLights[ReferencePartName] = false --// Defaults to not registering a part as a light
-					end
-				else
-					for ClassName, Instances in pairs (ClassSettings) do
-						for InstanceName, SpecificSettings in pairs (Instances) do
-							CheckComplexInstanceTableExistence(ReferencePartName, Relationship, ClassName, InstanceName)
-						end
-					end
-				end
-			end
+		--// Conditional checks
+		local ComplexInstanceIsLight: boolean --// Filled in below
+		local ComplexInstanceLightIsOn: boolean = ComplexInstanceTable[ReferencePartName][ReferencePart]["LightsOn"]
+		
+		--// Determines whether the ComplexInstance is a light
+		if ComponentSettings["ComplexInstances"]["GeneralSettings"]["IsLight"] then
+			ComplexInstanceIsLight = ComponentSettings["ComplexInstances"]["GeneralSettings"]["IsLight"]
+		else
+			ComplexInstanceIsLight = false --// Defaults to not registering a part as a light
 		end
 
 		for ReferencePartName, _ in pairs (ComponentSettings["ComplexInstances"]) do
@@ -578,59 +577,69 @@ local function SetForCullingSystem(InstanceToSet: Instance, InstanceType: string
 				ChanceOfChange = ComponentSettings["ComplexInstances"][ReferencePartName]["GeneralSettings"]["ChanceOfChange"]
 			end
 
-			for ReferencePart, Relationships in pairs (ComplexInstanceTable[ReferencePartName]) do --// Parsing through all the reference parts
-				if (AdjustOnlyLightsOn == true and ListOfLights[ReferencePartName] == true and ComplexInstanceTable[ReferencePartName][ReferencePart]["LightsOn"] == true) or AdjustOnlyLightsOn == false then
-					--// Above conditional simplified just means, if the settings says to only adjust the lights on, and the complex instance is one that does have the LightsOn status, and the current instance is "on" then proceed, or if the Setting does not abide to only lights on the proceed
-					if ReferencePart.Parent ~= nil then
+			if (AdjustOnlyLightsOn == true and ComplexInstanceIsLight == true and ComplexInstanceLightIsOn == true) or AdjustOnlyLightsOn == false then
+				--// Above conditional simplified just means, if the settings says to only adjust the lights on, and the complex instance is one that does have the LightsOn status, and the current instance is "on" then proceed, or if the Setting does not abide to only lights on the proceed
+				
+				--// Used for deleting reference parts that no longer exist (backup - connection should already take care of this)
+				if ReferencePart.Parent == nil then
+					return
+				end
 
-						if SharedFunctions.DoesChange(ChanceOfChange) then
+				--// If it does not change, don't proceed
+				if not SharedFunctions.DoesChange(ChanceOfChange) then
+					return
+				end
 
-							for Relationship, ClassNames in pairs (Relationships) do
-								if Relationship == "LightsOn" then
-									--// Saving space in case any other changes need to be added
-								else
-									for ClassName, Instances in pairs (ClassNames) do
-										for InstanceName, SimpleTableOfInstances in pairs (Instances) do
-											local TestInstance = ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][InstanceName][1]
+				local ComplexInstanceTableRelationships: table = ComplexInstanceTable[ReferencePartName][ReferencePart]
 
-											if TestInstance ~= nil then --// Ensures that an instance does actually exist
-												local ChangeTable
+				--// Parse through the relationships
+				for Relationship, ClassNames in pairs (ComplexInstanceTableRelationships) do
+					if Relationship == "LightsOn" then
+						--// Saving space in case any other changes need to be added
+					else
+						for ClassName, Instances in pairs (ClassNames) do
+							for InstanceName, SimpleTableOfInstances in pairs (Instances) do
+								local TestInstance = ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][InstanceName][1]
 
-												if ChangeTable == nil then --// Only does settings validation once
-													ChangeTable = {}
+								if not TestInstance then
+									return
+								end
 
-													for SettingName, SettingValue in pairs (ComponentSettings["ComplexInstances"][ReferencePartName][Relationship][ClassName][InstanceName]) do --// Determines if settings are able to be used, etc. CHANGE SETTINGS HERE
-														if table.find(InternalSettings["NonPropertySettings"], SettingName) == nil then 
-															if SharedFunctions.CheckProperty(TestInstance, SettingName) then
-																if table.find(InternalSettings["BlacklistedSettings"], SettingName) == nil and (InternalSettings["BlacklistedSettingsClass"][ClassName] == nil or table.find(InternalSettings["BlacklistedSettingsClass"][ClassName], SettingName) == nil) then
-																	ChangeTable[SettingName] = SettingValue
-																else
-																	warn(SettingName.. " unable to be modified")
-																end
-															else
-																warn(SettingName.. " is not a valid property of ".. InstanceName.. ".  Check spelling")
-															end
-														end
-													end
+								local ChangeTable: table
+
+								if ChangeTable == nil then --// Only does settings validation once
+									ChangeTable = {}
+
+									local InstanceSettings: table = ComponentSettings["ComplexInstances"][ReferencePartName][Relationship][ClassName][InstanceName]
+
+									for SettingName, SettingValue in pairs (InstanceSettings) do --// Determines if settings are able to be used, etc. CHANGE SETTINGS HERE
+										if table.find(InternalSettings["NonPropertySettings"], SettingName) == nil then 
+											if SharedFunctions.CheckProperty(TestInstance, SettingName) then
+												if table.find(InternalSettings["BlacklistedSettings"], SettingName) == nil and (InternalSettings["BlacklistedSettingsClass"][ClassName] == nil or table.find(InternalSettings["BlacklistedSettingsClass"][ClassName], SettingName) == nil) then
+													ChangeTable[SettingName] = SettingValue
+												else
+													warn(SettingName.. " unable to be modified")
 												end
-
-												for i = 1, #ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][InstanceName] do --// Changes the settings
-													local TargetInstance = ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][InstanceName][i]
-
-													for ApprovedSettingName, ApprovedSettingValue in pairs (ChangeTable) do
-														TargetInstance[ApprovedSettingName] = ApprovedSettingValue
-													end
-
-													ComplexInstanceTable[ReferencePartName][ReferencePart]["LightsOn"] = ComponentSettings["ComplexInstances"][ReferencePartName]["GeneralSettings"]["IsLightOn"]
-												end
+											else
+												warn(SettingName.. " is not a valid property of ".. InstanceName.. ".  Check spelling")
 											end
 										end
 									end
 								end
+
+								local RelationshipInstances: table = ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][InstanceName]
+
+								--// Set the properties
+								for _, TargetInstance in pairs (RelationshipInstances) do
+									for ApprovedSettingName, ApprovedSettingValue in pairs (ChangeTable) do
+										TargetInstance[ApprovedSettingName] = ApprovedSettingValue
+									end
+								end
+
+								--// Denotes whether the light is 'on' or 'off'
+								ComplexInstanceTable[ReferencePartName][ReferencePart]["LightsOn"] = ComponentSettings["ComplexInstances"][ReferencePartName]["GeneralSettings"]["IsLightOn"]
 							end
 						end
-					else
-						ComponentSettings["ComplexInstances"][ReferencePartName][ReferencePart] = nil --// Used for deleting reference parts that no longer exist
 					end
 				end
 			end
