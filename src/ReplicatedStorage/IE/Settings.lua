@@ -125,7 +125,7 @@ local module = {
 	
 	["Client Sided"] = true,
 
-	["CullingService"] = true,
+	["CullingService"] = false,
 
 	["Detect External Day Night Cycle"] = false,
 
@@ -138,8 +138,8 @@ local module = {
 	["Sort Time Cycles"] = true,
 
 	["Time"] = {
-		["Day"] = 5,
-		["Night"] = 5,
+		["Day"] = 2,
+		["Night"] = 2,
 	},
 	
 	["Tween"] = true,

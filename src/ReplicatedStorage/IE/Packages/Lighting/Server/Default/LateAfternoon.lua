@@ -4,10 +4,14 @@ local module = {
 		["StartTime"] = 16,
 		["EndTime"] = 18,
 		
-		["AdjustOnlyLightsOn"] = true,
+		["AdjustOnlyLightsOn"] = false,
 	},
 	
 	["Instances"] = {
+		
+	},
+
+	["ComplexInstances"] = {
 		
 	},
 	
