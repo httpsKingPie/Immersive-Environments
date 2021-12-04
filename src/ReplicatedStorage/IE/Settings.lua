@@ -125,7 +125,7 @@ local module = {
 	
 	["Client Sided"] = true,
 
-	["CullingService"] = false,
+	["CullingService"] = true,
 
 	["Detect External Day Night Cycle"] = false,
 

@@ -63,6 +63,19 @@ function module:SetServerPackage(PackageType: string, PackageName: string)
 		return
 	end
 
+	PackageHandling:SetPackage(PackageType, "Server", PackageName)
+	PackageHandling:SetCurrentScope(PackageType, "Server")
+
+	TimeHandling:ReadPackage(PackageType, "Server", PackageName, true)
+end
+
+--// Sets server packages (PackageType is "Audio" or "Lighting")
+function module:SetWeatherPackage(PackageType: string, PackageName: string)
+	if not Initialized then
+		warn("Initialize IE before interacting with API")
+		return
+	end
+
 	PackageHandling:SetPackage(PackageType, "Weather", PackageName)
 	PackageHandling:SetCurrentScope(PackageType, "Weather")
 
@@ -101,7 +114,7 @@ function module:Run()
 
 	coroutine.wrap(RegionHandling.Initialize)() --// Initializes regions
 
-	coroutine.wrap(RegionHandling.Run)() --// Initializes regions
+	coroutine.wrap(RegionHandling.Initialize)() --// Initializes regions
 
 	coroutine.wrap(ClientHandling.Initialize)() --// Initialize the client if client-sided
 end
