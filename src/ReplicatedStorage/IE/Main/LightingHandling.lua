@@ -999,8 +999,10 @@ local function HandleMultiRegions() --// Handles the transition of when a player
 		return
 	end
 
+	local PackageNameForRegion = string.split(MostRecentlyJoinedLightingRegion, "-")[1]
+
 	--// Basically just treat it as entering a new region!
-	module.RegionEnter(MostRecentlyJoinedLightingRegion)
+	module.RegionEnter(PackageNameForRegion)
 end
 
 function module.RegionEnter(RegionName)

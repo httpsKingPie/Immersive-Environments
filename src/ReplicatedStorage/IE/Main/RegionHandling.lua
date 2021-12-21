@@ -359,7 +359,7 @@ function module.Initialize()
 	UniqueIdentifiersAssignedRemote:FireServer()
 
 	if not UniqueIdentifiersAssigned then
-		UniqueIdentifiersAssigned.OnClientEvent:Wait()
+		UniqueIdentifiersAssignedRemote.OnClientEvent:Wait()
 	end
 
 	LocalPlayer = Players.LocalPlayer
