@@ -479,7 +479,7 @@ local module = {
 	
 	["BlurEffect"] = {
 		["Enabled"] = true,
-		["Size"] = 24,
+		["Size"] = 0,
 	},
 	
 	["ColorCorrectionEffect"] = {
@@ -487,11 +487,11 @@ local module = {
 		["Contrast"] = 0,
 		["Enabled"] = true,
 		["Saturation"] = 0,
-		["TintColor"] = Color3.fromRGB(0, 0, 0),
+		["TintColor"] = Color3.fromRGB(0, 26, 255),
 	},
 	
 	["LightingService"] = {
-		["Ambient"] = Color3.fromRGB(0, 0, 0),
+		["Ambient"] = Color3.fromRGB(0, 26, 255),
 		["Brightness"] = 0,
 		["ColorShift_Bottom"] = Color3.fromRGB(0, 0, 0),
 		["ColorShift_Top"] = Color3.fromRGB(0, 0, 0),
