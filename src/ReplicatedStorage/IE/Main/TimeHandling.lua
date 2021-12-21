@@ -459,7 +459,7 @@ local function GetCurrentAdjustedPeriod(PackageType: string, PackageScope: strin
 end
 
 --// Bad syntax name here lol, doesn't return anything, more so just sets it to the correct version
-local function GetCurrentPeriod(PackageType: string, PackageScope)
+local function GetCurrentPeriod(PackageType: string, PackageScope: string)
 	if not CheckTimePeriod(PackageType, PackageScope) then
 		return
 	end
@@ -586,9 +586,8 @@ local function TrackCycle(PackageType: string, PackageScope: string)
 		GetCurrentAdjustedPeriod(PackageType, PackageScope)
 	end
 
-	if InternalVariables["Current Period"][PackageType] == "" then
-		GetCurrentPeriod(PackageType, PackageScope) --// This returns a value, but we don't need it
-	end
+	--// Sets the current period for the new package
+	GetCurrentPeriod(PackageType, PackageScope)
 
 	local OnlyOneComponent: boolean, SoleComponentName: string = CheckForOnlyOneComponent(PackageType, PackageScope)
 
@@ -609,10 +608,17 @@ local function TrackCycle(PackageType: string, PackageScope: string)
 			end
 		end
 
-		local CurrentComponent = module["Current Time Periods"][PackageType][PackageScope][InternalVariables["Current Index"][PackageType]]["Name"]
+		local CurrentIndex = InternalVariables["Current Index"][PackageType] --// Defined in the loop above
+		local CurrentComponent = module["Current Time Periods"][PackageType][PackageScope][CurrentIndex]["Name"]
+
 		PackageHandling:SetComponent(PackageType, PackageScope, CurrentComponent)
 
 		while task.wait(Settings["Check Time"]) do
+			--// Break the loop if the package name for the scope changes.  We have no problem tracking packages when the scope isn't active (ex: player enters a region, we still track the cycle) but once the package for the scope changes (ex: different regions) then we need to stop this (this also plugs a big memory leak)
+			if PackageHandling:GetCurrentPackageName(PackageType, PackageScope) ~= PackageName then
+				return
+			end
+
 			local CurrentTime = Lighting.ClockTime
 			local NextIndex = InternalVariables["Next Index"][PackageType]
 			
@@ -635,6 +641,11 @@ local function TrackCycle(PackageType: string, PackageScope: string)
 		PackageHandling:SetComponent(PackageType, PackageScope, CurrentComponent)
 
 		while task.wait(Settings["Check Time"]) do
+			--// Break the loop if the package name for the scope changes.  We have no problem tracking packages when the scope isn't active (ex: player enters a region, we still track the cycle) but once the package for the scope changes (ex: different regions) then we need to stop this (this also plugs a big memory leak)
+			if PackageHandling:GetCurrentPackageName(PackageType, PackageScope) ~= PackageName then
+				return
+			end
+
 			--// Current adjusted period is the period we are actually in and is compared to the period that we think are in
 			local CurrentAdjustedPeriod: string = GetCurrentAdjustedPeriod(PackageType, PackageScope)
 
@@ -644,14 +655,12 @@ local function TrackCycle(PackageType: string, PackageScope: string)
 				PackageHandling:SetComponent(PackageType, PackageScope, CurrentAdjustedPeriod)
 
 				--// Do not make the actual change if client sided
-				if IsServer and ClientSided then
-					return
-				end
-
-				if Settings["Tween"]  == true then
-					Tween(PackageType)
-				else
-					Set(PackageType)
+				if not (IsServer and ClientSided) then
+					if Settings["Tween"]  == true then
+						Tween(PackageType)
+					else
+						Set(PackageType)
+					end
 				end
 			end
 		end
@@ -665,6 +674,10 @@ function module:ReadPackage(PackageType: string, PackageScope: string, PackageNa
 
 	--// Records for TimeHandling internal tracking in order to terminate loops when packages change
 	module["Current Tracked Packages"][PackageType][PackageScope] = PackageName
+
+	--// Removes old table entries
+	module["Current Time Periods"][PackageType][PackageScope] = {}
+	module["Current Adjusted Time Periods"][PackageType][PackageScope] = {}
 
 	--// Puts the different periods (in their individual modules) into a readable version for IE
 	PopulateTimes(PackageType, PackageScope, PackageName)

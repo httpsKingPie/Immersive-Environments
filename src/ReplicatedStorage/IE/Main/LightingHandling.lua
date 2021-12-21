@@ -7,10 +7,6 @@ local Workspace = game:GetService("Workspace")
 local Main = script.Parent
 local IEFolder = Main.Parent
 
---local RemoteFolder = IEFolder:WaitForChild("RemoteFolder")
-
---local LightingRemote = RemoteFolder:WaitForChild("LightingRemote")
-
 local Settings = require(IEFolder.Settings)
 
 local InternalSettings = require(Main.InternalSettings)
@@ -148,24 +144,6 @@ local function CheckInstanceTableExistence(InstanceName, ClassName) --// Note fo
 			end
 		end
 	end
-
-	--if #SearchCategory ~= 0 then
-		--for i = 1, #SearchCategory do
-			--if SearchCategory[i].Name == InstanceName and SearchCategory[i]:IsA(ClassName) then
-				--InstanceTable[ClassName][InstanceName][SearchCategory[i]] = {}
-
-				--if not Settings["Always Check Instances"] then
-					--InstanceTable[ClassName][InstanceName][SearchCategory[i]]["LightsOn"] = false
-				--else
-					--if CheckLitLightTable(SearchCategory[i], "Normal", ClassName, InstanceName) == true then
-						--InstanceTable[ClassName][InstanceName][SearchCategory[i]]["LightsOn"] = true
-					--else
-						--InstanceTable[ClassName][InstanceName][SearchCategory[i]]["LightsOn"] = false
-					--end
-				--end
-			--end
-		--end
-	--end
 end
 
 --[[
@@ -189,6 +167,7 @@ local function CheckComplexInstanceTableExistence(ReferencePartName, Relationshi
 		}
 	}
 	]]	
+
 
 	if ComplexInstanceTable[ReferencePartName] then --// There is a table of reference parts, or at least one has been checked for
 		for ReferencePart, RefPartRelationship in pairs (ComplexInstanceTable[ReferencePartName]) do 
@@ -217,7 +196,7 @@ local function CheckComplexInstanceTableExistence(ReferencePartName, Relationshi
 	--// Instance Check
 
 	for _, SearchedInstance: Instance in pairs (SearchCategory) do
-		if SearchedInstance == ReferencePartName then
+		if SearchedInstance.Name == ReferencePartName then
 			--// Table checks
 			local ReferencePart = SearchedInstance
 
@@ -280,86 +259,6 @@ local function CheckComplexInstanceTableExistence(ReferencePartName, Relationshi
 			end
 		end
 	end
-
-	--if NumberOfSearches ~= 0 then
-		--for i = 1, NumberOfSearches do
-			--if SearchCategory[i].Name == ReferencePartName then --// Note: SearchCategory[i] is the reference part
-
-				--// Table checks
-
-				--local ReferencePart = SearchCategory[i]
-
-				--if ComplexInstanceTable[ReferencePartName][ReferencePart] == nil then --// Cases where the reference part is not yet indexed
-					--ComplexInstanceTable[ReferencePartName][ReferencePart] = {}
-					--ComplexInstanceTable[ReferencePartName][ReferencePart]["LightsOn"] = false
-					--ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship] = {}
-					--ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName] = {}
-					--ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][InstanceName] = {}
-
-				--elseif ComplexInstanceTable[ReferencePartName][SearchCategory[i]][Relationship] == nil then --// Cases where the reference part is already indexed, but a new relationship is being added
-					--ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship] = {}
-					--ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName] = {}
-					--ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][InstanceName] = {}
-
-				--elseif ComplexInstanceTable[ReferencePartName][SearchCategory[i]][Relationship][ClassName] == nil then --// Cases where the relationship is already indexed, but a new class name is being added
-					--ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName] = {}
-					--ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][InstanceName] = {}
-
-				--elseif ComplexInstanceTable[ReferencePartName][SearchCategory[i]][Relationship][ClassName][InstanceName] == nil then --// Cases where a new instance is being added to an existing class
-					--ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][InstanceName] = {}
-				--end
-
-				--if Relationship == "Child" then
-					--local Children = ReferencePart:GetChildren()
-					--local NumberOfChildren = #Children
-
-					--if NumberOfChildren ~= 0 then
-						--for n = 1, NumberOfChildren do
-							--if Children[n].Name == InstanceName and Children[n]:IsA(ClassName) then
-								--table.insert(ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][InstanceName], Children[n])
-							--end
-						--end
-					--end
-
-				--elseif Relationship == "Descendant" then
-					--local Descendants = ReferencePart:GetDescendants()
-					--local NumberOfDescendants = #Descendants
-
-					--if NumberOfDescendants ~= 0 then
-						--for n = 1, NumberOfDescendants do
-							--if Descendants[n].Name == InstanceName and Descendants[n]:IsA(ClassName) then
-								--table.insert(ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][InstanceName], Descendants[n])
-							--end
-						--end
-					--end
-
-				--elseif Relationship == "Parent" then
-					--if SearchCategory[i].Parent.Name == InstanceName and SearchCategory[i]:IsA(ClassName) then
-						--table.insert(ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][InstanceName], SearchCategory[i].Parent)
-					--end
-
-				--elseif Relationship == "Sibling" then
-					--local Siblings = SearchCategory[i].Parent:GetChildren()
-					--local NumberOfSiblings = #Siblings
-
-					--if NumberOfSiblings ~= 0 then
-						--for n = 1, NumberOfSiblings do
-							--if Siblings[n].Name == InstanceName and Siblings[n]:IsA(ClassName) then
-								--table.insert(ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][InstanceName], Siblings[n])
-							--end
-						--end
-					--end
-
-				--elseif Relationship == "Self" then
-					--if ReferencePart:IsA(ClassName) and ReferencePart.Name == InstanceName then
-						--table.insert(ComplexInstanceTable[ReferencePartName][ReferencePart][Relationship][ClassName][ReferencePartName], ReferencePart)
-					--else
-						--warn("Self property set for ".. ReferencePartName.. " but the instance is not a ".. ClassName)
-					--end
-				--end
-			--end
-		--end
-	--end
 end
 
 --[[
@@ -1108,13 +1007,14 @@ function module.RegionEnter(RegionName)
 	local CurrentScope: string = PackageHandling:GetCurrentScope("Lighting")
 	local CurrentPackageName: string = PackageHandling:GetCurrentPackageName("Lighting", "Region")
 
+	local ActiveWeather: boolean = WeatherHandling:CheckForActiveWeather("Lighting")
 	local WeatherExemption: boolean = WeatherHandling:CheckForWeatherExemption("Lighting", "Region", RegionName)
 
 	--// Applies weather exemption (based on the most recently joined region)
 	InternalVariables["Weather Exemption"]["Lighting"] = WeatherExemption
 
 	--// If weather is active and there is not a weather exemption
-	if WeatherHandling:CheckForActiveWeather("Lighting") and not WeatherExemption then
+	if ActiveWeather and not WeatherExemption then
 		return
 	end
 
@@ -1137,10 +1037,11 @@ function module.RegionLeave()
 		return
 	end
 
-	--// If there is active weather
-	if WeatherHandling:CheckForActiveWeather("Lighting") and PackageHandling:GetCurrentScope("Lighting") ~= "Weather" then
-		local WeatherPackageName: string = PackageHandling:GetCurrentPackageName("Lighting", "Weather")
+	local ActiveWeather: boolean = WeatherHandling:CheckForActiveWeather("Lighting")
+	local CurrentScope: string = PackageHandling:GetCurrentScope("Lighting")
 
+	--// If there is active weather
+	if ActiveWeather and CurrentScope ~= "Weather" then
 		PackageHandling:SetCurrentScope("Lighting", "Weather")
 		
 		module:AdjustLighting("RegionChange")
@@ -1222,12 +1123,27 @@ function module:Initialize()
 				end
 
 				--// Initial sync to server
+				local SyncTable = {}
+
 				local CurrentScope = PackageHandling:GetCurrentScope("Lighting")
 
-				local CurrentPackageName = PackageHandling:GetCurrentPackageName("Lighting", "Server")
-				local CurrentComponentName = PackageHandling:GetCurrentComponentName("Lighting")
+				local CurrentPackageName = PackageHandling:GetCurrentPackageName("Lighting", CurrentScope)
+				local CurrentComponentName = PackageHandling:GetCurrentComponentName("Lighting", CurrentScope)
 
-				InitialSyncToServer:FireClient(Player, CurrentScope, CurrentPackageName, CurrentComponentName)
+				SyncTable["PackageType"] = "Lighting"
+				SyncTable["CurrentScope"] = CurrentScope
+				SyncTable["CurrentPackage"] = CurrentPackageName
+				SyncTable["CurrentComponent"] = CurrentComponentName
+
+				if CurrentScope == "Weather" then
+					local CurrentServerPackageName = PackageHandling:GetCurrentPackageName("Lighting", "Server")
+					local CurrentServerComponentName = PackageHandling:GetCurrentComponentName("Lighting", "Server")
+
+					SyncTable["CurrentServerPackage"] = CurrentServerPackageName
+					SyncTable["CurrentServerComponent"] = CurrentServerComponentName
+				end
+
+				InitialSyncToServer:FireClient(Player, SyncTable)
 			end)
 		end
 	end

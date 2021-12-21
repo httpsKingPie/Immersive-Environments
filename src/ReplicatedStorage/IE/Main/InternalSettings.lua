@@ -91,7 +91,7 @@ local module = {
 	["Remote Events"] = {
 		--// RemoteName is not changed
 		["Fixed"] = {
-			
+			"UniqueIdentifiersAssigned",
 		},
 
 		--// RemoteName is prefaced by "Audio" or "Lighting"
@@ -124,6 +124,7 @@ local module = {
 		["Atmosphere"] = ReturnExistence(Lighting, "Atmosphere"),
 		["BloomEffect"] = ReturnExistence(Lighting, "BloomEffect"),
 		["BlurEffect"] = ReturnExistence(Lighting, "BlurEffect"),
+		["Clouds"] = ReturnExistence(Lighting, "Clouds"),
 		["ColorCorrectionEffect"] = ReturnExistence(Lighting, "ColorCorrectionEffect"),
 		["DepthOfFieldEffect"] = ReturnExistence(Lighting, "DepthOfFieldEffect"),
 		["LightingService"] = ReturnExistence(Lighting),

@@ -38,6 +38,7 @@ local InternalSettings = require(Main.InternalSettings)
 local InternalVariables = require(Main.InternalVariables)
 local LightingHandling = require(Main.LightingHandling)
 local PackageHandling = require(Main.PackageHandling)
+local RemoteHandling = require(Main.RemoteHandling)
 local SharedFunctions = require(Main.SharedFunctions)
 
 local IEFolder = Main.Parent
@@ -45,7 +46,10 @@ local IEFolder = Main.Parent
 local ObjectTracker = require(IEFolder["OT&AM"])
 local Settings = require(IEFolder.Settings)
 
-local Initialized = false
+local UniqueIdentifiersAssignedRemote: RemoteEvent = RemoteHandling:GetRemote("", "UniqueIdentifiersAssigned")
+
+local ActivelyHandlingRegions: boolean = false --// Prevents HandleRegions from being called too fast on-top of itself
+local Initialized: boolean = false
 
 --[[
 	Handles the region being entered
@@ -53,8 +57,18 @@ local Initialized = false
 	Arguments: PackageType ("Audio" or "Lighting"), RegionName (name of the region)
 ]]
 
-local function HandleRegionEnter(PackageType: string, RegionName: string)
-	local Package = PackageHandling:GetPackage(PackageType, "Region", RegionName)
+local function ReturnUniqueIdentifierComponents(UniqueIdentifier: string)
+	local SplitUniqueIdentifier: table = string.split(UniqueIdentifier, "-")
+
+	local RegionName: string = SplitUniqueIdentifier[1]
+	local RegionInstanceName: string = SplitUniqueIdentifier[2]
+	local RegionInstanceIndex: string = SplitUniqueIdentifier[3]
+
+	return RegionName, RegionInstanceName, RegionInstanceIndex
+end
+
+local function HandleRegionEnter(PackageType: string, PackageName: string)
+	local Package = PackageHandling:GetPackage(PackageType, "Region", PackageName)
 
 	--// Warning already bundled in
 	if not Package then
@@ -62,9 +76,9 @@ local function HandleRegionEnter(PackageType: string, RegionName: string)
 	end
 
 	if PackageType == "Audio" then
-		AudioHandling.RegionEnter(RegionName)
+		AudioHandling.RegionEnter(PackageName)
 	elseif PackageType == "Lighting" then
-		LightingHandling.RegionEnter(RegionName)
+		LightingHandling.RegionEnter(PackageName)
 	end
 end
 
@@ -74,80 +88,67 @@ end
 	Arguments: PackageType ("Audio" or "Lighting"), RegionName (name of the region)
 ]]
 
-local function HandleRegionLeave(PackageType: string, RegionName: string)
+local function HandleRegionLeave(PackageType: string, PackageName: string)
 	if PackageType == "Audio" then
-		AudioHandling.RegionLeave(RegionName)
+		AudioHandling.RegionLeave(PackageName)
 	elseif PackageType == "Lighting" then
 		LightingHandling.RegionLeave()
 	end
 end
 
---// Adds a region for internal tracking when a player enters it
-local function AddRegion(PackageType: string, RegionName: string)
-	local NewIndex = 0
+--// Adds a region for internal tracking when a player enters it (returns true if this is successful)
+local function AddRegion(PackageType: string, UniqueIdentifier: string)
+	--// Check to make sure we aren't adding duplicate regions
+	local RegionAlreadyBeingTracked = table.find(InternalVariables["Current Regions"][PackageType], UniqueIdentifier)
 
-	for Index, _ in ipairs (InternalVariables["Current Regions"][PackageType]) do
-		NewIndex = Index
+	--// Not a huge deal if this gets tripped, there's plenty of reasons why it might try to duplicate add a region
+	if RegionAlreadyBeingTracked then
+		return
 	end
 
-	NewIndex = NewIndex + 1
+	table.insert(InternalVariables["Current Regions"][PackageType], UniqueIdentifier)
 
-	InternalVariables["Current Regions"][PackageType][NewIndex] = RegionName
-	table.insert(InternalVariables["Current Regions Quick"][PackageType], RegionName)
+	return true
 end
 
 --// Removes a region for internal tracking when a player leaves it
-local function RemoveRegion(PackageType: string, RegionName: string)
-	local RegionLeftIndex
-	local MaxIndex = #InternalVariables["Current Regions"][PackageType] --// Look about replacing this with local MaxIndex = #InternalVariables["Current Regions"][PackageType]
+local function RemoveRegion(PackageType: string, UniqueIdentifier: string)
+	local IndexesToRemove = {} --// This is just a more thorough way of preventing any edge cases of duplicate entires, since it will always allow for the possibility of remove more than one indexes (although we expect it to only be one)
 
 	--// Get the index of the region left so that we can sort the dictionary
-	for Index, _RegionName in ipairs (InternalVariables["Current Regions"][PackageType]) do
-		if _RegionName == RegionName then
-			RegionLeftIndex = Index
+	for Index, RegionIdentifier in ipairs (InternalVariables["Current Regions"][PackageType]) do
+		if RegionIdentifier == UniqueIdentifier then
+			table.insert(IndexesToRemove, Index)
 		end
 	end
 
 	--// Check to see if an actual index is found, if one is not found this is fine because it also means that an region settings were applied to it.  More than likely this means someoene ran really quickly in and out of it.  If they already left before the ValidateRegions function had time to catch they were in there, it's probably fine
-	if not RegionLeftIndex then
-		warn(RegionName..  "was supposed to be removed, but was not found in CurrentRegions")
+	if #IndexesToRemove == 0  then
+		warn(UniqueIdentifier..  "was supposed to be removed, but was not found in CurrentRegions")
 		return
 	end
 
-	--// If we are removing an index (ex: index 5) and the total number of indexes is ex: 8, then we shift all indexes above 5 down 1, and then remove the last index (effectively removing that index and sorting everything down one)
-	for Index, _RegionName in ipairs (InternalVariables["Current Regions"][PackageType]) do
-		if Index > RegionLeftIndex then --// If it's an index lower than the number that was left, then it does not need resorting.
-			InternalVariables["Current Regions"][PackageType][Index - 1] = _RegionName
-		end
+	--// Remove the indexes
+	for _, IndexToRemove: number in ipairs (IndexesToRemove) do
+		table.remove(InternalVariables["Current Regions"][PackageType], IndexToRemove)
 	end
-
-	InternalVariables["Current Regions"][PackageType][MaxIndex] = nil
-
-	--// Remove the index from internal references
-	table.remove(InternalVariables["Current Regions Quick"][PackageType], table.find(InternalVariables["Current Regions Quick"][PackageType], RegionName))
 end
 
 --// Clears the current regions
 local function ClearRegions()
 	InternalVariables["Current Regions"]["Audio"] = {}
-	InternalVariables["Current Regions Quick"]["Audio"] = {}
-
 	InternalVariables["Current Regions"]["Lighting"] = {}
-	InternalVariables["Current Regions Quick"]["Lighting"] = {}
 end
 
 --// Validates regions to make sure that players are actually in them
 local function ValidateRegions(PackageType: string)
 	while true do
-		local ReversedCurrentRegions = {}
-
-		for Index, _RegionName in ipairs (InternalVariables["Current Regions"][PackageType]) do
-			ReversedCurrentRegions[_RegionName] = Index
-		end
-
 		for SpecificPackageType, AllRegions in pairs (InternalVariables["Regions"]) do --// (PackageType = "Audio" or "Lighting")
 			if PackageType == SpecificPackageType then
-				for RegionName, TrackedRegion in pairs (AllRegions) do
+				for UniqueIdentifier: string, TrackedRegion in pairs (AllRegions) do
+					--// Break up the region identifier into any relevant information
+					local RegionName, RegionInstanceName, RegionInstanceIndex = ReturnUniqueIdentifierComponents(UniqueIdentifier)
+
 					local Objects = TrackedRegion:getObjects()
 
 					local ActuallyInRegion
@@ -163,13 +164,16 @@ local function ValidateRegions(PackageType: string)
 						end
 					end
 
-					local RecordedInRegion = ReversedCurrentRegions[RegionName] --// will be nil if no, and something if true
+					local BeingTrackedInRegion = table.find(InternalVariables["Current Regions"][PackageType], UniqueIdentifier)
 					
-					if ActuallyInRegion and not RecordedInRegion then --// Means the LocalPlayer is actually in the zone, but RegionHandling doesn't think they are
-						AddRegion(PackageType, RegionName)
-						HandleRegionEnter(PackageType, RegionName)
-					elseif not ActuallyInRegion and RecordedInRegion then --// Means the LocalPlayer is not actually in the zone, but RegionHandling thinks they are
-						RemoveRegion(PackageType, RegionName)
+					if ActuallyInRegion and not BeingTrackedInRegion then --// Means the LocalPlayer is actually in the zone, but RegionHandling doesn't think they are
+						local SuccessfullyAddedRegion = AddRegion(PackageType, UniqueIdentifier)
+
+						if SuccessfullyAddedRegion then
+							HandleRegionEnter(PackageType, RegionName)
+						end
+					elseif not ActuallyInRegion and BeingTrackedInRegion then --// Means the LocalPlayer is not actually in the zone, but RegionHandling thinks they are
+						RemoveRegion(PackageType, UniqueIdentifier)
 						HandleRegionLeave(PackageType, RegionName)
 					end
 				end
@@ -180,15 +184,46 @@ local function ValidateRegions(PackageType: string)
 	end
 end
 
+--// Do this by the server, right at the start, because there's going to be too much client weirdness if StreamingEnabled is run at the same time when 'Always Check Instances' is enabled
+local function AssignUniqueIdentifiers(Children: table)
+	for _, RegionFolder: Folder in pairs (Children) do
+		local PackageName: string = RegionFolder.Name
+
+		for Index, Region: Instance in pairs (RegionFolder:GetChildren()) do
+			if Region:IsA("BasePart") then
+				local RegionName = Region.Name
+
+				local UniqueIdentifier = PackageName.. "-".. RegionName.. "-".. Index
+
+				Region.Name = UniqueIdentifier
+			end
+		end
+	end
+end
+
 local function CheckRegions(Looping)
-	local function BuildTableOfIndexes(TableToModify: table)
+	local function GetListOfUniqueIdentifiers(TableOfRegions: table)
 		local NewTable = {}
 		
-		for Index, _ in pairs (TableToModify) do
-			table.insert(NewTable, Index)
+		for UniqueIdentifier, TrackedRegion in pairs (TableOfRegions) do
+			table.insert(NewTable, UniqueIdentifier)
 		end
 		
 		return NewTable
+	end
+
+	local function ExcludeRegionsPlayerIsCurrentlyIn(Table: table, PackageType: string)
+		local CurrentRegions = InternalVariables["Current Regions"][PackageType]
+
+		for _, UniqueIdentifier in ipairs (CurrentRegions) do
+			local IndexInTable = table.find(Table, UniqueIdentifier)
+
+			if IndexInTable then
+				table.remove(Table, IndexInTable)
+			end
+		end
+		
+		return Table
 	end
 	
 	--[[
@@ -197,58 +232,84 @@ local function CheckRegions(Looping)
 		Arguments: Descendants (descendants or AudioRegions or LightingRegions), PackageType is either "Audio" or "Lighting" (used for organization)
 	]]
 
-	local function HandleRegion(Descendants: table, PackageType: string)
-		if not InternalVariables["Regions"][PackageType] then
-			InternalVariables["Regions"][PackageType] = {}
-		else
-			ObjectTracker.RemoveAreas(BuildTableOfIndexes(InternalVariables["Regions"][PackageType]))
-			InternalVariables["Regions"][PackageType] = {}
+	local function HandleRegion(Children: table, PackageType: string)
+		--// Prevents this from being called too many times sequentially
+		while ActivelyHandlingRegions == true do
+			warn("Throttling region handling - consider increasing InternalSettings>'Region Check Time'")
+			task.wait(.1)
 		end
 
-		local CreatedRegions = {}
+		ActivelyHandlingRegions = true
 
-		for i = 1, #Descendants do
-			local RegionName = Descendants[i].Name
-			
-			local RegionAlreadyExists = table.find(CreatedRegions, RegionName)
-			
-			if not RegionAlreadyExists then
-				
-				local TrackedRegion = ObjectTracker.addArea(RegionName, Descendants[i])
-				
-				InternalVariables["Regions"][PackageType][RegionName] = TrackedRegion
-				
-				TrackedRegion.onEnter:Connect(function(Player)
-					if Player ~= LocalPlayer then
-						return
-					end
-					
-					AddRegion(PackageType, RegionName)
-					HandleRegionEnter(PackageType, RegionName)
-				end)
-				
-				TrackedRegion.onLeave:Connect(function(Player)
-					if Player ~= LocalPlayer then
-						return
-					end
-					
-					RemoveRegion(PackageType, RegionName)
-					HandleRegionLeave(PackageType, RegionName)
-				end)
-			else
-				warn("Cannot have the regions with the same name and type.  Name: ".. RegionName.. "; PackageType: ".. PackageType)
+		--// Removes regions the player is not in (typically if 'Always Check Instances' is on - prevents duplication glitches)
+		local TableOfRegionsToRemove = GetListOfUniqueIdentifiers(InternalVariables["Regions"][PackageType])
+
+		ExcludeRegionsPlayerIsCurrentlyIn(TableOfRegionsToRemove, PackageType)
+
+		ObjectTracker.RemoveAreas(TableOfRegionsToRemove)
+
+		for _, UniqueIdentifier in pairs (TableOfRegionsToRemove) do
+			InternalVariables["Regions"][PackageType][UniqueIdentifier] = nil
+
+			local RegionIndex = table.find(InternalVariables["Current Regions"][PackageType], UniqueIdentifier)
+
+			if RegionIndex then
+				table.remove(InternalVariables["Current Regions"][PackageType], RegionIndex)
 			end
 		end
+
+		--// Create regions
+		for _, RegionFolder: Folder in pairs (Children) do
+			local PackageName: string = RegionFolder.Name
+
+			for Index, Region: Instance in pairs (RegionFolder:GetChildren()) do
+				if Region:IsA("BasePart") then
+					local UniqueIdentifier = Region.Name
+
+					local RegionAlreadyExists = table.find(InternalVariables["Current Regions"][PackageType], UniqueIdentifier)
+
+					--// Verifies that they are currently in the region
+					if not RegionAlreadyExists then
+						local TrackedRegion = ObjectTracker.addArea(UniqueIdentifier, Region)
+						
+						InternalVariables["Regions"][PackageType][UniqueIdentifier] = TrackedRegion
+						
+						TrackedRegion.onEnter:Connect(function(Player)
+							if Player ~= LocalPlayer then
+								return
+							end
+
+							local SuccessfullyAddedRegion = AddRegion(PackageType, UniqueIdentifier)
+
+							if SuccessfullyAddedRegion then
+								HandleRegionEnter(PackageType, PackageName)
+							end
+						end)
+						
+						TrackedRegion.onLeave:Connect(function(Player)
+							if Player ~= LocalPlayer then
+								return
+							end
+
+							RemoveRegion(PackageType, UniqueIdentifier)
+							HandleRegionLeave(PackageType, PackageName)
+						end)
+					end
+				end
+			end
+		end
+
+		ActivelyHandlingRegions = false
 	end
 	
 	while true do
-		local AudioDescendants = AudioRegions:GetDescendants()
-		local LightingDescendants = LightingRegions:GetDescendants()
+		local AudioChildren = AudioRegions:GetChildren()
+		local LightingChildren = LightingRegions:GetChildren()
 		
-		HandleRegion(AudioDescendants, "Audio")
-		HandleRegion(LightingDescendants, "Lighting")
+		HandleRegion(AudioChildren, "Audio")
+		HandleRegion(LightingChildren, "Lighting")
 
-		if Looping ~= nil and Looping == true then
+		if Looping == true then
 			task.wait(InternalSettings["Region Check Time"])
 		else
 			return
@@ -259,6 +320,22 @@ end
 --// Region handling is always client sided (possible to have client sided regions with server sided other stuff - to support StreamingEnabled, custom loading systems, etc.)
 function module.Initialize()
 	if not RunService:IsClient() then
+		local AudioChildren = AudioRegions:GetChildren()
+		local LightingChildren = LightingRegions:GetChildren()
+
+		AssignUniqueIdentifiers(AudioChildren)
+		AssignUniqueIdentifiers(LightingChildren)
+		
+		InternalVariables["Initialized"]["Regions"] = true
+
+		--// Fire this to the client when they ask for it
+		UniqueIdentifiersAssignedRemote.OnServerEvent:Connect(function(Player: Player)
+			UniqueIdentifiersAssignedRemote:FireClient(Player, InternalVariables["Initialized"]["Regions"])
+		end)
+
+		--// Fire this to any clients that join early
+		UniqueIdentifiersAssignedRemote:FireAllClients(InternalVariables["Initialized"]["Regions"])
+
 		return
 	end
 
@@ -272,10 +349,25 @@ function module.Initialize()
 		return
 	end
 
+	local UniqueIdentifiersAssigned: boolean = false
+
+	--// This should always be a positive
+	UniqueIdentifiersAssignedRemote.OnClientEvent:Connect(function(StatusOfUniqueIdentifiers)
+		UniqueIdentifiersAssigned = StatusOfUniqueIdentifiers
+	end)
+
+	UniqueIdentifiersAssignedRemote:FireServer()
+
+	if not UniqueIdentifiersAssigned then
+		UniqueIdentifiersAssigned.OnClientEvent:Wait()
+	end
+
 	LocalPlayer = Players.LocalPlayer
 	
 	CheckRegions()
+
 	coroutine.wrap(ValidateRegions)("Audio")
+
 	coroutine.wrap(ValidateRegions)("Lighting")
 	
 	if Settings["Always Check Instances"] then

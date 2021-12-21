@@ -1,9 +1,7 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
-local IEFolder = ReplicatedStorage:WaitForChild("IE")
-
-local Main = IEFolder:WaitForChild("Main")
+local Main: ModuleScript = script.Parent
+local IEFolder: Folder = Main.Parent
 local Settings = require(IEFolder:WaitForChild("Settings"))
 
 local AudioHandling = require(Main:WaitForChild("AudioHandling"))
@@ -12,12 +10,6 @@ local InternalVariables = require(Main:WaitForChild("InternalVariables"))
 local LightingHandling = require(Main:WaitForChild("LightingHandling"))
 local PackageHandling = require(Main:WaitForChild("PackageHandling"))
 local RemoteHandling = require(Main:WaitForChild("RemoteHandling"))
-local TimeHandling = require(Main:WaitForChild("TimeHandling"))
-
-local RemoteFolder = IEFolder:WaitForChild("RemoteFolder")
-
---local AudioRemote = RemoteFolder:WaitForChild("AudioRemote")
---local LightingRemote = RemoteFolder:WaitForChild("LightingRemote")
 
 --// New remotes
 local AudioComponentChanged: RemoteEvent = RemoteHandling:GetRemote("Audio", "ComponentChanged")
@@ -69,11 +61,39 @@ local function ClearClientPackage(PackageType: string, PackageScope: string)
 end
 
 --// Handles the initial sync to server (when a player first joins)
-local function HandleInitialSyncToServer(PackageType: string, CurrentScope: string, CurrentPackage: string, CurrentComponentName: string)
+--[[
+    Sends an initial sync table, just because it's a lot of variables
+
+    Table indexes and values (all strings):
+    ["PackageType"] = Lighting or Audio
+    ["CurrentScope"] = Server or Weather (since region is decided by the client)
+    ["CurrentPackage"] = PackageName
+    ["CurrentComponent"] = ComponentName
+
+    ["CurrentServerPackage"] = PackageName
+    ["CurrentServerComponent"] = ComponentName
+
+    Bottom two only go into effect if the CurrentScope is Weather (since then we need to fill them in, otherwise, they won't be sent)
+]]
+
+local function HandleInitialSyncToServer(SyncTable: table)
+    local PackageType: string = SyncTable["PackageType"]
+    local CurrentScope: string = SyncTable["CurrentScope"]
+    local CurrentPackage: string = SyncTable["CurrentPackage"]
+    local CurrentComponent: string = SyncTable["CurrentComponent"]
+
     PackageHandling:SetCurrentScope(PackageType, CurrentScope)
 
-    PackageHandling:SetPackage(PackageType, "Server", CurrentPackage)
-    PackageHandling:SetComponent(PackageType, "Server", CurrentComponentName)
+    PackageHandling:SetPackage(PackageType, CurrentScope, CurrentPackage)
+    PackageHandling:SetComponent(PackageType, CurrentScope, CurrentComponent)
+
+    if CurrentScope == "Weather" then
+        local CurrentServerPackage: string = SyncTable["CurrentServerPackage"]
+        local CurrentServerComponent: string = SyncTable["CurrentServerComponent"]
+
+        PackageHandling:SetPackage(PackageType, "Server", CurrentServerPackage)
+        PackageHandling:SetComponent(PackageType, "Server", CurrentServerComponent)
+    end
 
     module["Initial Set"][PackageType] = true
 end
@@ -82,7 +102,15 @@ end
 local function UpdateComponent(PackageType: string, PackageScope: string, ComponentName: string)
     WaitForInitialSet(PackageType)
 
+    local OldComponentName: string = PackageHandling:GetCurrentComponentName(PackageType, PackageScope)
+
+    if OldComponentName == ComponentName then
+        return
+    end
+
     PackageHandling:SetComponent(PackageType, PackageScope, ComponentName)
+
+    return true
 end
 
 --// Update the package on the client
@@ -99,6 +127,8 @@ local function UpdateScope(PackageType: string, PackageScope: string)
     local WeatherExemption: boolean = InternalVariables["Weather Exemption"][PackageType]
     local CurrentScope = PackageHandling:GetCurrentScope(PackageType)
 
+    local InRegion: boolean = if #InternalVariables["Current Regions"][PackageType] > 0 then true else false
+
     --// Handle server (never set to server if there is a region active)
     if PackageScope == "Server" and CurrentScope == "Region" then
         return
@@ -106,6 +136,11 @@ local function UpdateScope(PackageType: string, PackageScope: string)
 
     --// Handle weather (never set to weather if there is a weather exemption)
     if PackageScope == "Weather" and WeatherExemption then
+        return
+    end
+
+    if PackageScope == "Server" and InRegion then
+        PackageHandling:SetCurrentScope(PackageType, "Region")
         return
     end
 
@@ -132,15 +167,19 @@ function module.Initialize()
         --// Lighting Remotes
 
         LightingComponentChanged.OnClientEvent:Connect(function(PackageScope: string, ComponentName: string)
-            UpdateComponent("Lighting", PackageScope, ComponentName)
+            local SuccessfullyUpdatedComponent = UpdateComponent("Lighting", PackageScope, ComponentName)
+
+            if not SuccessfullyUpdatedComponent then
+                return
+            end
 
             if PackageScope == PackageHandling:GetCurrentScope("Lighting") then
                 LightingHandling:AdjustLighting("Time")
             end
         end)
 
-        LightingInitialSyncToServer.OnClientEvent:Connect(function(CurrentScope: string, CurrentPackage: string, CurrentComponentName: string)
-            HandleInitialSyncToServer("Lighting", CurrentScope, CurrentPackage, CurrentComponentName)
+        LightingInitialSyncToServer.OnClientEvent:Connect(function(SyncTable: table)
+            HandleInitialSyncToServer(SyncTable)
 
             LightingHandling:SetLighting()
         end)
@@ -158,7 +197,7 @@ function module.Initialize()
 
             UpdateScope("Lighting", PackageScope)
 
-            local ComponentForNewScope: string = PackageHandling:GetCurrentComponentName("Lighting")
+            local ComponentForNewScope: string = PackageHandling:GetCurrentComponentName("Lighting", PackageScope)
 
             if OldScope == "Weather" and ComponentForNewScope then
                 LightingHandling:AdjustLighting("Weather")
@@ -166,7 +205,11 @@ function module.Initialize()
         end)
         
         AudioComponentChanged.OnClientEvent:Connect(function(PackageScope: string, ComponentName: string)
-            UpdateComponent("Audio", PackageScope, ComponentName)
+            local SuccessfullyUpdatedComponent = UpdateComponent("Audio", PackageScope, ComponentName)
+
+            if not SuccessfullyUpdatedComponent then
+                return
+            end
 
             if PackageScope == PackageHandling:GetCurrentScope("Audio") then
                 AudioHandling:TweenAudio("Time")
@@ -175,8 +218,8 @@ function module.Initialize()
 
         --// Audio Remotes
 
-        AudioInitialSyncToServer.OnClientEvent:Connect(function(CurrentScope: string, CurrentPackage: string, CurrentComponentName: string)
-            HandleInitialSyncToServer("Audio", CurrentScope, CurrentPackage, CurrentComponentName)
+        AudioInitialSyncToServer.OnClientEvent:Connect(function(SyncTable: table)
+            HandleInitialSyncToServer(SyncTable)
 
             AudioHandling:TweenAudio("Time")
         end)
@@ -194,7 +237,7 @@ function module.Initialize()
 
             UpdateScope("Audio", PackageScope)
 
-            local ComponentForNewScope: string = PackageHandling:GetCurrentComponentName("Audio")
+            local ComponentForNewScope: string = PackageHandling:GetCurrentComponentName("Audio", PackageScope)
 
             if OldScope == "Weather" and ComponentForNewScope then
                 AudioHandling:TweenAudio("Weather")
