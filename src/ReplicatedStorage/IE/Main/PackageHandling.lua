@@ -254,16 +254,14 @@ function module:GetCurrentComponent(PackageType: string)
 	return Component
 end
 
-function module:GetCurrentComponentName(PackageType: string)
-	local CurrentScope = module:GetCurrentScope(PackageType)
-
-	local Package = module:GetCurrentPackage(PackageType, CurrentScope)
+function module:GetCurrentComponentName(PackageType: string, PackageScope: string)
+	local Package = module:GetCurrentPackage(PackageType, PackageScope)
 
 	if not Package then --// Warning already bundled in
 		return
 	end
 
-	local ComponentName: string = InternalVariables["Current Component"][PackageType][CurrentScope]
+	local ComponentName: string = InternalVariables["Current Component"][PackageType][PackageScope]
 
 	return ComponentName
 end

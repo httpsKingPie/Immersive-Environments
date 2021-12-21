@@ -114,8 +114,6 @@ function module:Run()
 
 	coroutine.wrap(RegionHandling.Initialize)() --// Initializes regions
 
-	coroutine.wrap(RegionHandling.Initialize)() --// Initializes regions
-
 	coroutine.wrap(ClientHandling.Initialize)() --// Initialize the client if client-sided
 end
 

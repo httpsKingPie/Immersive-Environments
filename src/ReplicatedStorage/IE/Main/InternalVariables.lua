@@ -57,12 +57,6 @@ local module = {
         ["Lighting"] = {},
     },
 
-    --// This is a dictionary that inverts the order of ["Current Regions"] (so that indexes are values, and vice versa) to quickly find the indexes of regions
-    ["Current Regions Quick"] = {
-        ["Audio"] = {},
-        ["Lighting"] = {},
-    },
-
     --// This will be Region, Server, or Weather (defaults to Server until manually changed)
     ["Current Scope"] = {
         ["Audio"] = "Server",
@@ -86,10 +80,11 @@ local module = {
         ["Audio"] = false,
         ["Lighting"] = false,
         ["Packages"] = false,
+        ["Regions"] = false, --// This just means UniqueIdentifiers have been assigned to each region on the server
         ["Time"] = false,
     },
 
-    --// Stores Audio and Lighting Regions
+    --// Stores Audio and Lighting Regions, format [UniqueIdentifier (PackageName-RegionName-Index (within folder, relative to GetChildren))] = RegionInstance
     ["Regions"] = {
         ["Audio"] = {},
         ["Lighting"] = {},
@@ -100,22 +95,6 @@ local module = {
         ["Audio"] = false,
         ["Lighting"] = false,
     },
-
-    --// Old variables
-
-    --// Audio Variables
-    ["CurrentAudioWeather"] = "", --// Identifies which weather setting is currently being used (audio)
-    ["AudioWeather"] = false, --// Identifies whether audio weather settings are active
-
-    --// Lighting Variables
-    ["CurrentLightingWeather"] = "", --// Identifies which weather setting is currently being used (lighting)
-    ["LightingWeather"] = false, --// Identifies whether lighting weather are active
-
-    --// Settings Variables
-    ["LightingSettingTablesBuilt"] = false,
-    
-    ["TotalAudioIndexes"] = 0, --// Used for sorted check cycles to know what index to look for next
-    ["TotalLightingIndexes"] = 0, --// Used for sorted check cycles to know what index to look for next
 }
 
 return module

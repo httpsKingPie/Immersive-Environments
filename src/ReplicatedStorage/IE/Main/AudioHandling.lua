@@ -1,4 +1,16 @@
-local module = {}
+local module = {
+	--[[
+		Dictionary looks like
+		[Scope] = {
+			["PackageName"] = ComponentName
+		}
+	]]
+	["Current Packages With Randomized Sounds"] = {
+		["Region"] = {},
+		["Server"] = {},
+		["Weather"] = {},
+	}
+}
 
 local RunService = game:GetService("RunService")
 local SoundService = game:GetService("SoundService")
@@ -144,58 +156,6 @@ local function TweenOutServerSounds(Context: string)
 	end
 end
 
---// Determines whether a SharedSound is still being used, whether it needs to change, etc. (only occurs when leaving a region)
-local function AdjustSharedSounds() 
-	--[[
-		Format is [SoundInstance] = IndexNumber
-
-		This is used so that the shared sound goes to the region that the player had entered most recently (index number represents this, reference further above in script)
-	]]
-
-	local SoundMaxIndexTable = {}
-	
-	--// This is a table of the CurrentSharedSounds, but this is eventually transformed into a table of sounds that need to be removed.  Sounds that are still active (i.e. within a region that uses that SharedSound) are removed from this table
-	local CurrentSharedSounds = SharedSounds:GetChildren()
-
-	for Index, RegionName in ipairs (InternalVariables["Current Regions"]["Audio"]) do --// Looks at all the CurrentAudioRegions (in order of join)
-		local PackageForRegion = PackageHandling:GetPackage("Audio", "Region", RegionName)
-		local TheoreticallyCurrentComponentSettings = TimeHandling:ReturnTheoreticallyCurrentComponentForPackage(PackageForRegion)
-
-		if TheoreticallyCurrentComponentSettings then --// If RegionSettings exist (some won't because they will be Lighting settings)
-			local ComponentSharedSounds = TheoreticallyCurrentComponentSettings["SharedSounds"] --// Looks at the SharedSounds for the region
-			
-			if ComponentSharedSounds then --// If SharedSounds exist
-				for SharedSoundIndex, SharedSound in ipairs (CurrentSharedSounds) do
-					local SharedSoundName = SharedSound.Name
-					local SharedSoundStillActive = SharedSounds:FindFirstChild(SharedSoundName)
-
-					if SharedSoundStillActive then --// If any of the CurrentSharedSounds match one of the SharedSounds in the Region that is being left
-						SoundMaxIndexTable[SharedSound] = Index --// Indicates the highest index that SharedSound was in (within the regions, if the sound has multiple indexes (i.e. regions) the index inserted here will be the highest one because of iteration sequence (ipairs)
-						table.remove(CurrentSharedSounds, SharedSoundIndex) --// Removes it from the table, i.e. the sound is still active
-					end
-				end
-			end
-		end
-	end
-
-	--// This parses through the SoundMaxIndexTable
-	for Sound, Index in pairs (SoundMaxIndexTable) do --// Parses through the SoundMaxIndexTable
-		local RegionName = InternalVariables["Current Regions"]["Audio"][Index]
-
-		local RegionPackage = PackageHandling:GetPackage("Audio", "Region", RegionName)
-		local ComponentSettings = TimeHandling:ReturnTheoreticallyCurrentComponentForPackage(RegionPackage)
-
-		local SoundSettings = ComponentSettings["SharedSounds"][Sound.Name]["Tween"] --// Tweens it to the Settings with the highest index (i.e. the region joined most recently)
-
-		Tween(Sound, SoundSettings, "Sound", "RegionChange")
-	end
-
-	--// Tweens out shared sounds that are not being used (reminder: the CurrentSharedSounds table contains all shared sounds, but once shared sounds are confirmed that they still exist in the new region, they are removed)
-	for _, Sound in ipairs(CurrentSharedSounds) do
-		TweenOut(Sound, "RegionChange")
-	end
-end
-
 local function CheckForSound(SoundName: string, SoundFolder: Folder, SoundSettings: table) --// Checks to see if the sound exists, if it does it returns it.  If not, it creates it
 	local Sound = SoundFolder:FindFirstChild(SoundName)
 
@@ -205,13 +165,108 @@ local function CheckForSound(SoundName: string, SoundFolder: Folder, SoundSettin
 		Sound = Instance.new("Sound")
 		Sound.Name = SoundName
 		Sound.SoundId = InternalSettings["AssetPrefix"] ..tostring(SoundSettings.SoundId)
-		Sound.Looped = true
+
+		if SoundSettings.Looped ~= nil then
+			Sound.Looped = SoundSettings.Looped
+		else
+			Sound.Looped = true --// Defaults to looping unless explicitly specified elsewhere
+		end
+
 		Sound.Parent = SoundFolder
 
 		CreatedSound = true
 	end
 
 	return Sound, CreatedSound
+end
+
+--// Determines whether a SharedSound is still being used, whether it needs to change, etc. (only occurs when leaving a region)
+local function AdjustSharedSounds()
+	--[[
+		Format is [SoundInstance] = IndexNumber
+
+		This is used so that the shared sound goes to the region that the player had entered most recently (index number represents this, reference further above in script)
+	]]
+
+	local ActiveWeather = WeatherHandling:CheckForActiveWeather("Audio")
+
+	local SoundMaxIndexTable = {}
+	
+	--// This is a table of the CurrentSharedSounds, but this is eventually transformed into a table of sounds that need to be removed.  Sounds that are still active (i.e. within a region that uses that SharedSound) are removed from this table
+	local CurrentSharedSounds = SharedSounds:GetChildren()
+
+	for Index, UniqueIdentifier in ipairs (InternalVariables["Current Regions"]["Audio"]) do --// Looks at all the CurrentAudioRegions (in order of join)
+		local PackageNameForRegion: string = string.split(UniqueIdentifier, "-")[1]
+		local WeatherExemption = WeatherHandling:CheckForWeatherExemption("Audio", "Region", PackageNameForRegion)
+
+		local PackageForRegion = PackageHandling:GetPackage("Audio", "Region", PackageNameForRegion)
+		local TheoreticallyCurrentComponentSettings = TimeHandling:ReturnTheoreticallyCurrentComponentForPackage(PackageForRegion)
+		
+		if TheoreticallyCurrentComponentSettings then --// If RegionSettings exist (some won't because they will be Lighting settings)
+			local ComponentSharedSounds = TheoreticallyCurrentComponentSettings["SharedSounds"] --// Looks at the SharedSounds for the region
+			
+			if ComponentSharedSounds then --// If SharedSounds exist
+				for SharedSoundIndex, SharedSound in ipairs (CurrentSharedSounds) do
+					local SharedSoundName = SharedSound.Name
+					local SharedSoundStillActive = ComponentSharedSounds[SharedSoundName] --// Means it is found in the current active component and does still exist
+
+					if SharedSoundStillActive then --// If any of the CurrentSharedSounds match one of the SharedSounds in the Region that is being left
+						if not ActiveWeather or WeatherExemption then --// Fixes problems with weather
+							SoundMaxIndexTable[SharedSound] = Index --// Indicates the highest index that SharedSound was in (within the regions, if the sound has multiple indexes (i.e. regions) the index inserted here will be the highest one because of iteration sequence (ipairs)
+							table.remove(CurrentSharedSounds, SharedSoundIndex) --// Removes it from the table, i.e. the sound is still active
+						end
+					end
+				end
+			end
+		end
+	end
+
+	--// This parses through the SoundMaxIndexTable
+	for Sound, Index in pairs (SoundMaxIndexTable) do --// Parses through the SoundMaxIndexTable
+		local RegionUniqueIdentifier = InternalVariables["Current Regions"]["Audio"][Index]
+		local PackageNameForRegion: string = string.split(RegionUniqueIdentifier, "-")[1]
+		
+		local RegionPackage = PackageHandling:GetPackage("Audio", "Region", PackageNameForRegion)
+		local ComponentSettings = TimeHandling:ReturnTheoreticallyCurrentComponentForPackage(RegionPackage)
+
+		local SoundSettings = ComponentSettings["SharedSounds"][Sound.Name]
+
+		if SoundSettings then
+			local TweenSettings = ComponentSettings["SharedSounds"][Sound.Name]["Tween"]
+
+			Tween(Sound, TweenSettings, "Sound", "RegionChange")
+		end
+	end
+
+	--// Tweens out shared sounds that are not being used (reminder: the CurrentSharedSounds table contains all shared sounds, but once shared sounds are confirmed that they still exist in the new region, they are removed) - this leaves a table of sounds to be removed
+	for _, Sound in ipairs(CurrentSharedSounds) do
+		TweenOut(Sound, "RegionChange")
+	end
+
+	--// Tweens in new shared sounds that were not previously created
+	local CurrentComponentSettings = PackageHandling:GetCurrentComponent("Audio")
+	local SharedSoundSettings = CurrentComponentSettings["SharedSounds"]
+
+	if not SharedSoundSettings then
+		return
+	end
+
+	--// Creates the new sounds
+	for SoundName, SoundSettings in pairs (SharedSoundSettings) do
+		local Sound, CreatedSound = CheckForSound(SoundName, SharedSounds, SoundSettings)
+
+		--// This allows for a smooth tween from silence to sound, essentially checking whether the sound is being added for the first time and whether the volume is expected to be tweened to a certain value
+		if CreatedSound and SoundSettings["Tween"]["Volume"] then
+			Sound.Volume = 0
+		end
+
+		Set(Sound, SoundSettings["Set"], "Sound")
+		Tween(Sound, SoundSettings["Tween"], "Sound", "RegionChange")
+
+		if CreatedSound then
+			Sound:Play()
+		end
+	end
 end
 
 --// Handles property changes for sounds.  TweenOverride is used for SharedSounds, it basically means that regardless of whether the sound exists, it is going to be changed (aka tweened)
@@ -258,14 +313,20 @@ local function GenerateRegionSounds(RegionSoundSettings: table, RegionSoundFolde
 	end
 end
 
-local function HandleSharedSounds(SharedSoundSettings: table) --// Handles shared sounds for the region's shared sounds (i.e. just adjusting them)
-	for SoundName, SoundSettings in pairs (SharedSoundSettings) do
-		HandleSound(SoundName, SoundSettings, SharedSounds, "RegionChange", true)
-	end
-end
-
 local function HandleRandomSound(SoundName: string, SoundSettings: table, SoundFolder: Folder) --// Actual function that handles sounds.  If it doesn't exist, it's created.  If it does exists, it's a shared sound and the properties are adjusted
-	local RegionName = SoundFolder.Name
+	local Scope: string = PackageHandling:GetCurrentScope("Audio")
+	local PackageName: string = PackageHandling:GetCurrentPackageName("Audio", Scope)
+	local ComponentName: string = PackageHandling:GetCurrentComponentName("Audio", Scope)
+
+	--// It's really easy to accidentally do this multiple times, so this catches that
+	--// This actually confirms that A. it's this package being tracked and B. returns the component being tracked
+	local ComponentBeingTrackedForRandomization = module["Current Packages With Randomized Sounds"][Scope][PackageName]
+
+	if ComponentBeingTrackedForRandomization and ComponentBeingTrackedForRandomization == ComponentName then
+		return
+	end
+
+	module["Current Packages With Randomized Sounds"][Scope][PackageName] = ComponentName
 
 	local Sound = SoundFolder:FindFirstChild(SoundName)
 	
@@ -285,34 +346,61 @@ local function HandleRandomSound(SoundName: string, SoundSettings: table, SoundF
 	while true do
 		task.wait(SoundSettings["Frequency"])
 
-		if SharedFunctions.DoesChange(SoundSettings["ChanceOfPlay"]) then
-			if table.find(InternalVariables["Current Regions Quick"]["Audio"], RegionName) and Sound then --// Validates that the player is still in the region and that the Sound instance still exists
-				if Settings["Generate Unique Random Sounds Each Iteration"] then
-					local SoundClone = Sound:Clone()
-					SoundClone.Parent = SoundFolder
-					SoundClone:Play()
+		local CurrentScope: string = PackageHandling:GetCurrentScope("Audio")
+		local CurrentPackageName: string = PackageHandling:GetCurrentPackageName("Audio", Scope)
+		local CurrentComponentName: string = PackageHandling:GetCurrentComponentName("Audio", Scope)
 
-					if Settings["Wait For Random Sounds To End"] then --// Generating new sounds + must wait for each sound to finish
-						SoundClone.Ended:Wait()
+		local EndLoop: boolean = false
+
+		--// Checks for changes so that the loop can be broken
+		if CurrentScope ~= Scope then
+			EndLoop = true
+		end
+
+		if CurrentPackageName ~= PackageName then
+			EndLoop = true
+		end
+
+		if CurrentComponentName ~= ComponentName then
+			EndLoop = true
+		end
+
+		if EndLoop then
+			if Settings["Generate Unique Random Sounds Each Iteration"] then
+				Sound:Destroy() --// Otherwise this instance will just be floating in memory
+			end
+
+			--// Updates internal tracking
+			if CurrentPackageName ~= PackageName then
+				module["Current Packages With Randomized Sounds"][Scope][PackageName] = nil
+			end
+
+			--// We don't need to update the component value, because that will get filled in by itself, but we definitely need to update this if there is a package switch
+
+			return
+		end
+
+		if SharedFunctions.DoesChange(SoundSettings["ChanceOfPlay"]) and Sound then
+			if Settings["Generate Unique Random Sounds Each Iteration"] then
+				local SoundClone = Sound:Clone()
+				SoundClone.Parent = SoundFolder
+				SoundClone:Play()
+
+				if Settings["Wait For Random Sounds To End"] then --// Generating new sounds + must wait for each sound to finish
+					SoundClone.Ended:Wait()
+
+					SoundClone:Destroy()
+				else --// Generating new sounds + do not have to wait for each sound to finish
+					SoundClone.Ended:Connect(function()
 						SoundClone:Destroy()
-					else --// Generating new sounds + do not have to wait for each sound to finish
-						SoundClone.Ended:Connect(function()
-							SoundClone:Destroy()
-						end)
-					end
-				else 
-					Sound:Play() --// Just using one sound instance
-
-					if Settings["Wait For Random Sounds To End"] then --// Just using one sound instance + must wait for the sound to finish
-						Sound.Ended:Wait()
-					end
+					end)
 				end
-			else
-				if Settings["Generate Unique Random Sounds Each Iteration"] then
-					Sound:Destroy() --// Otherwise this instance will just be floating in memory
-				end
+			else 
+				Sound:Play() --// Just using one sound instance
 
-				return
+				if Settings["Wait For Random Sounds To End"] then --// Just using one sound instance + must wait for the sound to finish
+					Sound.Ended:Wait()
+				end
 			end
 		end
 	end
@@ -326,52 +414,55 @@ end
 
 --// This looks at the component setting and determines how to read/actualize it
 local function GenerateSoundsFromComponent(ComponentSettings: table, Context: string)
-	local RegionSoundFolder
+	local SoundFolder
 
 	local CurrentScope = PackageHandling:GetCurrentScope("Audio")
 
 	if CurrentScope == "Region" then
 		local CurrentRegionName = PackageHandling:GetCurrentPackageName("Audio", "Region")
 
-		RegionSoundFolder = GetRegionSoundFolder(CurrentRegionName)
+		SoundFolder = GetRegionSoundFolder(CurrentRegionName)
+	else
+		SoundFolder = ActiveServerSounds
 	end
-	
+
 	for SettingCategory, SpecificSettings in pairs (ComponentSettings) do
 		if SettingCategory == "SoundService" then
 			Tween(SoundService, SpecificSettings, "SoundService", Context)
 		elseif SettingCategory == "RegionSounds" then
-			GenerateRegionSounds(SpecificSettings, RegionSoundFolder)
-		elseif SettingCategory == "SharedSounds" then
-			HandleSharedSounds(SpecificSettings)
+			GenerateRegionSounds(SpecificSettings, SoundFolder)
 		elseif SettingCategory == "RandomSounds" then
-			GenerateRandomSounds(SpecificSettings, RegionSoundFolder)
+			GenerateRandomSounds(SpecificSettings, SoundFolder)
 		elseif SettingCategory == "ServerSounds" then
 			GenerateServerSounds(SpecificSettings, Context) --// Weather is the only time where this bool will be false
 		end
 	end
+
+	--// Adjusts shared sounds
+	AdjustSharedSounds()
 end
 
 function module.RegionEnter(RegionName: string) --// Client sided function only (RegionType is either Audio or Lighting, RegionName equivalent to the Setting name)
 	local CurrentScope: string = PackageHandling:GetCurrentScope("Audio")
 	local CurrentPackageName: string = PackageHandling:GetCurrentPackageName("Audio", "Region")
 
+	local ActiveWeather = WeatherHandling:CheckForActiveWeather("Audio")
 	local WeatherExemption: boolean = WeatherHandling:CheckForWeatherExemption("Audio", "Region", RegionName)
 
 	--// Applies weather exemption (based on the most recently joined region)
 	InternalVariables["Weather Exemption"]["Audio"] = WeatherExemption
 
-	--// If weather is active and there is not a weather exemption
-	if WeatherHandling:CheckForActiveWeather("Audio") and not WeatherExemption then
-		return
-	end
-
 	--// Set the package (if it's a new region or if the current scope is not already region)
 	if CurrentPackageName ~= RegionName or CurrentScope ~= "Region" then
 		PackageHandling:SetPackage("Audio", "Region", RegionName)
-		PackageHandling:SetCurrentScope("Audio", "Region")
-
 		TimeHandling:ReadPackage("Audio", "Region", RegionName, false)
 
+		--// If weather is active and there is not a weather exemption
+		if ActiveWeather and not WeatherExemption then
+			return
+		end
+
+		PackageHandling:SetCurrentScope("Audio", "Region")
 		--// We will do our own initial component change here
 		TweenOutServerSounds("RegionChange")
 		module:TweenAudio("RegionChange")
@@ -379,29 +470,62 @@ function module.RegionEnter(RegionName: string) --// Client sided function only 
 end
 
 function module.RegionLeave(RegionName: string) --// Client sided function only (RegionName equivalent to the Setting name)
+	--// Tween out the old region sounds
 	TweenOutRegionSounds(RegionName)
-	AdjustSharedSounds() --// Shared sounds are the equivalent of multi-regions for audio
 
-	--// If there is active weather
-	if WeatherHandling:CheckForActiveWeather("Audio") and PackageHandling:GetCurrentScope("Audio") ~= "Weather" then
+	local ActiveWeather = WeatherHandling:CheckForActiveWeather("Audio")
+	local CurrentScope = PackageHandling:GetCurrentScope("Audio") 
+
+	--// Check whether we are in an audio region still
+	if #InternalVariables["Current Regions"]["Audio"]  >= 1 then
+		local NumberOfRegions: number = #InternalVariables["Current Regions"]["Audio"]
+		local MostRecentlyJoinedAudioRegion: string = InternalVariables["Current Regions"]["Audio"][NumberOfRegions]
+		local MostRecentlyJoinedAudioRegionPackageName = string.split(MostRecentlyJoinedAudioRegion, "-")[1]
+
+		local WeatherExemption = WeatherHandling:CheckForWeatherExemption("Audio", "Region", MostRecentlyJoinedAudioRegionPackageName)
+
+		--// If there is active weather and not a weather exemption, then do nothing
+		if ActiveWeather and not WeatherExemption then
+			return
+		end
+
+		--// Switches to a new package when it leaves
+		if MostRecentlyJoinedAudioRegionPackageName ~= PackageHandling:GetCurrentPackageName("Audio", "Region") then
+			PackageHandling:SetPackage("Audio", "Region", MostRecentlyJoinedAudioRegionPackageName)
+			TimeHandling:ReadPackage("Audio", "Region", RegionName, false)
+		end
+
+		--// Call TweenAudio below this, since there is a chance (especially when teleporting) that a region is joined and then immediately left, and a shared sound is left constantly playing when it shouldn't be
+		module:TweenAudio("RegionChange")
+
+		return
+	end
+
+	--// If there is active weather (but the scope was just region)
+	if ActiveWeather and CurrentScope == "Region" then
 		PackageHandling:SetCurrentScope("Audio", "Weather")
 		
 		module:TweenAudio("RegionChange")
 		return
 	end
 
-	--// Check whether we are in an audio region still
-	if #InternalVariables["Current Regions"]["Audio"]  >= 1 then
+	--// If there is active weather and the scope is already weather, then we don't need to do anything
+	if ActiveWeather and CurrentScope == "Weather" then
 		return
 	end
 
-	--// Otherwise we are just resyncing to the server like normal
+	--// No weather - resync to the server like normal
 	PackageHandling:SetCurrentScope("Audio", "Server")
-
 	module:TweenAudio("RegionChange")
 end
 
 function module:TweenAudio(Context: string)
+	local CurrentScope = PackageHandling:GetCurrentScope("Audio")
+
+	if Context == "Weather" and CurrentScope == "Region" then
+		TweenOutServerSounds(Context)
+	end
+
 	local ComponentSettings = PackageHandling:GetCurrentComponent("Audio")
 
 	if not ComponentSettings then
@@ -453,12 +577,27 @@ function module:Initialize() --// Initial run, basically just creating folders
 				end
 
 				--// Initial sync to server
+				local SyncTable = {}
+
 				local CurrentScope = PackageHandling:GetCurrentScope("Audio")
 
-				local CurrentPackageName = PackageHandling:GetCurrentPackageName("Audio", "Server")
-				local CurrentComponentName = PackageHandling:GetCurrentComponentName("Audio")
+				local CurrentPackageName = PackageHandling:GetCurrentPackageName("Audio", CurrentScope)
+				local CurrentComponentName = PackageHandling:GetCurrentComponentName("Audio", CurrentScope)
 
-				InitialSyncToServer:FireClient(Player, CurrentScope, CurrentPackageName, CurrentComponentName)
+				SyncTable["PackageType"] = "Audio"
+				SyncTable["CurrentScope"] = CurrentScope
+				SyncTable["CurrentPackage"] = CurrentPackageName
+				SyncTable["CurrentComponent"] = CurrentComponentName
+
+				if CurrentScope == "Weather" then
+					local CurrentServerPackageName = PackageHandling:GetCurrentPackageName("Audio", "Server")
+					local CurrentServerComponentName = PackageHandling:GetCurrentComponentName("Audio", "Server")
+
+					SyncTable["CurrentServerPackage"] = CurrentServerPackageName
+					SyncTable["CurrentServerComponent"] = CurrentServerComponentName
+				end
+
+				InitialSyncToServer:FireClient(Player, SyncTable)
 			end)
 		end
 
@@ -476,6 +615,26 @@ function module:Initialize() --// Initial run, basically just creating folders
 			end
 
 			ActiveServerSounds = SoundService:WaitForChild("ActiveServerSounds")
+
+			local AudioScopeChanged = RemoteHandling:GetRemote("Audio", "ScopeChanged")
+
+			--// Hot fix to remove shared sounds when weather occurs
+			AudioScopeChanged.OnClientEvent:Connect(function(NewScope: string)
+				if NewScope == "Weather" then
+					local RegionPackageName: string = PackageHandling:GetCurrentPackageName("Audio", "Region")
+
+					if not RegionPackageName then
+						return
+					end
+
+					local WeatherExemption: boolean = WeatherHandling:CheckForWeatherExemption("Audio", "Region", RegionPackageName)
+
+					if not WeatherExemption then
+						TweenOutRegionSounds(RegionPackageName)
+						AdjustSharedSounds()
+					end
+				end
+			end)
 		end
 	end
 end

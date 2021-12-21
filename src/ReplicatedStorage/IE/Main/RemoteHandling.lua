@@ -1,6 +1,5 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
-local IEFolder = ReplicatedStorage:WaitForChild("IE")
+local Main = script.Parent
+local IEFolder = Main.Parent
 
 local RemoteFolder = IEFolder:WaitForChild("RemoteFolder")
 
