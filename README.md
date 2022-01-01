@@ -204,7 +204,7 @@ IEMain:SetServerPackage("Lighting", "Default")
 --// This assumes you have two packages, one audio package called “Default” and another lighting package called “Default”
 ```
 7. Run IE on the client like
-```lua
+```lua 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local IEFolder = ReplicatedStorage:WaitForChild("IE")
 local Main = require(IEFolder:WaitForChild("Main"))
