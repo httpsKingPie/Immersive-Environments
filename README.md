@@ -192,7 +192,10 @@ This clears the weather package.
 3. If you are using Studio, download the files from the Roblox Library [here](https://www.roblox.com/library/6187781975/Immersive-Environments)
 4. When setting up audio and lighting time settings make sure that every time is covered.  Do not allow any gaps ex: 4-5, 6-7, etc. it must be continuous like 4-5, 5-6, etc. or IE will break.  If you want to have one setting for everytime, just set both the StartTime and EndTime to 0.  
 5. For examples on how to set up settings, check the Example Place.
-6. Run IE on the server like
+
+Your set-up code should look like: 
+Server: 
+
 ```lua 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local IEFolder = ReplicatedStorage.IE
@@ -203,7 +206,9 @@ IEMain:SetServerPackage("Audio", "Default")
 IEMain:SetServerPackage("Lighting", "Default")
 --// This assumes you have two packages, one audio package called “Default” and another lighting package called “Default”
 ```
-7. Run IE on the client like
+
+Client: 
+
 ```lua 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local IEFolder = ReplicatedStorage:WaitForChild("IE")
@@ -211,4 +216,5 @@ local Main = require(IEFolder:WaitForChild("Main"))
 
 Main:Run()
 ```
-8. IE will begin running automatically - no further setup is required
+
+IE will begin running automatically - no further setup is required
