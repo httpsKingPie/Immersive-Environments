@@ -111,7 +111,7 @@ As mentioned above, IE is a class based manipulation system.  While it is tailor
 
 ## Compatible with CullingService custom streaming
 
-Performance is always a critical concern for developers.  Earlier in 2021, I wrote CullingService and have since adjusted for CullingService compatibility to be toggled on and off.  This way, you can continue to maximize performance and retain full control of your game, without sacrificing performance or immersion factors.  
+Performance is always a critical concern for developers.  Earlier in 2021, I wrote [CullingService](https://devforum.roblox.com/t/cullingservice-custom-client-sided-cullingstreaming-module/1343667) and have since adjusted for CullingService compatibility to be toggled on and off.  This way, you can continue to maximize performance and retain full control of your game, without sacrificing performance or immersion factors.  
 
 ## Server Side or Client Side Settings
 
