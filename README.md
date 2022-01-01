@@ -100,13 +100,18 @@ IE uses a simple modular setting system, and is designed for people with 0 progr
 
 Here’s an example of the simplicity of set-up
 
-![Audio Settings Example](https://i.vgy.me/iq7UUn.png)
+![Audio Settings Example](https://i.vgy.me/GKYjAo.png)
 
 IE is designed to be simple to set-up and easy to understand.
 
 ## Scalable to the Extreme
 
 As mentioned above, IE is a class based manipulation system.  While it is tailored to settings based around lighting and audio, the lighting system allows for the manipulation of any class of instances.  By default, IE is set to work with instances in the workspace and lighting services, however, it is relatively simple to edit the system to expand its capabilities to include other services.  If you’re not an extreme programmer, don’t fret.  Experiment with different classes in the workspace and see what IE is able to do!
+
+
+## Compatible with CullingService custom streaming
+
+Performance is always a critical concern for developers.  Earlier in 2021, I wrote CullingService and have since adjusted for CullingService compatibility to be toggled on and off.  This way, you can continue to maximize performance and retain full control of your game, without sacrificing performance or immersion factors.  
 
 ## Server Side or Client Side Settings
 
@@ -144,91 +149,66 @@ IE offers different settings to enhance performance as well.  Custom tailor the 
 
 Besides customizing your audio and lighting regions, server, and weather settings, you can also customize a host of other settings.  They are listed below
 
-### Settings List
-
-* General Settings
-  * **DefaultSettings** - boolean.  Enable if you want to run IE with recommended settings.  Default true (although all the recommended settings are already enabled)
-  * **AlwaysCheckInstances** - boolean.  Enable if you want to search through workspace every time a Lighting setting is applied.  Default true.  Recommended for when IE is client sided, games that use StreamingEnabled or custom streaming, games that add various parts in that you want to be affected by IE 
-  * **ClientSided** - boolean.  Enable if you want to run IE on the client (this unlocks regions).  Default true.
-  * **RegionCheckTime** - number.  Adjust the time in which IE checks for the creation of new regions.  Useful for games that use StreamingEnabled or an alternative.  Only necessary when ClientSided is enabled and when AlwaysCheckInstances is enabled.  Default 5.
-  * **Tween** - boolean.  Whether tweens are used versus hard “sets”.  Default true.
-* Audio Settings
-  * **GenerateNewRandomSounds** - boolean.  Whether only one sound instance is used versus the creation of multiple random sounds.  Default false.  
-  * **WaitForRandomSoundToEnd**  - boolean.  Whether the random sound must be finished before another one can be generated.  Default false. 
-* Lighting Settings
-  * **ChangingInstanceChildrenOfWorkspace**  - boolean  Whether instances affected by lighting periods are children (true) of workspace versus descendants (false).  Default false.  Set to true if all of your changing parts are children of workspace for a performance boost.
-* Region Settings
-  * **AudioRegionTweenInformation** - tween information.  The tween information applied to audio settings when a region is entered.  Default; time = 3, EasingStyle = Linear.
-  * **BackupValidation** - number.  The time between backup validation (implemented to prevent region glitching by quickly leaving and reentering)
-  * **LightingRegionTweenInformation** - tween information.  The tween information applied to lighting settings when a region is entered.  Default; time = 3, EasingStyle = Linear.
-* Time Settings
-  * **AutomaticTransitions** - boolean.  Whether IE handles time based audio and lighting setting changes.  This is one of IE’s core features, but this can be disabled if you want to handle that yourself.  Default true.
-  * **AdjustmentTime** - number.  When the IE day/night changer is not being used, this is the amount of time given to IE to determine the rate of time when adjusting period start times.  Default 5.
-  * **CheckTime** - number.  How often IE loops to check for Lighting changes.  Default 1.
-  * **DetectIndependentTimeChange** - boolean.  Whether you are using the IE built-in day/night changer (false) or whether you are using your own (true) and IE needs to calculate period start times.  Default false.
-  * **EnableDayNightTransitions** - boolean.  Turns on the IE day/night cycle.  Default true.
-  * **EnableSorting** - boolean.  Performance optimization for IE that comes at the cost of being able to make changes to ClockTime or TimeOfDay.  If your game relies on this (through things like admin or special changes that occur on the server) this is not recommended.  
-   * **TimeEffectTweenInformation** - tween information.  The tween information applied to audio or lighting settings when a new period is entered.  The same tween information is used here to allow them to sync if necessary.  Default; time = 20, EasingStyle = Linear.
-  * **TimeForDay** - number.  This is the amount of minutes it takes to go from 0600 to 1800, if IE’s day/night changer is enabled.  Default 10.
-  * **TimeForNight** - number.  This is the amount of minutes it takes to go from 1800 to 0600 , if IE’s day/night changer is enabled.  Default 10.
-* Weather Settings
-  * **WeatherTweenInformation** - tween information.  The tween information applied to audio or lighting settings when a weather period is started.  The same tween information is used here to allow them to sync if necessary.  Default; time = 20, EasingStyle = Linear.
-
 Internal Settings can also be found in the the source code.  They are not listed, because most people will not find them useful.
 
 ## Simple API
 
 The API for Immersive Environments was designed with non-programmers in mind.  Below are the only functions that you need to ever worry about.  Call all of these from the server, no matter what.  Everything else runs automatically.
 
+Note: 
+- PackageName is the name of whatever your package is (this will be the folder name under Packages)
+- PackageType is always either “Audio” or “Lighting”
+- All API should be called from the server, with the exception of Main:Run() which should be called once from both the server and client
+
 **Main**
 ```lua 
-Main.Run()
+Main:Run()
 ```
 
-This starts IE and should be the **first** function called.  Do not require the other modules (or call their functions) until this function has been called.
+This starts IE and should be the **first** function called.  Call this before interacting with anything else in the API.
 
-**AudioHandling**
-
-```lua
-AudioHandling.ClearWeather()
+```lua 
+Main:SetServerPackage(PackageType: string, PackageName: string)
 ```
 
-This clears your audio weather.  Do not pass anything as an argument!  If you’re using VSC or requiring it directly you can probably see that it wants an argument, but trust me IE fills that in.
+This sets the server package.
 
-```lua
-AudioHandling.ChangeWeather(WeatherName: string)
+```lua 
+Main:SetWeatherPackage(PackageType: string, PackageName: string)
 ```
 
-This allows you to change the weather.  Simply pass the name of the audio weather setting you want to call and IE will handle the rest.
+This sets the weather package.
 
-**LightingHandling**
-
-```lua
-LightingHandling.ClearWeather()
+```lua 
+Main:ClearWeather(PackageType: string, PackageName: string)
 ```
 
-This clears your lighting weather.  Do not pass anything as an argument!  If you’re using VSC or requiring it directly you can probably see that it wants an argument, but trust me IE fills that in.
-
-```lua
-LightingHandling.ChangeWeather(WeatherName: string)
-```
-
-This allows you to change the weather.  Simply pass the name of the lighting weather setting you want to call and IE will handle the rest.
-
-While there are a couple other functions that you might notice in the source code, these are really the only ones you need to worry about.  If you know what you’re doing, feel free to experiment with some of the more hidden ones!
+This clears the weather package.
 
 # Setting Up Immersive Environments
 
 1. Head over to the src branch of the GitHub.  This can be found [here](https://github.com/httpsKingPie/Immersive-Environments/tree/main/src)
 2. If you are using Rojo, you can port the files over as they are
 3. If you are using Studio, download the files from the Roblox Library [here](https://www.roblox.com/library/6187781975/Immersive-Environments)
-4. When setting up audio and lighting time settings make sure that every time is covered.  Do not allow any gaps ex: 4-5, 6-7, etc. it must be continuous like 4-5, 5-6, etc. or IE will break
-5. For examples on how to set up settings, check ReplicatedStorage>IE>Helplful Utilities
-6. Run IE by requiring the Main module and calling:
+4. When setting up audio and lighting time settings make sure that every time is covered.  Do not allow any gaps ex: 4-5, 6-7, etc. it must be continuous like 4-5, 5-6, etc. or IE will break.  If you want to have one setting for everytime, just set both the StartTime and EndTime to 0.  
+5. For examples on how to set up settings, check the Example Place.
+6. Run IE on the server like
 ```lua 
-Main.Run()
-```
-7. IE will begin running automatically - no further setup is required
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local IEFolder = ReplicatedStorage.IE
+local IEMain = require(IEFolder.Main)
 
-* Note - always require and call the `Run` function of the Main module before requiring the LightingHandling or AudioHandling module for weather controls
-** Note - do not remove any of the settings folders, even if you aren't using them.  This throws a runtime error.
+IEMain:Run()
+IEMain:SetServerPackage("Audio", "Default")
+IEMain:SetServerPackage("Lighting", "Default")
+--// This assumes you have two packages, one audio package called “Default” and another lighting package called “Default”
+```
+7. Run IE on the client like
+```lua
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local IEFolder = ReplicatedStorage:WaitForChild("IE")
+local Main = require(IEFolder:WaitForChild("Main"))
+
+Main:Run()
+```
+8. IE will begin running automatically - no further setup is required
