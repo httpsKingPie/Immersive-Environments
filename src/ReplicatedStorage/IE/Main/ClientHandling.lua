@@ -1,7 +1,7 @@
 local RunService = game:GetService("RunService")
 
-local Main: ModuleScript = script.Parent
-local IEFolder: Folder = Main.Parent
+local Main = script.Parent
+local IEFolder = Main.Parent
 local Settings = require(IEFolder:WaitForChild("Settings"))
 
 local AudioHandling = require(Main:WaitForChild("AudioHandling"))
@@ -203,6 +203,8 @@ function module.Initialize()
                 LightingHandling:AdjustLighting("Weather")
             end
         end)
+
+        --// Audio Remotes
         
         AudioComponentChanged.OnClientEvent:Connect(function(PackageScope: string, ComponentName: string)
             local SuccessfullyUpdatedComponent = UpdateComponent("Audio", PackageScope, ComponentName)
@@ -215,8 +217,6 @@ function module.Initialize()
                 AudioHandling:TweenAudio("Time")
             end
         end)
-
-        --// Audio Remotes
 
         AudioInitialSyncToServer.OnClientEvent:Connect(function(SyncTable: table)
             HandleInitialSyncToServer(SyncTable)
