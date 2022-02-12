@@ -13,6 +13,9 @@ local Settings = require(IEFolder.Settings)
 local InternalVariables = require(Main.InternalVariables)
 local RemoteHandling = require(Main.RemoteHandling)
 
+local AudioHandling
+local LightingHandling
+
 local ClientSided: boolean = Settings["Client Sided"]
 local IsServer = RunService:IsServer()
 
@@ -329,6 +332,19 @@ function module:SetComponent(Type: string, Scope: string, ComponentName: string)
 		local Remote: RemoteEvent = RemoteHandling:GetRemote(Type, "ComponentChanged")
 
 		Remote:FireAllClients(Scope, ComponentName)
+		
+		return
+	end
+	
+	--// Same code as when the client is notified by Remote (but this would be happening on the client anyways)
+	if Type == "Audio" then
+		if Scope == module:GetCurrentScope("Lighting") then
+			LightingHandling:AdjustLighting("Time")
+		end
+	elseif Type == "Lighting" then
+		if Scope == module:GetCurrentScope("Audio") then
+			AudioHandling:TweenAudio("Time")
+		end
 	end
 end
 
@@ -371,6 +387,9 @@ function module:Initialize()
 	if InternalVariables["Initialized"]["Packages"] then
 		return
 	end
+	
+	AudioHandling = require(Main:WaitForChild(("AudioHandling")))
+	LightingHandling = require(Main:WaitForChild(("LightingHandling")))
 
 	InternalVariables["Initialized"]["Packages"] = true
 

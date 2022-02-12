@@ -1,7 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local IEFolder = ReplicatedStorage:WaitForChild("IE")
+local IEMain = require(IEFolder:WaitForChild("Main"))
 
-local Main = require(IEFolder:WaitForChild("Main"))
-
-Main:Run()
+IEMain:Run()
