@@ -1,8 +1,8 @@
 local module = {
 	["GeneralSettings"] = {
 		 --// All times in 24 hour notation
-		["StartTime"] = 0,
-		["EndTime"] = 0,
+		["StartTime"] = 18,
+		["EndTime"] = 6,
 		
 		["AdjustOnlyLightsOn"] = true,
 		["WeatherExemption"] = true,

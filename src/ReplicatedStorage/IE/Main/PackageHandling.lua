@@ -335,8 +335,7 @@ function module:SetComponent(Type: string, Scope: string, ComponentName: string)
 		
 		return
 	end
-	
-	--// Same code as when the client is notified by Remote (but this would be happening on the client anyways)
+
 	if Type == "Audio" then
 		if Scope == module:GetCurrentScope("Audio") then
 			AudioHandling:TweenAudio("Time")

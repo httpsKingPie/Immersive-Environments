@@ -138,8 +138,8 @@ local module = {
 	["Sort Time Cycles"] = true,
 
 	["Time"] = {
-		["Day"] = 2,
-		["Night"] = 2,
+		["Day"] = 3,
+		["Night"] = 3,
 	},
 	
 	["Tween"] = true,

@@ -278,14 +278,15 @@ local function HandleSound(SoundName: string, SoundSettings: table, SoundFolder:
 		Sound.Volume = 0
 	end
 
-	if CreatedSound or TweenOverride then
-		Set(Sound, SoundSettings["Set"], "Sound")
-		Tween(Sound, SoundSettings["Tween"], "Sound", Context)
+	--// Removing the below conditions, because this stops sound settings from being updated
+	--if CreatedSound or TweenOverride then
+	Set(Sound, SoundSettings["Set"], "Sound")
+	Tween(Sound, SoundSettings["Tween"], "Sound", Context)
 
-		if CreatedSound then
-			Sound:Play()
-		end
+	if CreatedSound then
+		Sound:Play()
 	end
+	--end
 end
 
 local function GenerateServerSounds(ServerSoundSettings: table, Context: string)

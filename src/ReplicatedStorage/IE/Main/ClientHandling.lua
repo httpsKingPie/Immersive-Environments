@@ -105,7 +105,7 @@ local function UpdateComponent(PackageType: string, PackageScope: string, Compon
     local OldComponentName: string = PackageHandling:GetCurrentComponentName(PackageType, PackageScope)
 
     if OldComponentName == ComponentName then
-        return
+        return false
     end
 
     PackageHandling:SetComponent(PackageType, PackageScope, ComponentName)
@@ -167,15 +167,7 @@ function module.Initialize()
         --// Lighting Remotes
 
         LightingComponentChanged.OnClientEvent:Connect(function(PackageScope: string, ComponentName: string)
-            local SuccessfullyUpdatedComponent = UpdateComponent("Lighting", PackageScope, ComponentName)
-
-            if not SuccessfullyUpdatedComponent then
-                return
-            end
-
-            if PackageScope == PackageHandling:GetCurrentScope("Lighting") then
-                LightingHandling:AdjustLighting("Time")
-            end
+            UpdateComponent("Lighting", PackageScope, ComponentName)
         end)
 
         LightingInitialSyncToServer.OnClientEvent:Connect(function(SyncTable: table)
@@ -207,15 +199,7 @@ function module.Initialize()
         --// Audio Remotes
         
         AudioComponentChanged.OnClientEvent:Connect(function(PackageScope: string, ComponentName: string)
-            local SuccessfullyUpdatedComponent = UpdateComponent("Audio", PackageScope, ComponentName)
-
-            if not SuccessfullyUpdatedComponent then
-                return
-            end
-
-            if PackageScope == PackageHandling:GetCurrentScope("Audio") then
-                AudioHandling:TweenAudio("Time")
-            end
+            UpdateComponent("Audio", PackageScope, ComponentName)
         end)
 
         AudioInitialSyncToServer.OnClientEvent:Connect(function(SyncTable: table)
