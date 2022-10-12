@@ -6,8 +6,8 @@ local module = {
    },
 
    ["ServerSounds"] = {
-        ["Akame"] = {
-            ["SoundId"] = "662279421",
+        ["Symphony"] = {
+            ["SoundId"] = "1843310641",
 
             ["Set"] = {
 

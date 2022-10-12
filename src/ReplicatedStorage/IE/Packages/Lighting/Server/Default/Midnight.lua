@@ -487,11 +487,11 @@ local module = {
 		["Contrast"] = 0,
 		["Enabled"] = true,
 		["Saturation"] = 0,
-		["TintColor"] = Color3.fromRGB(13, 41, 0),
+		["TintColor"] = Color3.fromRGB(28, 90, 0),
 	},
 	
 	["LightingService"] = {
-		["Ambient"] = Color3.fromRGB(13, 41, 0),
+		["Ambient"] = Color3.fromRGB(28, 90, 0),
 		["Brightness"] = 0,
 		["ColorShift_Bottom"] = Color3.fromRGB(0, 0, 0),
 		["ColorShift_Top"] = Color3.fromRGB(0, 0, 0),
