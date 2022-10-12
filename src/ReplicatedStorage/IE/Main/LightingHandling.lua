@@ -1036,6 +1036,7 @@ function module.RegionLeave()
 	--// If we are in a multiple regions
 	if #InternalVariables["Current Regions"]["Lighting"] >= 1 then
 		HandleMultiRegions()
+		
 		return
 	end
 

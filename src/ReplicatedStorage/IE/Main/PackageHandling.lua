@@ -189,7 +189,10 @@ function module:VerifyComponentExists(PackageType: string, Scope: string, Compon
 	local Component = Package["Components"][ComponentName]
 	
 	if not Component then
-		warn("Invalid ComponentName:", ComponentName, "for current package", PackageType, "and scope", Scope)
+		local PackageName = module:GetCurrentPackageName(PackageType, Scope)
+
+		warn("Invalid ComponentName:", ComponentName, "for current packagetype", PackageType, "PackageName", PackageName, "and scope", Scope)
+
 		return
 	end
 

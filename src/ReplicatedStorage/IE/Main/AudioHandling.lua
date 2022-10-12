@@ -9,7 +9,9 @@ local module = {
 		["Region"] = {},
 		["Server"] = {},
 		["Weather"] = {},
-	}
+	},
+
+	["Current Randomized Sounds"] = {}, --// Simple array
 }
 
 local RunService = game:GetService("RunService")
@@ -314,19 +316,22 @@ local function GenerateRegionSounds(RegionSoundSettings: table, RegionSoundFolde
 	end
 end
 
-local function HandleRandomSound(SoundName: string, SoundSettings: table, SoundFolder: Folder) --// Actual function that handles sounds.  If it doesn't exist, it's created.  If it does exists, it's a shared sound and the properties are adjusted
+local function HandleRandomSound(SoundName: string, SoundSettings: table, SoundFolder: Folder, AllowOnlyOneRandomSound: boolean) --// Actual function that handles sounds.  If it doesn't exist, it's created.  If it does exists, it's a shared sound and the properties are adjusted
 	local Scope: string = PackageHandling:GetCurrentScope("Audio")
 	local PackageName: string = PackageHandling:GetCurrentPackageName("Audio", Scope)
 	local ComponentName: string = PackageHandling:GetCurrentComponentName("Audio", Scope)
 
 	--// It's really easy to accidentally do this multiple times, so this catches that
-	--// This actually confirms that A. it's this package being tracked and B. returns the component being tracked
+	--// This actually confirms that A. it's this package being tracked, B. returns the component being tracked, and C. that the current sound is being tracked
 	local ComponentBeingTrackedForRandomization = module["Current Packages With Randomized Sounds"][Scope][PackageName]
+	local SoundBeingTrackedForRandomization = table.find(module["Current Randomized Sounds"], SoundName)
 
-	if ComponentBeingTrackedForRandomization and ComponentBeingTrackedForRandomization == ComponentName then
+	if ComponentBeingTrackedForRandomization and ComponentBeingTrackedForRandomization == ComponentName and SoundBeingTrackedForRandomization then
 		return
 	end
 
+	--// Internally track the sounds
+	table.insert(module["Current Randomized Sounds"], SoundName)
 	module["Current Packages With Randomized Sounds"][Scope][PackageName] = ComponentName
 
 	local Sound = SoundFolder:FindFirstChild(SoundName)
@@ -374,6 +379,9 @@ local function HandleRandomSound(SoundName: string, SoundSettings: table, SoundF
 			--// Updates internal tracking
 			if CurrentPackageName ~= PackageName then
 				module["Current Packages With Randomized Sounds"][Scope][PackageName] = nil
+
+				local InternalTrackingIndex = table.find(module["Current Randomized Sounds"], SoundName)
+				table.remove(module["Current Randomized Sounds"], InternalTrackingIndex)
 			end
 
 			--// We don't need to update the component value, because that will get filled in by itself, but we definitely need to update this if there is a package switch
@@ -382,6 +390,23 @@ local function HandleRandomSound(SoundName: string, SoundSettings: table, SoundF
 		end
 
 		if SharedFunctions.DoesChange(SoundSettings["ChanceOfPlay"]) and Sound then
+			--// Check to make sure only one random sound is active at a time
+			if AllowOnlyOneRandomSound then
+				local RandomSoundIsAlreadyPlaying = false
+
+				for _, ActiveSound in pairs (SoundFolder:GetChildren()) do
+					local IsARandomSound = table.find(module["Current Randomized Sounds"], ActiveSound.Name)
+
+					if IsARandomSound then
+						RandomSoundIsAlreadyPlaying = true
+					end
+				end
+
+				if RandomSoundIsAlreadyPlaying then
+					continue
+				end
+			end
+
 			if Settings["Generate Unique Random Sounds Each Iteration"] then
 				local SoundClone = Sound:Clone()
 				SoundClone.Parent = SoundFolder
@@ -407,9 +432,9 @@ local function HandleRandomSound(SoundName: string, SoundSettings: table, SoundF
 	end
 end
 
-local function GenerateRandomSounds(RandomSoundSettings: table, RegionSoundFolder: Folder) --// These are really a subset of RegionSounds
+local function GenerateRandomSounds(RandomSoundSettings: table, RegionSoundFolder: Folder, AllowOnlyOneRandomSound: boolean) --// These are really a subset of RegionSounds
 	for SoundName, SoundSettings in pairs (RandomSoundSettings) do
-		coroutine.wrap(HandleRandomSound)(SoundName, SoundSettings, RegionSoundFolder)
+		coroutine.wrap(HandleRandomSound)(SoundName, SoundSettings, RegionSoundFolder, AllowOnlyOneRandomSound)
 	end
 end
 
@@ -433,7 +458,9 @@ local function GenerateSoundsFromComponent(ComponentSettings: table, Context: st
 		elseif SettingCategory == "RegionSounds" then
 			GenerateRegionSounds(SpecificSettings, SoundFolder)
 		elseif SettingCategory == "RandomSounds" then
-			GenerateRandomSounds(SpecificSettings, SoundFolder)
+			local AllowOnlyOneRandomSound = ComponentSettings["GeneralSettings"]["AllowOnlyOneRandomSound"]
+
+			GenerateRandomSounds(SpecificSettings, SoundFolder, AllowOnlyOneRandomSound)
 		elseif SettingCategory == "ServerSounds" then
 			GenerateServerSounds(SpecificSettings, Context) --// Weather is the only time where this bool will be false
 		end
@@ -493,7 +520,7 @@ function module.RegionLeave(RegionName: string) --// Client sided function only 
 		--// Switches to a new package when it leaves
 		if MostRecentlyJoinedAudioRegionPackageName ~= PackageHandling:GetCurrentPackageName("Audio", "Region") then
 			PackageHandling:SetPackage("Audio", "Region", MostRecentlyJoinedAudioRegionPackageName)
-			TimeHandling:ReadPackage("Audio", "Region", RegionName, false)
+			TimeHandling:ReadPackage("Audio", "Region", MostRecentlyJoinedAudioRegionPackageName, false)
 		end
 
 		--// Call TweenAudio below this, since there is a chance (especially when teleporting) that a region is joined and then immediately left, and a shared sound is left constantly playing when it shouldn't be
