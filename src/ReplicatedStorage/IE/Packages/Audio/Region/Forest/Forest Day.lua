@@ -15,8 +15,12 @@ local module = {
 	},
 	
 	["SharedSounds"] = {
-		["NarutoSound"] = {
-			["SoundId"] = "946008702",
+		
+	},
+	
+	["RegionSounds"] = {
+		["JingleBells"] = {
+			["SoundId"] = "1842987882",
 			
 			["Set"] = {
 				
@@ -28,25 +32,11 @@ local module = {
 		},
 	},
 	
-	["RegionSounds"] = {
-		["ForestAmbience"] = {
-			["SoundId"] = "410408981",
-
-			["Set"] = {
-
-			},
-
-			["Tween"] = {
-				["Volume"] = .5,
-			},
-		},
-	},
-	
 	["RandomSounds"] = { --// These do not tween
-		["Gun shots"] = {
+		["Wow!"] = {
 			["ChanceOfPlay"] = 10,
 			["Frequency"] = .1,
-			["SoundId"] = "680140087",
+			["SoundId"] = "4886488247",
 			
 			["Set"] = {
 				["Volume"] = .25,
