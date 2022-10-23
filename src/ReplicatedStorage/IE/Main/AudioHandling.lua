@@ -377,7 +377,7 @@ local function HandleRandomSound(SoundName: string, SoundSettings: table, SoundF
 			end
 
 			--// Updates internal tracking
-			if CurrentPackageName ~= PackageName then
+			if (CurrentPackageName ~= PackageName) or (CurrentScope ~= Scope) then
 				module["Current Packages With Randomized Sounds"][Scope][PackageName] = nil
 
 				local InternalTrackingIndex = table.find(module["Current Randomized Sounds"], SoundName)

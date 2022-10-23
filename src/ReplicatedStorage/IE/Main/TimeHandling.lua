@@ -731,8 +731,9 @@ end
 --[[
 	This returns the component that *theoretically* would be active for a package
 
-	This is basically only used for evaluating shared sounds, but this is essentially saying "Hey, if this package were implemented, what would component would be active *right now*"
+	This is basically only used for evaluating shared sounds, but this is essentially saying "Hey, if this package were implemented, what component would be active *right now*"
 ]]
+
 function module:ReturnTheoreticallyCurrentComponentForPackage(Package: table)
 	--// This is a localized variation of CheckForOnlyOneComponent, compatible with a table of Components as an article, instead of a PackageType and it returns the Component
 	local function TheoreticallyCheckForOnlyOneComponent(Components: table)
