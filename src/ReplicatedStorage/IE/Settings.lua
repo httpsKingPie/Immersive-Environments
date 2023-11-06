@@ -67,7 +67,7 @@
 	Enable Day Night Cycle
 		Enables the built-in day/night cycle.  Configure the lengths of day and night in the 'Time' setting category
 
-		RECOMMENDED: false
+		RECOMMENDED: true
 			Using IE's built-in day/night cycle yields a more performant and coherent system.  IE's day/night cycle also allows for differently paced day and night time rates
 
 	Generate Unique Random Sounds Each Iteration
