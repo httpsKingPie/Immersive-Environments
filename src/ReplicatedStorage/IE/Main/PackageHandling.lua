@@ -1,8 +1,8 @@
 local RunService = game:GetService("RunService")
 
-local Main: ModuleScript = script.Parent
-local IEFolder: Folder = Main.Parent
-local Packages: Folder = IEFolder:WaitForChild("Packages")
+local Main = script.Parent
+local IEFolder = Main.Parent
+local Packages = IEFolder:WaitForChild("Packages")
 
 local AudioPackages: Folder = Packages:FindFirstChild("Audio")
 local LightingPackages: Folder = Packages:FindFirstChild("Lighting")
@@ -390,8 +390,8 @@ function module:Initialize()
 		return
 	end
 	
-	AudioHandling = require(Main:WaitForChild(("AudioHandling")))
-	LightingHandling = require(Main:WaitForChild(("LightingHandling")))
+	AudioHandling = require(Main:WaitForChild("AudioHandling"))
+	LightingHandling = require(Main:WaitForChild("LightingHandling"))
 
 	InternalVariables["Initialized"]["Packages"] = true
 
