@@ -152,7 +152,11 @@ local function HandleCullingService()
     local CulledObjects: Folder = workspace:WaitForChild("CulledObjects")
 
     CulledObjects.DescendantAdded:Connect(function(Descendant: Instance)
-        LightingHandling:SetCullingDescendant(Descendant)
+        if not Descendant:IsA("Folder") then
+            return
+        end
+        
+        LightingHandling:SetCullingRangeFolder(Descendant)
     end)
 end
 

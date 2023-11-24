@@ -267,7 +267,7 @@ end
 	They are variations of the normal functions (CheckInstanceTableExistence, CheckComplexInstanceTableExistence, and Set)
 ]]
 
-local function CheckInstanceTableExistenceForCullingSystem(InstanceToCheck: Instance)
+local function CheckInstanceTableExistenceForCullingSystem(InstanceToCheck: Instance, ClassName: string, InstanceName: string)
 	--[[ Table structure goes like
 	
 	InstanceTable = {
@@ -281,10 +281,7 @@ local function CheckInstanceTableExistenceForCullingSystem(InstanceToCheck: Inst
 	}
 	]]
 
-	local ClassName: string = InstanceToCheck.ClassName
-	local InstanceName: string = InstanceToCheck.Name
-
-	if not InstanceName[ClassName] then
+	if not InstanceTable[ClassName] then
 		InstanceTable[ClassName] = {}
 	end
 
@@ -441,11 +438,6 @@ local function SetForCullingSystem(InstanceToSet: Instance, InstanceType: string
 		local InstanceLightIsOn: boolean = UniqueProperties["LightsOn"]
 
 		if (AdjustOnlyLightsOn == true and InstanceIsLight and InstanceLightIsOn) or AdjustOnlyLightsOn == false then
-			--// If it does not change, don't proceed
-			if not SharedFunctions.DoesChange(ChanceOfChange) then
-				return
-			end
-
 			--// This builds the ChangeTable (which determines which properties are changed)
 			for SettingName, SettingValue in pairs (SpecificSettings) do --// Determines if settings are able to be used, etc.
 				if table.find(InternalSettings["NonPropertySettings"], SettingName) == nil then 
@@ -467,6 +459,10 @@ local function SetForCullingSystem(InstanceToSet: Instance, InstanceType: string
 		end
 
 		--// Set the properties
+		if not SharedFunctions.DoesChange(ChanceOfChange) then
+			return
+		end
+		
 		for ApprovedSettingName, ApprovedSettingValue in pairs (ChangeTable) do
 			InstanceToSet[ApprovedSettingName] = ApprovedSettingValue
 		end
@@ -566,38 +562,50 @@ local function SetForCullingSystem(InstanceToSet: Instance, InstanceType: string
 end
 
 --// This is used specifically to interface with CullingSystem
-function module:SetCullingDescendant(CullingDescendant: Instance)
+function module:SetCullingRangeFolder(RangeFolder: Folder)
 	local CurrentComponentSettings = PackageHandling:GetCurrentComponent("Lighting")
 
-	local ClassName: string = CullingDescendant.ClassName
-	local InstanceName: string = CullingDescendant.Name
-	
-	local InstanceType: string --// This will either be "Simple" or "Complex", depending if it is a normal instance or a simple one - if it remains nil, that means it is not in the component settings
+	if not CurrentComponentSettings then --// It's possible CullingService instances will load before the lighting/audio package/component is fully loaded
+		task.wait(1)
 
-	--// This is a simple instance
-	if CurrentComponentSettings["Instances"] and CurrentComponentSettings["Instances"][ClassName] and CurrentComponentSettings["Instances"][ClassName][InstanceName] then
-		InstanceType = "Simple"
-	end
+		module:SetCullingRangeFolder(RangeFolder) --// Essentially, yield this function until the component loads
 
-	--// This is a complex instances (as in, it is a reference part for a complex instance)
-	if CurrentComponentSettings["ComplexInstances"] and CurrentComponentSettings["ComplexInstances"][InstanceName] then
-		InstanceType = "Complex"
-	end
-
-	--// If it is neither, then do nothing
-	if not InstanceType then
 		return
 	end
 
-	--// Note to self, InstanceTables are just a way of seeing whether the lights are on - these need to be added to the instance tables, for sure, (since something might be culled in for a while) but they also need to be removed once they are culled out, so just be mindful of that (otherwise memory leak)
+	task.wait(0.25) --// Allow some time for descendants to load
 
-	if InstanceType == "Simple" then --// Simple instance
-		CheckInstanceTableExistenceForCullingSystem(CullingDescendant)
-	else --// Complex instance reference part
-		CheckComplexInstanceTableExistenceForCullingSystem(CullingDescendant, CurrentComponentSettings)
+	for _, CullingDescendant in pairs (RangeFolder:GetDescendants()) do
+		local ClassName: string = CullingDescendant.ClassName
+		local InstanceName: string = CullingDescendant.Name
+		
+		local InstanceType: string --// This will either be "Simple" or "Complex", depending if it is a normal instance or a simple one - if it remains nil, that means it is not in the component settings
+	
+		--// This is a simple instance
+		if CurrentComponentSettings["Instances"] and CurrentComponentSettings["Instances"][ClassName] and CurrentComponentSettings["Instances"][ClassName][InstanceName] then
+			InstanceType = "Simple"
+		end
+	
+		--// This is a complex instances (as in, it is a reference part for a complex instance)
+		if CurrentComponentSettings["ComplexInstances"] and CurrentComponentSettings["ComplexInstances"][InstanceName] then
+			InstanceType = "Complex"
+		end
+	
+		--// If it is neither, then do nothing
+		if not InstanceType then
+			continue
+		end
+	
+		--// Note to self, InstanceTables provide two pieces of information (1. a pre-organized search of the workspace so that you don't have to repeat searches and 2. a way of seeing whether the lights are on).  All newly culled instances must be added (since something might be culled in for a while) but they also need to be removed once they are culled out, so just be mindful of that (otherwise memory leak)
+	
+		if InstanceType == "Simple" then --// Simple instance
+			CheckInstanceTableExistenceForCullingSystem(CullingDescendant, ClassName, InstanceName)
+		else --// Complex instance reference part
+			CheckComplexInstanceTableExistenceForCullingSystem(CullingDescendant, CurrentComponentSettings)
+		end
+	
+		SetForCullingSystem(CullingDescendant, InstanceType, CurrentComponentSettings)
 	end
-
-	SetForCullingSystem(CullingDescendant, InstanceType, CurrentComponentSettings)
 end
 
 local function Set(ComponentSettings)
