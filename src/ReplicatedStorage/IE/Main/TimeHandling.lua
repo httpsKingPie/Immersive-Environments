@@ -110,6 +110,7 @@ end
 local function CheckAdjustedTimePeriod(PackageType: string, PackageScope: string)
 	if not PackageHandling[PackageType] then
 		warn("PackageType: ".. tostring(PackageType) .. ", not found within PackageHandling")
+		print(debug.traceback())
 		return false
 	end
 
@@ -803,7 +804,11 @@ function module.Initialize()
 			while true do
 				task.wait(InternalSettings["DayNightWait"])
 
-				AdjustStartTimes()
+				local CurrentAudioScope = PackageHandling:GetCurrentScope("Audio")
+				local CurrentLightingScope = PackageHandling:GetCurrentScope("Lighting")
+
+				AdjustStartTimes("Audio", CurrentAudioScope)
+				AdjustStartTimes("Lighting", CurrentLightingScope)
 			end
 		end)
 

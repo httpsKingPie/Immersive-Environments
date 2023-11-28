@@ -1009,6 +1009,16 @@ local function HandleMultiRegions() --// Handles the transition of when a player
 
 	local PackageNameForRegion = string.split(MostRecentlyJoinedLightingRegion, "-")[1]
 
+	local ActiveWeather: boolean = WeatherHandling:CheckForActiveWeather("Lighting")
+	local WeatherExemption: boolean = WeatherHandling:CheckForWeatherExemption("Lighting", "Region", PackageNameForRegion)
+
+	--// If weather is active and there is not a weather exemption, reset back to the weather
+	if ActiveWeather and not WeatherExemption then
+		PackageHandling:SetCurrentScope("Lighting", "Weather")
+		
+		module:AdjustLighting("RegionChange")
+	end
+
 	--// Basically just treat it as entering a new region!
 	module.RegionEnter(PackageNameForRegion)
 end
@@ -1041,18 +1051,24 @@ function module.RegionEnter(RegionName)
 end
 
 function module.RegionLeave()
-	--// If we are in a multiple regions
-	if #InternalVariables["Current Regions"]["Lighting"] >= 1 then
-		HandleMultiRegions()
-		
-		return
-	end
-
 	local ActiveWeather: boolean = WeatherHandling:CheckForActiveWeather("Lighting")
 	local CurrentScope: string = PackageHandling:GetCurrentScope("Lighting")
 
-	--// If there is active weather
+	local WeatherIsActive = false
+
 	if ActiveWeather and CurrentScope ~= "Weather" then
+		WeatherIsActive = true
+	end
+
+	--// If we are in a multiple regions
+	if #InternalVariables["Current Regions"]["Lighting"] >= 1 then
+		HandleMultiRegions()
+
+		return
+	end
+
+	--// If there is active weather, reset back to the weather
+	if WeatherIsActive then
 		PackageHandling:SetCurrentScope("Lighting", "Weather")
 		
 		module:AdjustLighting("RegionChange")
