@@ -8,11 +8,373 @@ local module = {
 	},
 	
 	["Instances"] = {
-		
+		["BasePart"] = {
+			["Tester"] = {
+				["Material"] = Enum.Material.CrackedLava,
+				["Color"] = Color3.fromRGB(255, 123, 0),
+				["ChanceOfChange"] = 100,
+				["IsLight"] = true,
+				["IsLightOn"] = true,
+			},
+		},
 	},
 
 	["ComplexInstances"] = {
-		
+		["RefPart"] = { --// No changes occur to the reference part
+			
+			["GeneralSettings"] = {
+				["ChanceOfChange"] = 100, --// These are not classes, so adjust this
+				["IsLight"] = true,
+				["IsLightOn"] = true,
+			},
+			
+			["Self"] = {
+				["BasePart"] = {
+					["RefPart"] = {
+						["Material"] = Enum.Material.SmoothPlastic,
+						["Color"] = Color3.fromRGB(66, 60, 255),
+					},
+				},
+				
+				["PointLight"] = {
+					["PointTest"] = {
+						["Brightness"] = 0,
+						["Color"] = Color3.fromRGB(0, 0, 0),
+						["Enabled"] = true,
+						["Range"] = 0,
+					},
+				},
+				
+				["SpotLight"] = {
+					["SpotTest"] = {
+						["Angle"] = 0,
+						["Brightness"] = 0,
+						["Color"] = Color3.fromRGB(0, 0, 0),
+						["Enabled"] = true,
+						["Face"] = Enum.NormalId.Front,
+						["Range"] = 0,
+					},
+				},
+				
+				["SurfaceLight"] = {
+					["SurfTest"] = {
+						["Angle"] = 0,
+						["Brightness"] = 0,
+						["Color"] = Color3.fromRGB(0, 0, 0),
+						["Enabled"] = true,
+						["Face"] = Enum.NormalId.Front,
+						["Range"] = 0,
+					},
+				},
+				
+				["Fire"] = {
+					["FireTest"] = {
+						["Color"] = Color3.fromRGB(0, 0, 0),
+						["Enabled"] = true,
+						["Heat"] = 0,
+						["SecondaryColor"] = Color3.fromRGB(0, 0, 0),
+						["Size"] = 0,
+					},
+				},
+				
+				["ParticleEmitter"] = {
+					["PartTest"] = {
+						["LightEmission"] = 0,
+						["LightInfluence"] = 0,
+						["ZOffset"] = 0,
+						["Acceleration"] = Vector3.new(0, 0, 0),
+						["Drag"] = 0,
+						["VelocityInheritance"] = 0,
+						["EmissionDirection"] = Enum.NormalId.Top,
+						["Enabled"] = true,
+						["Lifetime"] = NumberRange.new(0, 10),
+						["Rate"] = 0,
+						["Rotation"] = NumberRange.new(0, 10),
+						["RotSpeed"] = NumberRange.new(0, 10),
+						["Speed"] = NumberRange.new(0, 10),
+						["SpreadAngle"] = Vector2.new(0, 0),
+					},
+				},
+			},
+			
+			["Child"] = {
+				["SpotLight"] = {
+					["SpotTest"] = {
+						["Angle"] = 70,
+						["Brightness"] = 12,
+						["Color"] = Color3.fromRGB(66, 60, 255),
+						["Enabled"] = true,
+						["Face"] = Enum.NormalId.Bottom,
+						["Range"] = 20,
+					},
+				},
+			
+				--// The below instance settings are only included as a proof of concept.  These will not change anything in the Example Place, unless those instances are created
+
+				["BasePart"] = {
+					["Instance1Name"] = {
+						["Material"] = Enum.Material.SmoothPlastic,
+						["Color"] = Color3.fromRGB(0, 0, 0),
+					},
+				},
+				
+				["PointLight"] = {
+					["PointTest"] = {
+						["Brightness"] = 0,
+						["Color"] = Color3.fromRGB(0, 0, 0),
+						["Enabled"] = true,
+						["Range"] = 0,
+					},
+				},
+				
+				["SurfaceLight"] = {
+					["SurfTest"] = {
+						["Angle"] = 0,
+						["Brightness"] = 0,
+						["Color"] = Color3.fromRGB(0, 0, 0),
+						["Enabled"] = true,
+						["Face"] = Enum.NormalId.Front,
+						["Range"] = 0,
+					},
+				},
+				
+				["Fire"] = {
+					["FireTest"] = {
+						["Color"] = Color3.fromRGB(0, 0, 0),
+						["Enabled"] = true,
+						["Heat"] = 0,
+						["SecondaryColor"] = Color3.fromRGB(0, 0, 0),
+						["Size"] = 0,
+					},
+				},
+				
+				["ParticleEmitter"] = {
+					["PartTest"] = {
+						["LightEmission"] = 0,
+						["LightInfluence"] = 0,
+						["ZOffset"] = 0,
+						["Acceleration"] = Vector3.new(0, 0, 0),
+						["Drag"] = 0,
+						["VelocityInheritance"] = 0,
+						["EmissionDirection"] = Enum.NormalId.Top,
+						["Enabled"] = true,
+						["Lifetime"] = NumberRange.new(0, 10),
+						["Rate"] = 0,
+						["Rotation"] = NumberRange.new(0, 10),
+						["RotSpeed"] = NumberRange.new(0, 10),
+						["Speed"] = NumberRange.new(0, 10),
+						["SpreadAngle"] = Vector2.new(0, 0),
+					},
+				},
+			},
+			
+			["Descendant"] = {
+				["BasePart"] = {
+					["Instance1Name"] = {
+						["Material"] = Enum.Material.SmoothPlastic,
+						["Color"] = Color3.fromRGB(0, 0, 0),
+					},
+				},
+				
+				["PointLight"] = {
+					["PointTest"] = {
+						["Brightness"] = 0,
+						["Color"] = Color3.fromRGB(0, 0, 0),
+						["Enabled"] = true,
+						["Range"] = 0,
+					},
+				},
+				
+				["SpotLight"] = {
+					["SpotTest"] = {
+						["Angle"] = 0,
+						["Brightness"] = 0,
+						["Color"] = Color3.fromRGB(0, 0, 0),
+						["Enabled"] = true,
+						["Face"] = Enum.NormalId.Front,
+						["Range"] = 0,
+					},
+				},
+				
+				["SurfaceLight"] = {
+					["SurfTest"] = {
+						["Angle"] = 0,
+						["Brightness"] = 0,
+						["Color"] = Color3.fromRGB(0, 0, 0),
+						["Enabled"] = true,
+						["Face"] = Enum.NormalId.Front,
+						["Range"] = 0,
+					},
+				},
+				
+				["Fire"] = {
+					["FireTest"] = {
+						["Color"] = Color3.fromRGB(0, 0, 0),
+						["Enabled"] = true,
+						["Heat"] = 0,
+						["SecondaryColor"] = Color3.fromRGB(0, 0, 0),
+						["Size"] = 0,
+					},
+				},
+				
+				["ParticleEmitter"] = {
+					["PartTest"] = {
+						["LightEmission"] = 0,
+						["LightInfluence"] = 0,
+						["ZOffset"] = 0,
+						["Acceleration"] = Vector3.new(0, 0, 0),
+						["Drag"] = 0,
+						["VelocityInheritance"] = 0,
+						["EmissionDirection"] = Enum.NormalId.Top,
+						["Enabled"] = true,
+						["Lifetime"] = NumberRange.new(0, 10),
+						["Rate"] = 0,
+						["Rotation"] = NumberRange.new(0, 10),
+						["RotSpeed"] = NumberRange.new(0, 10),
+						["Speed"] = NumberRange.new(0, 10),
+						["SpreadAngle"] = Vector2.new(0, 0),
+					},
+				},
+			},
+			
+			["Parent"] = {
+				["BasePart"] = {
+					["Instance1Name"] = {
+						["Material"] = Enum.Material.SmoothPlastic,
+						["Color"] = Color3.fromRGB(0, 0, 0),
+					},
+				},
+				
+				["PointLight"] = {
+					["PointTest"] = {
+						["Brightness"] = 0,
+						["Color"] = Color3.fromRGB(0, 0, 0),
+						["Enabled"] = true,
+						["Range"] = 0,
+					},
+				},
+				
+				["SpotLight"] = {
+					["SpotTest"] = {
+						["Angle"] = 0,
+						["Brightness"] = 0,
+						["Color"] = Color3.fromRGB(0, 0, 0),
+						["Enabled"] = true,
+						["Face"] = Enum.NormalId.Front,
+						["Range"] = 0,
+					},
+				},
+				
+				["SurfaceLight"] = {
+					["SurfTest"] = {
+						["Angle"] = 0,
+						["Brightness"] = 0,
+						["Color"] = Color3.fromRGB(0, 0, 0),
+						["Enabled"] = true,
+						["Face"] = Enum.NormalId.Front,
+						["Range"] = 0,
+					},
+				},
+				
+				["Fire"] = {
+					["FireTest"] = {
+						["Color"] = Color3.fromRGB(0, 0, 0),
+						["Enabled"] = true,
+						["Heat"] = 0,
+						["SecondaryColor"] = Color3.fromRGB(0, 0, 0),
+						["Size"] = 0,
+					},
+				},
+				
+				["ParticleEmitter"] = {
+					["PartTest"] = {
+						["LightEmission"] = 0,
+						["LightInfluence"] = 0,
+						["ZOffset"] = 0,
+						["Acceleration"] = Vector3.new(0, 0, 0),
+						["Drag"] = 0,
+						["VelocityInheritance"] = 0,
+						["EmissionDirection"] = Enum.NormalId.Top,
+						["Enabled"] = true,
+						["Lifetime"] = NumberRange.new(0, 10),
+						["Rate"] = 0,
+						["Rotation"] = NumberRange.new(0, 10),
+						["RotSpeed"] = NumberRange.new(0, 10),
+						["Speed"] = NumberRange.new(0, 10),
+						["SpreadAngle"] = Vector2.new(0, 0),
+					},
+				},
+			},
+			
+			["Sibling"] = {
+				["BasePart"] = {
+					["Instance1Name"] = {
+						["Material"] = Enum.Material.SmoothPlastic,
+						["Color"] = Color3.fromRGB(0, 0, 0),
+					},
+				},
+				
+				["PointLight"] = {
+					["PointTest"] = {
+						["Brightness"] = 0,
+						["Color"] = Color3.fromRGB(0, 0, 0),
+						["Enabled"] = true,
+						["Range"] = 0,
+					},
+				},
+				
+				["SpotLight"] = {
+					["SpotTest"] = {
+						["Angle"] = 0,
+						["Brightness"] = 0,
+						["Color"] = Color3.fromRGB(0, 0, 0),
+						["Enabled"] = true,
+						["Face"] = Enum.NormalId.Front,
+						["Range"] = 0,
+					},
+				},
+				
+				["SurfaceLight"] = {
+					["SurfTest"] = {
+						["Angle"] = 0,
+						["Brightness"] = 0,
+						["Color"] = Color3.fromRGB(0, 0, 0),
+						["Enabled"] = true,
+						["Face"] = Enum.NormalId.Front,
+						["Range"] = 0,
+					},
+				},
+				
+				["Fire"] = {
+					["FireTest"] = {
+						["Color"] = Color3.fromRGB(0, 0, 0),
+						["Enabled"] = true,
+						["Heat"] = 0,
+						["SecondaryColor"] = Color3.fromRGB(0, 0, 0),
+						["Size"] = 0,
+					},
+				},
+				
+				["ParticleEmitter"] = {
+					["PartTest"] = {
+						["LightEmission"] = 0,
+						["LightInfluence"] = 0,
+						["ZOffset"] = 0,
+						["Acceleration"] = Vector3.new(0, 0, 0),
+						["Drag"] = 0,
+						["VelocityInheritance"] = 0,
+						["EmissionDirection"] = Enum.NormalId.Top,
+						["Enabled"] = true,
+						["Lifetime"] = NumberRange.new(0, 10),
+						["Rate"] = 0,
+						["Rotation"] = NumberRange.new(0, 10),
+						["RotSpeed"] = NumberRange.new(0, 10),
+						["Speed"] = NumberRange.new(0, 10),
+						["SpreadAngle"] = Vector2.new(0, 0),
+					},
+				},
+			},
+		},
 	},
 	
 	["Terrain"] = {

@@ -1,7 +1,7 @@
 local module = {}
 
 --[[
-    To use IE, simply require the Main module from the server and the client.  I highly recommend placing this in ReplicatedStorage for easy access
+    To use IE, simply require the Main module from the server and the client.  I recommend placing this in ReplicatedStorage for easy access
     Call Main:Run() on both
     On the server, set your default "Audio" and "Lighting" package
     That is all it takes to get IE to run
@@ -13,6 +13,7 @@ local module = {}
 
     The most up-to-date version of IE can always be found on GitHub: https://github.com/httpsKingPie/Immersive-Environments
 
+    * All packages included in this module upon download are examples rigged for the Example place (above).  They are set up as proof of concept*
     Below is example code which gets IE running
 
     (Server script)

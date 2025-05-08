@@ -110,7 +110,7 @@ local function CheckInstanceTableExistence(InstanceName, ClassName) --// Note fo
 			}
 		}
 	}
-	]]	
+	]]
 
 	if InstanceTable[ClassName] then --// The ClassName does exist (used for parts that may have the same name of different classes
 		if InstanceTable[ClassName][InstanceName] then --// There is a table of reference parts, or at least one has been checked for
@@ -239,6 +239,10 @@ local function CheckComplexInstanceTableExistence(ReferencePartName, Relationshi
 				local Descendants: table = ReferencePart:GetDescendants()
 
 				for _, DescendantInstance: Instance in pairs (Descendants) do
+					if DescendantInstance.Parent == ReferencePart then --// Filter out children [even though they are descendants, we don't want them to fall into two logic camps]
+						continue
+					end
+
 					CheckAndAddToComplexInstanceTable(DescendantInstance)
 				end
 
@@ -381,6 +385,10 @@ local function CheckComplexInstanceTableExistenceForCullingSystem(ReferencePart:
 			local Descendants: table = ReferencePart:GetDescendants()
 
 			for _, DescendantInstance: Instance in pairs (Descendants) do --// Parse through all the children of the reference part
+				if DescendantInstance.Parent == ReferencePart then --// Filter out children [even though they are descendants, we don't want them to fall into two logic camps]
+					continue
+				end
+
 				CheckAndAddToComplexInstanceTable(ClassSettings, ReferencePart, Relationship, DescendantInstance)
 			end
 
@@ -635,7 +643,7 @@ local function Set(ComponentSettings)
 		end
 	end
 
-	if ComponentSettings["Instances"] then		
+	if ComponentSettings["Instances"] then
 		for ClassName, Instances in pairs (ComponentSettings["Instances"]) do --// In settings right now
 			for InstanceName, SpecificSettings in pairs (Instances) do
 				CheckInstanceTableExistence(InstanceName, ClassName)

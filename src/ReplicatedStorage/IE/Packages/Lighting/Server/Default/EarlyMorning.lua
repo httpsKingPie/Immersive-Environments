@@ -10,14 +10,15 @@ local module = {
 	["Instances"] = {
 		["BasePart"] = {
 			["Tester"] = {
-				["Material"] = Enum.Material.CorrodedMetal,
-				["Color"] = Color3.fromRGB(0, 255, 0),
+				["Material"] = Enum.Material.Cardboard,
+				["Color"] = Color3.fromRGB(253, 255, 0),
 				["ChanceOfChange"] = 100,
 				["IsLight"] = true,
 				["IsLightOn"] = true,
 			},
 		},
 		
+		--// The below instance settings are only included as a proof of concept.  These will not change anything in the Example Place, unless those instances are created
 		["PointLight"] = {
 			["Instance1Name"] = {
 				["Brightness"] = 0,
@@ -105,9 +106,9 @@ local module = {
 			
 			["Self"] = {
 				["BasePart"] = {
-					["Instance1Name"] = {
+					["RefPart"] = {
 						["Material"] = Enum.Material.SmoothPlastic,
-						["Color"] = Color3.fromRGB(0, 0, 0),
+						["Color"] = Color3.fromRGB(60, 255, 255),
 					},
 				},
 				
@@ -173,6 +174,19 @@ local module = {
 			},
 			
 			["Child"] = {
+				["SpotLight"] = {
+					["SpotTest"] = {
+						["Angle"] = 60,
+						["Brightness"] = 17,
+						["Color"] = Color3.fromRGB(60, 255, 255),
+						["Enabled"] = true,
+						["Face"] = Enum.NormalId.Bottom,
+						["Range"] = 100,
+					},
+				},
+			
+				--// The below instance settings are only included as a proof of concept.  These will not change anything in the Example Place, unless those instances are created
+
 				["BasePart"] = {
 					["Instance1Name"] = {
 						["Material"] = Enum.Material.SmoothPlastic,
@@ -185,17 +199,6 @@ local module = {
 						["Brightness"] = 0,
 						["Color"] = Color3.fromRGB(0, 0, 0),
 						["Enabled"] = true,
-						["Range"] = 0,
-					},
-				},
-				
-				["SpotLight"] = {
-					["SpotTest"] = {
-						["Angle"] = 0,
-						["Brightness"] = 0,
-						["Color"] = Color3.fromRGB(0, 0, 0),
-						["Enabled"] = true,
-						["Face"] = Enum.NormalId.Front,
 						["Range"] = 0,
 					},
 				},
